@@ -1,4 +1,4 @@
-#include "stdbool.h"
+mv #include "stdbool.h"
 extern void svf_assert(bool);
 int main(int i) {
     int a, c;

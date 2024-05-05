@@ -17,9 +17,9 @@ doxygen/
 *~
 *.o
 *.ll
-!Assignment-1/Tests/testcases/*/*.bc
-!Assignment-2/Tests/testcases/*/*.bc
-!Assignment-3/Tests/testcases/*/*.bc
+!Assignment-1/Tests/testcases/*/*.ll
+!Assignment-2/Tests/testcases/*/*.ll
+!Assignment-3/Tests/testcases/*/*.ll
 *.dot
 *.out
 *.bc
