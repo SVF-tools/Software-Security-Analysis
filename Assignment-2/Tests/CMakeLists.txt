@@ -5,7 +5,7 @@ set_target_properties(assign-2 PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 
-file(GLOB ass2files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${CMAKE_CURRENT_SOURCE_DIR}/testcases/sse/*.bc")
+file(GLOB ass2files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${CMAKE_CURRENT_SOURCE_DIR}/testcases/sse/*.ll")
 foreach(filename ${ass2files})
     add_test(
             NAME assign2/${filename}
