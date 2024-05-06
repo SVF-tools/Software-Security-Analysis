@@ -70,8 +70,7 @@ public:
     virtual ~AbsExe() {
     }
 protected:
+    //Record the byte size of an object
     Map<NodeID, AbstractValue> obj2size;
-    // preAbsTrace and postAbsTrace
-
 };
 }
