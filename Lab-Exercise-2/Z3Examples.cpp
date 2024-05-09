@@ -1,4 +1,4 @@
-//===- Z3ExampleMgr.cpp -- Manual assertion-based verification (Z3 Example) ------------------//
+//===- Z3Examples.cpp -- Manual assertion-based verification (Z3 Example) ------------------//
 //
 //                     SVF: Static Value-Flow Analysis
 //
@@ -25,7 +25,7 @@
  * Created on: Feb 19, 2024
  */
 
-#include "Z3ExampleMgr.h"
+#include "Z3Examples.h"
 using namespace z3;
 using namespace SVF;
 
@@ -45,7 +45,7 @@ using namespace SVF;
         assert(x==5);
     }
 */
-void Z3ExampleMgr::test0() {
+void Z3Examples::test0() {
 
     /// TODO: your code starts from here
 }
@@ -61,7 +61,7 @@ void Z3ExampleMgr::test0() {
         assert(b>0);
     }
 */
-void Z3ExampleMgr::test1() {
+void Z3Examples::test1() {
 
     /// TODO: your code starts from here
 }
@@ -82,7 +82,7 @@ void Z3ExampleMgr::test1() {
         assert(b>3);
     }
 */
-void Z3ExampleMgr::test2() {
+void Z3Examples::test2() {
 
     /// TODO: your code starts from here
 }
@@ -106,7 +106,7 @@ void Z3ExampleMgr::test2() {
         assert(x==10);
     }
 */
-void Z3ExampleMgr::test3() {
+void Z3Examples::test3() {
 
     /// TODO: your code starts from here
 }
@@ -131,7 +131,7 @@ void Z3ExampleMgr::test3() {
         assert((a + b)>20);
     }
 */
-void Z3ExampleMgr::test4() {
+void Z3Examples::test4() {
 
     /// TODO: your code starts from here
 }
@@ -163,7 +163,7 @@ void Z3ExampleMgr::test4() {
        assert(z==15);
     }
 */
-void Z3ExampleMgr::test5() {
+void Z3Examples::test5() {
 
     /// TODO: your code starts from here
 }
@@ -182,7 +182,7 @@ void Z3ExampleMgr::test5() {
     assert(b>=5);
     }
 */
-void Z3ExampleMgr::test6() {
+void Z3Examples::test6() {
 
     /// TODO: your code starts from here
 }
@@ -200,7 +200,7 @@ int main() {
   assert(x== 3 && y==2);
 }
 */
-void Z3ExampleMgr::test7() {
+void Z3Examples::test7() {
 
     /// TODO: your code starts from here
 }

@@ -1,4 +1,4 @@
-#include "Z3ExampleMgr.h"
+#include "Z3Examples.h"
 #include "Util/Options.h"
 
 using namespace z3;
@@ -12,7 +12,7 @@ using namespace SVFUtil;
  // e.g. To run test0, set "args": ["0"] in file'.vscode/launch.json'
  */
 int main(int argc, char **argv) {
-    Z3ExampleMgr* z3Mgr = new Z3ExampleMgr(1000);
+    Z3Examples* z3Mgr = new Z3Examples(1000);
     int points = 0;
     int n = (argc == 1) ? 0 : atoi(argv[1]);
     bool result;

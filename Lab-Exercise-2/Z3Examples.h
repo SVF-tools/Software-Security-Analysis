@@ -1,4 +1,4 @@
-//===- Z3ExampleMgr.h -- Manual assertion-based verification (Z3 Example) ------------------//
+//===- Z3Examples.h -- Manual assertion-based verification (Z3 Example) ------------------//
 //
 //                     SVF: Static Value-Flow Analysis
 //
@@ -25,8 +25,8 @@
  * Created on: Feb 19, 2024
  */
 
-#ifndef SOFTWARE_SECURITY_ANALYSIS_Z3EXAMPLEMGR_H
-#define SOFTWARE_SECURITY_ANALYSIS_Z3EXAMPLEMGR_H
+#ifndef SOFTWARE_SECURITY_ANALYSIS_Z3Examples_H
+#define SOFTWARE_SECURITY_ANALYSIS_Z3Examples_H
 
 #include "Z3Mgr.h"
 #include <iostream>
@@ -36,10 +36,10 @@
 #include <iomanip>
 
 namespace SVF{
-class Z3ExampleMgr : public Z3Mgr{
+class Z3Examples : public Z3Mgr{
 
 public:
-    Z3ExampleMgr(u32_t max) : Z3Mgr(max), maxNumOfExpr(max), currentExprIdx(0) {}
+    Z3Examples(u32_t max) : Z3Mgr(max), maxNumOfExpr(max), currentExprIdx(0) {}
 
     inline z3::expr getZ3Expr(u32_t val) {
         return ctx.int_val(val);
@@ -132,4 +132,4 @@ private:
 };
 }
 
-#endif //SOFTWARE_SECURITY_ANALYSIS_Z3EXAMPLEMGR_H
+#endif //SOFTWARE_SECURITY_ANALYSIS_Z3Examples_H

@@ -146,7 +146,7 @@ namespace SVF
         static u32_t currentExprIdx;
 
     private:
-        AbstractState es;
+        AbstractState as;
         Map<std::string, NodeID> _strToID;
     };
 }
