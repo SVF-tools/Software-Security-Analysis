@@ -56,7 +56,7 @@ namespace SVF
 
         void reset() {
             _strToID.clear();
-            es.clear();
+            as.clear();
         };
 
         NodeID getInternalID(NodeID addr)
