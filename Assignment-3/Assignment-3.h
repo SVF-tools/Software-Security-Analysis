@@ -36,9 +36,8 @@ public:
     void handleWTONode(const ICFGNode* node);
     virtual void handleCycle(const ICFGWTOCycle* cycle);
 
-    virtual void handleFunc(const SVFFunction* func) {
-        AbstractInterpretation::handleFunc(func);
-    }
+    /// Program entry
+    virtual void analyse();
 
     virtual void updateAbsState(const SVFStmt* stmt);
     virtual void bufOverflowDetection(const SVFStmt* stmt);
@@ -62,9 +61,9 @@ public:
     // helper functions related to gep
     void initSVFVar(AbstractState& es, u32_t varId);
     void initObjVar(AbstractState& es, const ObjVar *objVar, u32_t varId);
-    AbstractValue getGepObjAddress(AbstractState& es, u32_t pointer, APOffset offset);
-    AbstractValue getByteOffset(const AbstractState& es, const GepStmt *gep);
-    AbstractValue getElemIndex(const AbstractState& es, const GepStmt *gep);
+    AddressValue getGepObjAddress(AbstractState& es, u32_t pointer, APOffset offset);
+    IntervalValue getByteOffset(const AbstractState& es, const GepStmt *gep);
+    IntervalValue getElementIndex(const AbstractState& es, const GepStmt *gep);
 
     /// Destructor
     virtual ~AbsExe() {

@@ -53,29 +53,29 @@ void AbsExe::initObjVar(AbstractState& as, const ObjVar *objVar, u32_t varId)
         as[varId] = AddressValue(AbstractState::getVirtualMemAddress(varId));
 }
 
-AbstractValue AbsExe::getGepObjAddress(AbstractState& as, u32_t pointer, APOffset offset) {
+AddressValue AbsExe::getGepObjAddress(AbstractState& as, u32_t pointer, APOffset offset) {
     AbstractValue addrs = as[pointer];
-    AbstractValue ret = AddressValue();
+    AddressValue ret;
     for (const auto &addr: addrs.getAddrs())
     {
         s64_t baseObj = AbstractState::getInternalID(addr);
         if (baseObj == 0)
         {
-            ret.insertAddr(AbstractState::getVirtualMemAddress(0));
+            ret.insert(AbstractState::getVirtualMemAddress(0));
             continue;
         }
         assert(SVFUtil::isa<ObjVar>(_svfir->getGNode(baseObj)) && "Fail to get the base object address!");
         NodeID gepObj = _svfir->getGepObjVar(baseObj, offset);
         initSVFVar(as, gepObj);
-        ret.insertAddr(AbstractState::getVirtualMemAddress(gepObj));
+        ret.insert(AbstractState::getVirtualMemAddress(gepObj));
     }
     return ret;
 }
 
-AbstractValue AbsExe::getByteOffset(const AbstractState& as, const GepStmt *gep) {
+IntervalValue AbsExe::getByteOffset(const AbstractState& as, const GepStmt *gep) {
     if (gep->isConstantOffset())
         return IntervalValue((s64_t)gep->accumulateConstantByteOffset());
-    AbstractValue res = IntervalValue(0); // Initialize the result interval 'res' to 0.
+    IntervalValue res(0); // Initialize the result interval 'res' to 0.
     // Loop through the offsetVarAndGepTypePairVec in reverse order.
     for (int i = gep->getOffsetVarAndGepTypePairVec().size() - 1; i >= 0; i--)
     {
@@ -133,10 +133,10 @@ AbstractValue AbsExe::getByteOffset(const AbstractState& as, const GepStmt *gep)
     return res; // Return the resulting byte offset as an IntervalValue.
 }
 
-AbstractValue AbsExe::getElemIndex(const AbstractState& as, const GepStmt *gep) {
+IntervalValue AbsExe::getElementIndex(const AbstractState& as, const GepStmt *gep) {
     if (gep->isConstantOffset())
         return IntervalValue((s64_t)gep->accumulateConstantOffset());
-    AbstractValue res = IntervalValue(0);
+    IntervalValue res(0);
     for (int i = gep->getOffsetVarAndGepTypePairVec().size() - 1; i >= 0; i--)
     {
         AccessPath::IdxOperandPair IdxVarAndType =

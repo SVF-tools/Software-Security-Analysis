@@ -120,7 +120,7 @@ void AbsExe::handleCycle(const ICFGWTOCycle *cycle)
         // No ES on the in edges - Infeasible block
         return;
     }
-    AbstractState pre_es = _preAbsTrace[cycle->head()];
+    AbstractState pre_as = _preAbsTrace[cycle->head()];
     // set -widen-delay
     s32_t widen_delay = Options::WidenDelay();
     bool incresing = true;
@@ -489,3 +489,30 @@ void AbsExe::updateStateOnSelect(const SelectStmt *select) {
     }
 }
 
+void AbsExe::analyse()
+{
+    // handle Global ICFGNode of SVFModule
+    handleGlobalNode();
+    getAbsState(_icfg->getGlobalICFGNode())[PAG::getPAG()->getBlkPtr()] = IntervalValue::top();
+    if (const SVFFunction* fun = _svfir->getModule()->getSVFFunction("main"))
+    {
+        ICFGWTO* wto = _funcToWTO[fun];
+        // set function entry ES
+        for (auto it = wto->begin(); it!= wto->end(); ++it)
+        {
+            const ICFGWTOComp* cur = *it;
+            if (const ICFGWTONode* vertex = SVFUtil::dyn_cast<ICFGWTONode>(cur))
+            {
+                handleWTONode(vertex->node());
+            }
+            else if (const ICFGWTOCycle* cycle = SVFUtil::dyn_cast<ICFGWTOCycle>(cur))
+            {
+                handleCycle(cycle);
+            }
+            else
+            {
+                assert(false && "unknown WTO type!");
+            }
+        }
+    }
+}

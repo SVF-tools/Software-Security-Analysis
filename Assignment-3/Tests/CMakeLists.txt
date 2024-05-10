@@ -1,5 +1,5 @@
 include_directories(../ ${Z3MGR_DIR})
-add_executable(assign-3 test-absexe.cpp)
+add_executable(assign-3 test-ae.cpp)
 target_link_libraries(assign-3 ${LIB} assign3)
 set_target_properties(assign-3 PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
