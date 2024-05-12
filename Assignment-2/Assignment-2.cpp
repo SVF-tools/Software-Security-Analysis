@@ -73,7 +73,7 @@ bool SSE::handleBranch(const IntraCFGEdge* edge){
 }
 
 /// TODO: Implement handling of non-branch statement inside a function
-/// including handling of (1) AddrStmt, (2) CopyStmt, (3) LoadStmt, (4) StoreStmt and (5) GepStmt
+/// including handling of (1) AddrStmt, (2) CopyStmt, (3) LoadStmt, (4) StoreStmt, (5) GepStmt and (6) any other types of intra SVFStmts
 /// Return true means a feasible path, false otherwise
 bool SSE::handleNonBranch(const IntraCFGEdge* edge) {
 
