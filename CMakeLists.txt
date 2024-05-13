@@ -12,6 +12,11 @@ project(Software-Security-Analysis
 # Check if the LLVM_DIR environment variable is defined and set it accordingly
 if (DEFINED LLVM_DIR)
     set(ENV{LLVM_DIR} "${LLVM_DIR}")
+elseif (DEFINED ENV{LLVM_DIR})
+    set(LLVM_DIR $ENV{LLVM_DIR})
+else()
+    message(FATAL_ERROR "LLVM_DIR (root directory of LLVM) is not specified " \
+                        "or found in the environment. Aborting.")
 endif()
 
 # If the LLVM_DIR environment variable is set, configure CMake build flags and standards for C++ and C
@@ -89,6 +94,16 @@ if(NOT LLVM_ENABLE_RTTI)
 endif()
 if(NOT LLVM_ENABLE_EH)
     add_compile_options("-fno-exceptions")
+endif()
+
+# Check if the SVF_DIR environment variable is defined and set it accordingly
+if (DEFINED SVF_DIR)
+    set(ENV{SVF_DIR} "${SVF_DIR}")
+elseif (DEFINED ENV{SVF_DIR})
+    set(SVF_DIR $ENV{SVF_DIR})
+else()
+    message(FATAL_ERROR "SVF_DIR (root directory of SVF) is not specified" \
+                        "or found in the environment. Aborting.")
 endif()
 
 # Locate and configure SVF package based on the build type (Debug or Release)
