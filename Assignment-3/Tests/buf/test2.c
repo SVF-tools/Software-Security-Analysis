@@ -23,13 +23,12 @@ void CWE121_Stack_Based_Buffer_Overflow__CWE129_rand_01_bad() {
     int buffer[10] = { 0 };
     /* POTENTIAL FLAW: Attempt to write to an index of the array that is above the upper bound
     * This code does check to see if the array index is negative */
-    if (data >= 0 && data < 10) { // Adding condition to prevent out-of-bounds write
+    if (data >= 0)
+    {
         buffer[data] = 1;
-        // Simulating buffer access function by directly accessing the buffer
-        printIntLine(buffer[data]);
-    } else if (data >= 10) {
-        printLine("ERROR: Array index is out of bounds.");
-    } else {
+    }
+    else
+    {
         printLine("ERROR: Array index is negative.");
     }
 

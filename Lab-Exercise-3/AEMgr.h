@@ -1,4 +1,4 @@
-//===- AE.cpp -- Abstract Execution---------------------------------//
+//===- AEMgr.h -- Abstract Execution Manual Translations---------------------------------//
 //
 //                     SVF: Static Value-Flow Analysis
 //
@@ -18,14 +18,11 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
-// The implementation is based on
-// Xiao Cheng, Jiawei Wang and Yulei Sui. Precise Sparse Abstract Execution via Cross-Domain Interaction.
-// 46th International Conference on Software Engineering. (ICSE24)
 //===----------------------------------------------------------------------===//
 
 
 //
-// Created by Jiawei Wang on 2024/1/10.
+// Created on 2024/1/10.
 //
 
 #include "Util/SVFBugReport.h"

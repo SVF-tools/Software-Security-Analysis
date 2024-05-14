@@ -20,7 +20,7 @@
 //
 //===----------------------------------------------------------------------===//
 /*
- * Taint analysis
+ * Graph reachability, Andersen's pointer analysis and taint analysis
  *
  * Created on: Feb 18, 2024
  */
@@ -28,7 +28,6 @@
 #ifndef SOFTWARE_SECURITY_ANALYSIS_ASSIGNMENT_1_H
 #define SOFTWARE_SECURITY_ANALYSIS_ASSIGNMENT_1_H
 
-#include "GraphTraversal.h"
 #include "SVF-LLVM/LLVMUtil.h"
 #include "SVF-LLVM/SVFIRBuilder.h"
 #include "WPA/Andersen.h"
@@ -39,7 +38,7 @@ namespace fs = std::filesystem;
 
 using namespace SVF;
 
-class ICFGTraversal : public GraphTraversal {
+class ICFGTraversal {
 public:
 
     typedef std::vector<const SVFInstruction *> CallStack;
@@ -49,8 +48,8 @@ public:
 
     ICFGTraversal(SVFIR *p) : pag(p) {}
 
-    /// TODO: to be implemented context sensitive DFS
-    void DFS(const ICFGNode *src, const ICFGNode *dst);
+    /// TODO: to be implemented context sensitive reachability
+    void reachability(const ICFGNode *src, const ICFGNode *dst);
 
     // Identify source nodes on ICFG (i.e., call instruction with its callee function named 'src')
     virtual std::set<const CallICFGNode *> &identifySources() {
@@ -74,6 +73,21 @@ public:
         return sinks;
     }
 
+    const std::set<std::string> &getPaths() {
+        return paths;
+    }
+
+    void printICFGPath() {
+        std::string singlePath = "START: ";
+        for (unsigned node : path)
+        {
+            singlePath.append(std::to_string(node));
+            singlePath.append("->");
+        }
+        singlePath += "END";
+        paths.insert(singlePath);
+    }
+
 protected:
     std::set<const CallICFGNode *> sources;
     std::set<const CallICFGNode *> sinks;
@@ -81,6 +95,8 @@ protected:
     CallStack callstack;
 
     SVFIR *pag;
+    std::set<std::string> paths;
+    std::vector<unsigned> path;
 };
 
 class AndersenPTA : public SVF::AndersenBase {
@@ -99,7 +115,7 @@ private:
     void processAllAddr();
 
     // To be implemented
-    void solveWorklist() override;
+    void constraintSolving() override;
 
     /// Add copy edge on constraint graph
     virtual bool addCopyEdge(SVF::NodeID src, SVF::NodeID dst) {
@@ -127,7 +143,7 @@ public:
     std::set<const CallICFGNode *> &identifySinks() override;
 
     // TODO: implement the path printing
-    void printICFGPath() override;
+    void printICFGPath();
 
     // TODO: Source and sink function names read from SrcSnk.txt
     void readSrcSnkFromFile(const std::string &filename);
@@ -141,7 +157,6 @@ private:
     // default source and sink function name API if SrcSnk.txt is not added
     std::set<std::string> checker_source_api;
     std::set<std::string> checker_sink_api;
-
 };
 
 #endif

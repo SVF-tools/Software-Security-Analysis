@@ -1,7 +1,6 @@
 include_directories(${GTRAV_DIR})
 file(GLOB SOURCES
         Assignment-1.cpp
-        ${GTRAV_DIR}/GraphTraversal.cpp
 )
 set(LIB ${SVF_LIB} ${llvm_libs})
 add_library(assign1 ${SOURCES})

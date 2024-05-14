@@ -1,12 +1,11 @@
-; ModuleID = 'CWE_buf_rand.ll'
-source_filename = "CWE_buf_rand.c"
+; ModuleID = './test2.ll'
+source_filename = "test2.c"
 target datalayout = "e-m:o-i64:64-i128:128-n32:64-S128"
 target triple = "arm64-apple-macosx14.0.0"
 
 @.str = private unnamed_addr constant [4 x i8] c"%d\0A\00", align 1
 @.str.1 = private unnamed_addr constant [4 x i8] c"%s\0A\00", align 1
-@.str.2 = private unnamed_addr constant [37 x i8] c"ERROR: Array index is out of bounds.\00", align 1
-@.str.3 = private unnamed_addr constant [32 x i8] c"ERROR: Array index is negative.\00", align 1
+@.str.2 = private unnamed_addr constant [32 x i8] c"ERROR: Array index is negative.\00", align 1
 
 ; Function Attrs: noinline nounwind ssp uwtable(sync)
 define void @printIntLine(i32 noundef %value) #0 {
@@ -35,50 +34,31 @@ entry:
   %rem = srem i32 %call1, 100
   call void @llvm.memset.p0.i64(ptr align 4 %buffer, i8 0, i64 40, i1 false)
   %cmp = icmp sge i32 %rem, 0
-  br i1 %cmp, label %land.lhs.true, label %if.else
+  br i1 %cmp, label %if.then, label %if.else
 
-land.lhs.true:                                    ; preds = %entry
-  %cmp3 = icmp slt i32 %rem, 10
-  br i1 %cmp3, label %if.then, label %if.else
-
-if.then:                                          ; preds = %land.lhs.true
+if.then:                                          ; preds = %entry
   %idxprom = sext i32 %rem to i64
   %arrayidx = getelementptr inbounds [10 x i32], ptr %buffer, i64 0, i64 %idxprom
   store i32 1, ptr %arrayidx, align 4
-  %idxprom5 = sext i32 %rem to i64
-  %arrayidx6 = getelementptr inbounds [10 x i32], ptr %buffer, i64 0, i64 %idxprom5
-  %0 = load i32, ptr %arrayidx6, align 4
-  call void @printIntLine(i32 noundef %0)
-  br label %if.end11
+  br label %if.end
 
-if.else:                                          ; preds = %land.lhs.true, %entry
-  %cmp7 = icmp sge i32 %rem, 10
-  br i1 %cmp7, label %if.then9, label %if.else10
-
-if.then9:                                         ; preds = %if.else
+if.else:                                          ; preds = %entry
   call void @printLine(ptr noundef @.str.2)
   br label %if.end
 
-if.else10:                                        ; preds = %if.else
-  call void @printLine(ptr noundef @.str.3)
-  br label %if.end
-
-if.end:                                           ; preds = %if.else10, %if.then9
-  br label %if.end11
-
-if.end11:                                         ; preds = %if.end, %if.then
+if.end:                                           ; preds = %if.else, %if.then
   br label %for.cond
 
-for.cond:                                         ; preds = %for.inc, %if.end11
-  %i.0 = phi i32 [ 0, %if.end11 ], [ %inc, %for.inc ]
-  %cmp12 = icmp slt i32 %i.0, 10
-  br i1 %cmp12, label %for.body, label %for.end
+for.cond:                                         ; preds = %for.inc, %if.end
+  %i.0 = phi i32 [ 0, %if.end ], [ %inc, %for.inc ]
+  %cmp3 = icmp slt i32 %i.0, 10
+  br i1 %cmp3, label %for.body, label %for.end
 
 for.body:                                         ; preds = %for.cond
-  %idxprom14 = sext i32 %i.0 to i64
-  %arrayidx15 = getelementptr inbounds [10 x i32], ptr %buffer, i64 0, i64 %idxprom14
-  %1 = load i32, ptr %arrayidx15, align 4
-  call void @printIntLine(i32 noundef %1)
+  %idxprom5 = sext i32 %i.0 to i64
+  %arrayidx6 = getelementptr inbounds [10 x i32], ptr %buffer, i64 0, i64 %idxprom5
+  %0 = load i32, ptr %arrayidx6, align 4
+  call void @printIntLine(i32 noundef %0)
   br label %for.inc
 
 for.inc:                                          ; preds = %for.body

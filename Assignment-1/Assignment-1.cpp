@@ -20,7 +20,7 @@
 //
 //===----------------------------------------------------------------------===//
 /*
- * Taint analysis
+ * Graph reachability, Andersen's pointer analysis and taint analysis
  *
  * Created on: Feb 18, 2024
  */
@@ -38,14 +38,15 @@ using namespace llvm;
 using namespace std;
 
 /// TODO: Implement your context-sensitive ICFG traversal here to traverse each program path (once for any loop) from src to dst
-void ICFGTraversal::DFS(const ICFGNode *src, const ICFGNode *dst) {
+/// Printout the path from src to dst by calling printICFGPath
+void ICFGTraversal::reachability(const ICFGNode *src, const ICFGNode *dst) {
 
     /// TODO: your code starts from here
 }
 
 
 // TODO: Implement your Andersen's Algorithm here
-void AndersenPTA::solveWorklist() {
+void AndersenPTA::constraintSolving() {
 
     /// TODO: your code starts from here
 }
@@ -106,7 +107,7 @@ void TaintGraphTraversal::taintChecking() {
     for (const CallICFGNode *src: identifySources()) {
         for (const CallICFGNode *snk: identifySinks()) {
             if (aliasCheck(src, snk))
-                DFS(src, snk);
+                reachability(src, snk);
         }
     }
 }

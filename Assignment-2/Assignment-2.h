@@ -85,7 +85,7 @@ public:
     virtual void printICFGPath();
 
     /// Depth-first-search ICFGTraversal on ICFG from src node to dst node
-    void DFS(const ICFGEdge *curEdge, const ICFGNode *sink);
+    void reachability(const ICFGEdge *curEdge, const ICFGNode *sink);
 
     void analyse();
 

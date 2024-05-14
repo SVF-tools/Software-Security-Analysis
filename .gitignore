@@ -18,8 +18,7 @@ doxygen/
 *.o
 *.ll
 !Assignment-1/Tests/testcases/*/*.ll
-!Assignment-2/Tests/testcases/*/*.ll
-!Assignment-3/Tests/testcases/*/*.ll
+!Assignment-2/Tests/testcases/*.ll
 *.dot
 *.out
 *.bc
@@ -28,5 +27,12 @@ doxygen/
 *.status
 *.obj
 *.svf
+*.cmake
+MakeFile
+CMakeFiles
+CMakeCache.txt
+*.tcl
+bin
+lib
 cmake-build-debug/
 compile_commands.json

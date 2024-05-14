@@ -1,4 +1,4 @@
-//===- CodeGraph.cpp -- -------------------------------------//
+//===- SVF IR and CodeGraph -- -------------------------------------//
 //
 //                     SVF: Static Value-Flow Analysis
 //
@@ -21,7 +21,7 @@
 //===-----------------------------------------------------------------------===//
 
 /*
- // SVFIR ICFG Generation
+ // CodeGraphs including PAG, ICFG and ConstraintGraph 
  //
  */
 
@@ -62,17 +62,21 @@ int main(int argc, char ** argv) {
 
     /// Build Program Assignment Graph (SVFIR or PAG)
     SVFIRBuilder builder(svfModule);
-    SVFIR *svfir = builder.build();
+    SVFIR *pag = builder.build();
     // Dump pag
-    svfir->dump(svfModule->getModuleIdentifier() + ".pag");
+    pag->dump(svfModule->getModuleIdentifier() + ".pag");
     /// ICFG
-    ICFG *icfg = svfir->getICFG();
-    // Dump icfg
+    ICFG *icfg = pag->getICFG();
+    /// Dump icfg
     icfg->dump(svfModule->getModuleIdentifier() + ".icfg");
+    /// Create and dump ConstraintGraph
+    ConstraintGraph*  consCG = new ConstraintGraph(pag);
+    consCG->dump(svfModule->getModuleIdentifier() + ".consG");
 
+    std::cout  <<  "\n\nPrinting code graphs...\n\n";
     // iterate each SVFVar on SVFIR
     std::map<NodeID, std::string> svfVarMap;
-    for(SVFIR::iterator p = svfir->begin(); p != svfir->end();p++)
+    for(SVFIR::iterator p = pag->begin(); p != pag->end();p++)
     {
         SVFVar *n = p->second;
         svfVarMap[p->first] =  n->toString();

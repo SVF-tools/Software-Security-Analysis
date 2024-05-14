@@ -34,7 +34,7 @@ using namespace llvm;
 using namespace z3;
 
 /// TODO: Implement your context-sensitive ICFG traversal here to traverse each program path (once for any loop) from src to dst
-void SSE::DFS(const ICFGEdge *curEdge, const ICFGNode *sink) {
+void SSE::reachability(const ICFGEdge *curEdge, const ICFGNode *sink) {
 
     /// TODO: your code starts from here
 }
@@ -125,11 +125,11 @@ bool SSE::assertchecking(const ICFGNode* inode){
 void SSE::analyse()
 {
     for (const ICFGNode *src : identifySources()) {
-        assert(SVFUtil::isa<GlobalICFGNode>(src) && "DFS should start with GlobalICFGNode!");
+        assert(SVFUtil::isa<GlobalICFGNode>(src) && "reachability should start with GlobalICFGNode!");
         for (const ICFGNode *sink: identifySinks()) {
             const IntraCFGEdge startEdge(nullptr,const_cast<ICFGNode*>(src));
             handleIntra(&startEdge);
-            DFS(&startEdge, sink);
+            reachability(&startEdge, sink);
             resetSolver();
         }
     }

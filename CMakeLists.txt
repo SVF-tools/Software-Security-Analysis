@@ -189,7 +189,6 @@ enable_testing()
 
 # Add subdirectories for various components of the project
 add_subdirectory(HelloWorld)
-add_subdirectory(CodeGraph)
 add_subdirectory(SVFIR)
 
 add_subdirectory(Lab-Exercise-1)

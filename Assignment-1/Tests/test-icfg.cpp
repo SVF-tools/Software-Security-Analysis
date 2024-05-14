@@ -16,7 +16,7 @@ void Test(std::vector<std::string>& moduleNameVec) {
     ICFGTraversal *gt = new ICFGTraversal(pag);
     for (const CallICFGNode *src: gt->identifySources()) {
         for (const CallICFGNode *snk: gt->identifySinks()) {
-            gt->DFS(src, snk);
+            gt->reachability(src, snk);
         }
     }
     for(auto path : gt->getPaths())

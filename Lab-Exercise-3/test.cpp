@@ -1,4 +1,4 @@
-//===- ae.cpp -- Abstract Execution -------------------------------------//
+//===- test.cpp -- Abstract Execution -------------------------------------//
 //
 //                     SVF: Static Value-Flow Analysis
 //
@@ -21,9 +21,8 @@
 //===-----------------------------------------------------------------------===//
 
 /*
- // Abstract Execution
+ // Abstract Execution tests
  //
- // Author: Jiawei Wang, Xiao Cheng, Jiawei Yang, Jiawei Ren, Yulei Sui
  */
 #include "SVF-LLVM/SVFIRBuilder.h"
 #include "WPA/WPAPass.h"
