@@ -76,17 +76,9 @@ public:
     const std::set<std::string> &getPaths() {
         return paths;
     }
-
-    void printICFGPath() {
-        std::string singlePath = "START: ";
-        for (unsigned node : path)
-        {
-            singlePath.append(std::to_string(node));
-            singlePath.append("->");
-        }
-        singlePath += "END";
-        paths.insert(singlePath);
-    }
+    
+    /// TODO: to be implemented
+    void collectICFGPath();
 
 protected:
     std::set<const CallICFGNode *> sources;
@@ -115,7 +107,7 @@ private:
     void processAllAddr();
 
     // To be implemented
-    void constraintSolving() override;
+    void solveWorklist() override;
 
     /// Add copy edge on constraint graph
     virtual bool addCopyEdge(SVF::NodeID src, SVF::NodeID dst) {
@@ -141,9 +133,6 @@ public:
 
     // Identify sink nodes on ICFG (i.e., call instruction with its callee function named 'sink')
     std::set<const CallICFGNode *> &identifySinks() override;
-
-    // TODO: implement the path printing
-    void printICFGPath();
 
     // TODO: Source and sink function names read from SrcSnk.txt
     void readSrcSnkFromFile(const std::string &filename);

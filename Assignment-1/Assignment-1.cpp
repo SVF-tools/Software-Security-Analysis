@@ -38,15 +38,22 @@ using namespace llvm;
 using namespace std;
 
 /// TODO: Implement your context-sensitive ICFG traversal here to traverse each program path (once for any loop) from src to dst
-/// Printout the path from src to dst by calling printICFGPath
+/// Printout the path from src to dst by calling collectICFGPath
 void ICFGTraversal::reachability(const ICFGNode *src, const ICFGNode *dst) {
 
     /// TODO: your code starts from here
 }
 
+/// TODO: collect each path once this method is called, and
+/// (1) add each path (a sequence of node IDs) as a string into std::set<std::string> paths
+/// in the format "START->1->2->4->5->END", where -> indicate an ICFGEdge connects two ICFGNode IDs
+void ICFGTraversal::collectICFGPath() {
+
+    /// TODO: your code starts from here
+}
 
 // TODO: Implement your Andersen's Algorithm here
-void AndersenPTA::constraintSolving() {
+void AndersenPTA::solveWorklist() {
 
     /// TODO: your code starts from here
 }
@@ -110,17 +117,6 @@ void TaintGraphTraversal::taintChecking() {
                 reachability(src, snk);
         }
     }
-}
-
-/// TODO: print each path once this method is called, and
-/// (1) add each path (a sequence of node IDs) as a string into std::set<std::string> paths
-/// in the format "START: 1->2->4->5->END", where -> indicate an ICFGEdge connects two ICFGNode IDs
-/// bonus:  dump and append each program path to a `ICFGPaths.txt` in the form of
-/// ‘{ln: number cl: number, fl:name} -> {ln: number, cl: number, fl: name} -> {ln:number, cl: number, fl: name}
-/// ln : line number  cl: column number fl:file name  for further learning, you can review the code in SVF, SVFUtil
-void TaintGraphTraversal::printICFGPath() {
-
-    /// TODO: your code starts from here
 }
 
 // TODO: Implement your code to parse the two lines from `SrcSnk.txt` in the form of
