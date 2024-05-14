@@ -174,7 +174,6 @@ class CGEdge {
 public:
 
     enum EdgeType{
-        Addr,
         COPY,
         STORE,
         LOAD

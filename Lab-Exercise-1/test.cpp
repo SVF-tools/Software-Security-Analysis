@@ -119,7 +119,7 @@ void Test2() {
     g->pushIntoWorklist(2);
     g->pushIntoWorklist(3);
     g->pushIntoWorklist(4);
-    g->constraintSolving(g);
+    g->solveWorklist(g);
 
     std::map<unsigned, std::set<unsigned>> result = {
             {1, {11}},            {2,  {12}},

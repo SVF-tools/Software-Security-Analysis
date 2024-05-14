@@ -38,58 +38,6 @@ namespace fs = std::filesystem;
 
 using namespace SVF;
 
-class ICFGTraversal {
-public:
-
-    typedef std::vector<const SVFInstruction *> CallStack;
-    typedef std::pair<const ICFGNode *, CallStack> ICFGNodeCallStackPair;
-
-public:
-
-    ICFGTraversal(SVFIR *p) : pag(p) {}
-
-    /// TODO: to be implemented context sensitive reachability
-    void reachability(const ICFGNode *src, const ICFGNode *dst);
-
-    // Identify source nodes on ICFG (i.e., call instruction with its callee function named 'src')
-    virtual std::set<const CallICFGNode *> &identifySources() {
-        for (const CallICFGNode *cs: pag->getCallSiteSet()) {
-            const SVFFunction *fun = SVFUtil::getCallee(cs->getCallSite());
-            if (fun->getName() == "source") {
-                sources.insert(cs);
-            }
-        }
-        return sources;
-    }
-
-    // Identify sink nodes on ICFG (i.e., call instruction with its callee function named 'sink')
-    virtual std::set<const CallICFGNode *> &identifySinks() {
-        for (const CallICFGNode *cs: pag->getCallSiteSet()) {
-            const SVFFunction *fun = SVFUtil::getCallee(cs->getCallSite());
-            if (fun->getName() == "sink") {
-                sinks.insert(cs);
-            }
-        }
-        return sinks;
-    }
-
-    const std::set<std::string> &getPaths() {
-        return paths;
-    }
-    
-    /// TODO: to be implemented
-    void collectICFGPath();
-
-protected:
-    std::set<const CallICFGNode *> sources;
-    std::set<const CallICFGNode *> sinks;
-    Set<std::pair<const ICFGNode *, CallStack>> visited;
-    CallStack callstack;
-
-    SVFIR *pag;
-    std::set<std::string> paths;
-    std::vector<unsigned> path;
-};
 
 class AndersenPTA : public SVF::AndersenBase {
 public:
@@ -119,26 +67,66 @@ private:
 
 };
 
-class TaintGraphTraversal : public ICFGTraversal {
+class ICFGTraversal {
+public:
+
+    typedef std::vector<const SVFInstruction *> CallStack;
+    typedef std::pair<const ICFGNode *, CallStack> ICFGNodeCallStackPair;
 
 public:
-    // mapping a type to its corresponding APIs, e.g., source -> {getenv, ...}
-    TaintGraphTraversal(SVFIR *pag) : ICFGTraversal(pag) {}
+
+    ICFGTraversal(SVFIR *p) : pag(p) {}
+
+    /// TODO: to be implemented context sensitive reachability
+    void reachability(const ICFGNode *src, const ICFGNode *dst);
 
     // Return true if two pointers are aliases
     bool aliasCheck(const CallICFGNode *src, const CallICFGNode *snk);
-
-    // Identify source nodes on ICFG (i.e., call instruction with its callee function named 'src')
-    std::set<const CallICFGNode *> &identifySources() override;
-
-    // Identify sink nodes on ICFG (i.e., call instruction with its callee function named 'sink')
-    std::set<const CallICFGNode *> &identifySinks() override;
 
     // TODO: Source and sink function names read from SrcSnk.txt
     void readSrcSnkFromFile(const std::string &filename);
 
     // The driver method for taint checking
     void taintChecking();
+    
+    // Identify source nodes on ICFG (i.e., call instruction with its callee function named 'src')
+    virtual std::set<const CallICFGNode *> &identifySources() {
+        for (const CallICFGNode *cs: pag->getCallSiteSet()) {
+            const SVFFunction *fun = SVFUtil::getCallee(cs->getCallSite());
+            if (checker_source_api.find(fun->getName()) != checker_source_api.end()) {
+                sources.insert(cs);
+            }
+        }
+        return sources;
+    }
+
+    // Identify sink nodes on ICFG (i.e., call instruction with its callee function named 'sink')
+    virtual std::set<const CallICFGNode *> &identifySinks() {
+        for (const CallICFGNode *cs: pag->getCallSiteSet()) {
+            const SVFFunction *fun = SVFUtil::getCallee(cs->getCallSite());
+            if (checker_sink_api.find(fun->getName()) != checker_sink_api.end()) {
+                sinks.insert(cs);
+            }
+        }
+        return sinks;
+    }
+
+    const std::set<std::string> &getPaths() {
+        return paths;
+    }
+    
+    /// TODO: to be implemented
+    void collectICFGPath();
+
+protected:
+    std::set<const CallICFGNode *> sources;
+    std::set<const CallICFGNode *> sinks;
+    Set<std::pair<const ICFGNode *, CallStack>> visited;
+    CallStack callstack;
+
+    SVFIR *pag;
+    std::set<std::string> paths;
+    std::vector<unsigned> path;
 
 private:
     AndersenPTA *ander;
@@ -147,6 +135,7 @@ private:
     std::set<std::string> checker_source_api;
     std::set<std::string> checker_sink_api;
 };
+
 
 #endif
 

@@ -17,7 +17,7 @@ void Test1() {
     /// Build Program Assignment Graph (SVFIR)
     SVF::SVFIRBuilder builder(svfModule);
     SVF::SVFIR *pag = builder.build();
-    TaintGraphTraversal *taint = new TaintGraphTraversal(pag);
+    ICFGTraversal *taint = new ICFGTraversal(pag);
     taint->taintChecking();
     set<string> expected = {"START: 5->1->2->3->6->7->8->9->END"};
     assert(taint->getPaths() == expected && " \n wrong paths generated - test1 failed !");
@@ -33,7 +33,7 @@ void Test2() {
     SVF::SVFIRBuilder builder(svfModule);
     SVF::SVFIR *pag = builder.build();
 
-    TaintGraphTraversal *taint = new TaintGraphTraversal(pag);
+    ICFGTraversal *taint = new ICFGTraversal(pag);
 
     taint->taintChecking();
     assert(taint->getPaths().size() == 0 && " \n should not exist tainted path - test2 failed !");
@@ -49,7 +49,7 @@ void Test3() {
     SVF::SVFIRBuilder builder(svfModule);
     SVF::SVFIR *pag = builder.build();
 
-    TaintGraphTraversal *taint = new TaintGraphTraversal(pag);
+    ICFGTraversal *taint = new ICFGTraversal(pag);
 
     taint->taintChecking();
     assert(taint->getPaths().size() == 0 && " \n should not exist tainted path - test3 failed !");
@@ -66,7 +66,7 @@ void Test4() {
     SVF::SVFIRBuilder builder(svfModule);
     SVF::SVFIR *pag = builder.build();
 
-    TaintGraphTraversal *taint = new TaintGraphTraversal(pag);
+    ICFGTraversal *taint = new ICFGTraversal(pag);
 
     taint->taintChecking();
     set<string> expected = {"START: 5->1->2->3->6->7->8->9->10->12->14->END"};

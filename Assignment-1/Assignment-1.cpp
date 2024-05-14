@@ -58,6 +58,24 @@ void AndersenPTA::solveWorklist() {
     /// TODO: your code starts from here
 }
 
+// TODO: Implement your code to parse the two lines from `SrcSnk.txt` in the form of
+// line 1 for sources  "{ api1 api2 api3 }"
+// line 2 for sinks    "{ api1 api2 api3 }"
+void ICFGTraversal::readSrcSnkFromFile(const string &filename) {
+
+    /// TODO: your code starts from here
+}
+
+/// TODO: Checking aliases of the two variables at source and sink. For example:
+/// src instruction:  actualRet = source();
+/// snk instruction:  sink(actualParm,...);
+/// return true if actualRet is aliased with any parameter at the snk node (e.g., via ander->alias(..,..))
+bool ICFGTraversal::aliasCheck(const CallICFGNode *src, const CallICFGNode *snk) {
+
+    /// TODO: your code starts from here
+    return false;
+}
+
 // Process all address constraints to initialize pointers' points-to sets
 void AndersenPTA::processAllAddr() {
     for (ConstraintGraph::const_iterator nodeIt = consCG->begin(), nodeEit = consCG->end();
@@ -73,32 +91,10 @@ void AndersenPTA::processAllAddr() {
     }
 }
 
-// Get sources function names read from checker_source_api collected from a text file
-std::set<const CallICFGNode *> &TaintGraphTraversal::identifySources() {
-    for (const CallICFGNode *cs: pag->getCallSiteSet()) {
-        const SVFFunction *fun = SVFUtil::getCallee(cs->getCallSite());
-        if (checker_source_api.find(fun->getName()) != checker_source_api.end()) {
-            sources.insert(cs);
-        }
-    }
-    return sources;
-}
-
-// Get sinks function names read from checker_sink_api collected from a text file
-std::set<const CallICFGNode *> &TaintGraphTraversal::identifySinks() {
-    for (const CallICFGNode *cs: pag->getCallSiteSet()) {
-        const SVFFunction *fun = SVFUtil::getCallee(cs->getCallSite());
-        if (checker_sink_api.find(fun->getName()) != checker_sink_api.end()) {
-            sinks.insert(cs);
-        }
-    }
-    return sinks;
-}
-
 // Start taint checking.
 // There is a tainted flow from p@source to q@sink
 // if (1) alias(p,q)==true and (2) source reaches sink on ICFG.
-void TaintGraphTraversal::taintChecking() {
+void ICFGTraversal::taintChecking() {
     const fs::path &config = CUR_DIR() / "SrcSnk.txt";
     // configure sources and sinks for taint analysis
     readSrcSnkFromFile(config);
@@ -117,22 +113,4 @@ void TaintGraphTraversal::taintChecking() {
                 reachability(src, snk);
         }
     }
-}
-
-// TODO: Implement your code to parse the two lines from `SrcSnk.txt` in the form of
-// line 1 for sources  "{ api1 api2 api3 }"
-// line 2 for sinks    "{ api1 api2 api3 }"
-void TaintGraphTraversal::readSrcSnkFromFile(const string &filename) {
-
-    /// TODO: your code starts from here
-}
-
-/// TODO: Checking aliases of the two variables at source and sink. For example:
-/// src instruction:  actualRet = source();
-/// snk instruction:  sink(actualParm,...);
-/// return true if actualRet is aliased with any parameter at the snk node (e.g., via ander->alias(..,..))
-bool TaintGraphTraversal::aliasCheck(const CallICFGNode *src, const CallICFGNode *snk) {
-
-    /// TODO: your code starts from here
-    return false;
 }
