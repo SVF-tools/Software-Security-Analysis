@@ -83,12 +83,10 @@ int main(int argc, char **argv) {
                 break;
         }
         if (result == false) {
-            z3Mgr->printExprValues();
             std::cout << SVFUtil::errMsg("The test-") << SVFUtil::errMsg(std::to_string(n)) << SVFUtil::errMsg(" assertion is unsatisfiable!!") << std::endl;
             assert(false);
         }
         else {
-            z3Mgr->printExprValues();
             std::cout << SVFUtil::sucMsg("The test-") << SVFUtil::sucMsg(std::to_string(n)) << SVFUtil::sucMsg(" assertion is successfully verified!!") << std::endl;
         }
         z3Mgr->resetSolver();
