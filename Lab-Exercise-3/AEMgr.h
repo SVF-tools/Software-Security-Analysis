@@ -122,27 +122,31 @@ namespace SVF
 
         void getExitState(AbstractState &es, NodeID x);
 
-        void svf_assert(AbstractValue absv) {
+        bool svf_assert(AbstractValue absv) {
+            total_num++;
             IntervalValue iv = absv.getInterval();
             if (iv.is_numeral()) {
                 if (iv.getNumeral() == 0) {
                     SVFUtil::outs() << SVFUtil::errMsg("\t FAILURE :")  << "assertion failed\n";
-                    assert(false && "assertion failed");
-                    abort();
+                    return false;
                 }
                 else {
                     SVFUtil::outs() << SVFUtil::sucMsg("\t SUCCESS :")  << "assertion passed\n";
-                    return;
+                    passed_num++;
+                    return true;
                 }
             } else {
                 SVFUtil::outs() << SVFUtil::errMsg("\t FAILURE :")  << "assertion failed\n";
-                assert(false && "assertion failed");
-                abort();
+                return false;
             }
         }
         static u32_t currentExprIdx;
+        static u32_t passed_num;
+        static u32_t total_num;
+
 
     private:
+
         AbstractState as;
         Map<std::string, NodeID> _strToID;
     };

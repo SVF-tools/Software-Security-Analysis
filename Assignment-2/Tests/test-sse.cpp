@@ -6,6 +6,7 @@
 
 using namespace SVF;
 using namespace SVFUtil;
+u32_t SSE::assert_checked = 0;
 
 /*
  // Software-Verification-Teaching Assignment 4 main function entry
@@ -56,5 +57,11 @@ int main(int argc, char **argv)
 
     delete[] arg_value;
     delete sse;
-    return 0;
+    if (SSE::assert_checked > 0) {
+        return 0;
+    }
+    else {
+        std::cerr << "No assertion was checked!" << std::endl;
+        return 1;
+    }
 }

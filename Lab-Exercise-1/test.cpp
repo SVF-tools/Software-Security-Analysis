@@ -1,5 +1,7 @@
 #include "GraphAlgorithm.h"
 
+int passed_num = 0;
+int total_num = 3;
 void Test1() {
     /*
 
@@ -43,8 +45,19 @@ void Test1() {
     g->reachability(node1, node5);
     // print paths
     std::set<std::string> results = {"1245", "1345"};
-    for (auto path : g->getPaths())
-        assert(results.find(path)!= results.end() && "Your result is not correct!");
+    if (g->getPaths().size() != results.size()) {
+        std::cerr << "Test 1: Your result is not correct!" << std::endl;
+        return;
+    } else {
+        for (auto path: g->getPaths()) {
+            if (results.find(path) == results.end()) {
+                std::cerr << "Test 1: Your result is not correct!" << std::endl;
+                return;
+            }
+        }
+    }
+    passed_num++;
+
 }
 
 void Test2() {
@@ -81,14 +94,108 @@ void Test2() {
             {6, {1}},
     };
 
+
     for (auto res: results) {
-        assert(res.second == g->getInclusionSet(res.first) && "Your result is not correct!");
+        if (res.second!= g->getInclusionSet(res.first)) {
+            std::cerr << "Test 2: Your result is not correct!" << std::endl;
+            return;
+        }
     }
+    passed_num++;
+}
+
+void Test3() {
+/*
+* 11-(Addr)->  1               2 <-(Addr)- 12
+*              |               |
+*           (Store)         (Store)
+*              |               |
+*              v               v
+* 13-(Addr)->  3 (13)          4 <-(Addr)- 14
+*              |               |
+*           (Copy)          (Copy)
+*              |               |
+*              v               v
+*              5 <--        -->6
+*              |   |        |  |
+*              |   |        | (Load)
+*              | (Store)    |  v
+*           (Load) |--------|--8
+*              v            |
+*              7-(Store)----|
+ * */
+// init nodes
+    CGNode *node1 = new CGNode(1);
+    CGNode *node2 = new CGNode(2);
+    CGNode *node3 = new CGNode(3);
+    CGNode *node4 = new CGNode(4);
+    CGNode *node5 = new CGNode(5);
+    CGNode *node6 = new CGNode(6);
+    CGNode *node7 = new CGNode(7);
+    CGNode *node8 = new CGNode(8);
+
+    CGNode *node11 = new CGNode(11);
+    CGNode *node12 = new CGNode(12);
+    CGNode *node13 = new CGNode(13);
+    CGNode *node14 = new CGNode(14);
+
+    // init Graph
+    CGraph *g = new CGraph();
+    g->addNode(node1);
+    g->addNode(node2);
+    g->addNode(node3);
+    g->addNode(node4);
+    g->addNode(node5);
+    g->addNode(node6);
+    g->addNode(node7);
+    g->addNode(node8);
+
+    g->addNode(node11);
+    g->addNode(node12);
+    g->addNode(node13);
+    g->addNode(node14);
+
+    // init edges
+    g->addEdge(node11, node1, CGEdge::ADDR);
+    g->addEdge(node12, node2, CGEdge::ADDR);
+    g->addEdge(node13, node3, CGEdge::ADDR);
+    g->addEdge(node14, node4, CGEdge::ADDR);
+
+    g->addEdge(node1, node3, CGEdge::STORE);
+    g->addEdge(node3, node5, CGEdge::COPY);
+    g->addEdge(node5, node7, CGEdge::LOAD);
+    g->addEdge(node2, node4, CGEdge::STORE);
+    g->addEdge(node4, node6, CGEdge::COPY);
+    g->addEdge(node6, node8, CGEdge::LOAD);
+    g->addEdge(node8, node5, CGEdge::STORE);
+    g->addEdge(node7, node6, CGEdge::STORE);
+
+    g->solveWorklist();
+
+    std::map<unsigned, std::set<unsigned>> results = {
+            {1,  {11}},
+            {2,  {12}},
+            {3,  {13}},
+            {4,  {14}},
+            {5,  {13}},
+            {6,  {14}},
+            {7,  {11, 12}},
+            {8,  {11, 12}},
+    };
+    for (auto res: results) {
+        if (res.second!= g->getInclusionSet(res.first)) {
+            std::cerr << "Test 2: Your result is not correct!" << std::endl;
+            return;
+        }
+    }
+    passed_num++;
 }
 
 /// Entry of the program
 int main() {
     Test1();
     Test2();
-    return 0;
+    Test3();
+    std::cout << "Passed " << passed_num << " out of " << total_num << " tests" << std::endl;
+    return passed_num == total_num? 0 : 1;
 }

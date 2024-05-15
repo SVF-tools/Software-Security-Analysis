@@ -40,8 +40,11 @@ u32_t AbstractExecutionMgr::currentExprIdx = 0;
 //        assert(b>0);
 //    }
 void AbstractExecutionMgr::test1() {
-
+    NodeID a = getNodeID("a");
+    NodeID b = getNodeID("b");
     /// TODO: your code starts from here
+
+    svf_assert(as[b] > IntervalValue(0,0));
 }
 
 
@@ -58,8 +61,12 @@ void AbstractExecutionMgr::test1() {
 //        assert(b>3);
 //    }
 void AbstractExecutionMgr::test2() {
-
+    NodeID p = getNodeID("p");
+    NodeID q = getNodeID("q");
+    NodeID b = getNodeID("b");
     /// TODO: your code starts from here
+
+    svf_assert(as[b] > IntervalValue(3,3));
 }
 
 
@@ -78,8 +85,13 @@ void AbstractExecutionMgr::test2() {
 //        assert(x==10);
 //    }
 void AbstractExecutionMgr::test3() {
-
+    NodeID p = getNodeID("p");
+    NodeID q = getNodeID("q");
+    NodeID r = getNodeID("r");
+    NodeID x = getNodeID("x");
     /// TODO: your code starts from here
+
+    svf_assert(as[x] == IntervalValue(10, 10));
 }
 
 
@@ -97,8 +109,14 @@ void AbstractExecutionMgr::test3() {
 //        b = *y;
 //        assert((a + b)>20);
 void AbstractExecutionMgr::test4() {    //    int main() {
-
+    NodeID p = getNodeID("p");
+    NodeID x = getNodeID("x");
+    NodeID y = getNodeID("y");
+    NodeID a = getNodeID("a");
+    NodeID b = getNodeID("b");
     /// TODO: your code starts from here
+
+    svf_assert(as[a] + as[b] > IntervalValue(20, 20));
 }
 
 
@@ -125,8 +143,16 @@ void AbstractExecutionMgr::test4() {    //    int main() {
 //       z = *q + *y;
 //       assert(z==15);
 void AbstractExecutionMgr::test5() {
+    NodeID p = getNodeID("p", 2);
+    NodeID a = getNodeID("a");
+    NodeID x = getNodeID("x");
+    NodeID q = getNodeID("q");
+    NodeID r = getNodeID("r");
+    NodeID y = getNodeID("y");
+    NodeID z = getNodeID("z");
 
 
+    svf_assert(as[z] == IntervalValue(15, 15));
 }
 
 
@@ -140,9 +166,12 @@ void AbstractExecutionMgr::test5() {
 //    assert(b>=5);
 //    }
 void AbstractExecutionMgr::test6() {
-
+    NodeID a = getNodeID("a");
+    NodeID b = getNodeID("b");
+    NodeID argv = getNodeID("argv");
     /// TODO: your code starts from here
 
+    svf_assert(as[b] >= IntervalValue(5, 5));
 }
 
 
@@ -158,8 +187,15 @@ void AbstractExecutionMgr::test6() {
 //  assert(x== 3 && y==2);
 //}
 void AbstractExecutionMgr::test7() {
-
+    NodeID x = getNodeID("x");
+    NodeID y = getNodeID("y");
     /// TODO: your code starts from here
+
+
+    AbstractValue cmp1 = as[x] == IntervalValue(3, 3);
+    AbstractValue cmp2 = as[y] == IntervalValue(2, 2);
+    cmp1.meet_with(cmp2);
+    svf_assert(cmp1);
 
 }
 
@@ -174,8 +210,10 @@ void AbstractExecutionMgr::test7() {
 //    return 0;
 // }
 void AbstractExecutionMgr::test8() {
-
+    NodeID x = getNodeID("x");
     /// TODO: your code starts from here
+
+    svf_assert(as[x] == IntervalValue(0, 0));
 
 }
 

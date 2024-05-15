@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h> // For rand() and srand()
 #include <time.h>   // For time()
+extern void OVERFLOW(void* data, int size);
 
 // Helper function to print int values
 void printIntLine(int value) {
@@ -25,6 +26,7 @@ void CWE121_Stack_Based_Buffer_Overflow__CWE129_rand_01_bad() {
     * This code does check to see if the array index is negative */
     if (data >= 0)
     {
+        OVERFLOW(buffer, 99 * sizeof(int));
         buffer[data] = 1;
     }
     else

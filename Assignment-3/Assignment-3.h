@@ -94,6 +94,11 @@ public:
     AddressValue getGepObjAddress(AbstractState& es, u32_t pointer, APOffset offset);
     IntervalValue getByteOffset(const AbstractState& es, const GepStmt *gep);
     IntervalValue getElementIndex(const AbstractState& es, const GepStmt *gep);
+    const Map<const ICFGNode*, std::string>& getBugInfo() {
+        return _nodeToBugInfo;
+    }
+
+    void handleStubFunctions(const CallICFGNode* call);
 
     /// Destructor
     virtual ~AbsExe() {

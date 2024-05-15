@@ -33,7 +33,7 @@
 
 namespace SVF {
 
-#ifndef DEBUGINFO
+#ifdef DEBUGINFO
 #define DBOP(X) X;
 #else
 #define DBOP(X)
@@ -41,14 +41,6 @@ namespace SVF {
 
 #define AddressMask 0x7f000000
 #define FlippedAddressMask (AddressMask^0xffffffff)
-
-class SVFIR;
-
-class ValVar;
-
-class ObjVar;
-
-class GepStmt;
 
 typedef unsigned u32_t;
 typedef signed s32_t;
@@ -84,7 +76,12 @@ public:
     }
 
     inline bool isVirtualMemAddress(z3::expr e) {
-        return isVirtualMemAddress(z3Expr2NumValue(e));
+        z3::expr val = getEvalExpr(e);
+        if (val.is_numeral()) {
+            return isVirtualMemAddress(z3Expr2NumValue(val));
+        } else {
+            return false;
+        }
     }
 
     /// Return the internal index if idx is an address otherwise return the value of idx
@@ -136,42 +133,6 @@ protected:
 private:
     z3::expr_vector varID2ExprMap;
     u32_t lastSlot;
-};
-
-
-class Z3SSEMgr : public Z3Mgr {
-
-public:
-    /// Constructor
-    Z3SSEMgr(SVFIR *ir);
-
-    /// Initialize map (varID2ExprMap: ID->expr)from VARID to z3 expr                                            --- Using elements from 0 to lastSlot
-    /// Initialize map (loc2ValMap: ID->ID) from Location (pointer address) to Value    --- Using the last slot
-    /// V = L U C    (V is SVFVar, L is Pointers + Nonconst Objects, C is Constants )
-    /// loc2ValMap : IDX(L) -> IDX(V)
-    /// idx \in IDX(V) (IDX is a set of Indices of all SVFVars)
-    void initMap();
-
-    /// Declare the expr type for each top-level pointers
-    z3::expr createExprForValVar(const ValVar *val);
-
-    /// Initialize the expr value for each objects (address-taken variables and constants)
-    z3::expr createExprForObjVar(const ObjVar *obj);
-
-    /// Return the address expr of a ObjVar
-    z3::expr getMemObjAddress(u32_t idx) const;
-
-    /// Return the field address given a pointer points to a struct object and an offset
-    z3::expr getGepObjAddress(z3::expr pointer, u32_t offset);
-
-    /// Return the offset expression of a GepStmt
-    s32_t getGepOffset(const GepStmt *gep);
-
-    /// Dump values of all exprs
-    virtual void printExprValues();
-
-private:
-    SVFIR *svfir;
 };
 
 

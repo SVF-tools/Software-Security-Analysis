@@ -53,6 +53,13 @@ void ICFGTraversal::collectICFGPath() {
 }
 
 // TODO: Implement your Andersen's Algorithm here
+/// The solving rules are as follows:
+/// p <--Addr-- o        =>  pts(p) = {o}
+/// q <--COPY-- p        =>  pts(q) = pts(q) ∪ pts(p)
+/// q <--LOAD-- p        =>  for each o ∈ pts(p) : q <--COPY-- o
+/// q <--STORE-- p       =>  for each o ∈ pts(q) : o <--COPY-- p
+/// q <--GEP, fld-- p    =>  for each o ∈ pts(p) : pts(q) = pts(q) ∪ {o.fld}
+/// pts(q) denotes the points-to set of q
 void AndersenPTA::solveWorklist() {
 
     /// TODO: your code starts from here

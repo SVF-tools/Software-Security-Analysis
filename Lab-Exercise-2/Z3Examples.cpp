@@ -30,27 +30,6 @@ using namespace z3;
 using namespace SVF;
 
 /*
-    // A simple example
-
-    int main() {
-        int* p;
-        int q;
-        int* r;
-        int x;
-
-        p = malloc1(..);
-        q = 5;
-        *p = q;
-        x = *p;
-        assert(x==5);
-    }
-*/
-void Z3Examples::test0() {
-
-    /// TODO: your code starts from here
-}
-
-/*
 // Simple integers
 
     int main() {

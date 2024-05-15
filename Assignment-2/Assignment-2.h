@@ -28,7 +28,7 @@
 #ifndef SOFTWARE_SECURITY_ANALYSIS_ASSIGNMENT_2_H
 #define SOFTWARE_SECURITY_ANALYSIS_ASSIGNMENT_2_H
 
-#include "Z3Mgr.h"
+#include "Z3SSEMgr.h"
 #include "SVF-LLVM/SVFIRBuilder.h"
 #include <stdlib.h>
 
@@ -109,7 +109,24 @@ public:
     bool translatePath(std::vector<const ICFGEdge *> &path);
 
     /// Return true if svf_assert check is successful
-    bool assertchecking(const ICFGNode* edge);
+    bool assertchecking(const ICFGNode* inode) {
+        assert_checked++;
+        const CallICFGNode* callnode = SVFUtil::cast<CallICFGNode>(inode);
+        assert(callnode && isAssertFun(SVFUtil::getCallee(callnode->getCallSite()))  && "last node is not an assert call?");
+        DBOP(std::cout << "\n## Analyzing "<< callnode->toString() << "\n");
+        z3::expr arg0 = getZ3Expr(callnode->getActualParms().at(0)->getId());
+        addToSolver(arg0>0);
+        if (getSolver().check() == z3::unsat) {
+            DBOP(printExprValues());
+            assert(false && "The assertion is unsatisfiable");
+            return false;
+        }
+        else {
+            DBOP(printExprValues());
+            std::cerr << inode->toString() << ", " << SVFUtil::sucMsg("The assertion is successfully verified!!") << std::endl;
+            return true;
+        }
+    }
 
     bool handleNonBranch(const IntraCFGEdge* edge);
     bool handleBranch(const IntraCFGEdge* edge);
@@ -151,6 +168,8 @@ public:
         z3Mgr->printExprValues();
     }
 
+    static u32_t assert_checked;
+    static u32_t assert_num;
 
 
 private:

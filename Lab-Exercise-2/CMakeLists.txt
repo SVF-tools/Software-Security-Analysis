@@ -10,6 +10,6 @@ set_target_properties(lab2 PROPERTIES
 
 add_test(
         NAME lab2
-        COMMAND Lab-Exercise-2
+        COMMAND lab2
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )

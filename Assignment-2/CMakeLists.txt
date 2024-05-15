@@ -1,7 +1,7 @@
 include_directories(${Z3MGR_DIR})
 file(GLOB SOURCES
-        Assignment-2.cpp
-        ${Z3MGR_DIR}/Z3Mgr.cpp
+        *.cpp
+        ${Z3MGR_DIR}/*.cpp
 )
 set(LIB ${SVF_LIB} ${llvm_libs} ${Z3_LIBRARIES})
 add_library(assign-2 ${SOURCES})

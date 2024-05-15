@@ -102,24 +102,6 @@ bool SSE::translatePath(std::vector<const ICFGEdge *> &path){
     return true;
 }
 
-/// Check the assertion towards the end of a path
-bool SSE::assertchecking(const ICFGNode* inode){
-    const CallICFGNode* callnode = SVFUtil::cast<CallICFGNode>(inode);
-    assert(callnode && isAssertFun(getCallee(callnode->getCallSite()))  && "last node is not an assert call?");
-    DBOP(std::cout << "\n## Analyzing "<< callnode->toString() << "\n");
-    expr arg0 = getZ3Expr(callnode->getActualParms().at(0)->getId());
-    addToSolver(arg0>0);
-    if (getSolver().check() == unsat) {
-        DBOP(printExprValues());
-        assert(false && "The assertion is unsatisfiable");
-        return false;
-    }
-    else {
-        DBOP(printExprValues());
-        std::cerr << inode->toString() << ", " << SVFUtil::sucMsg("The assertion is successfully verified!!") << std::endl;
-        return true;
-    }
-}
 
 /// Program entry
 void SSE::analyse()

@@ -4,22 +4,11 @@ target_link_libraries(ass1-taint ${LIB} ass1)
 set_target_properties(ass1-taint PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-add_test(
-        NAME ass1-taint
-        COMMAND ass1-taint
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-)
-
 add_executable(ass1-icfg test-icfg.cpp)
 target_link_libraries(ass1-icfg ${LIB} ass1)
 set_target_properties(ass1-icfg PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-add_test(
-        NAME ass1-icfg
-        COMMAND ass1-icfg
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-)
 add_executable(ass1-pta test-pta.cpp)
 target_link_libraries(ass1-pta ${LIB} ass1)
 set_target_properties(ass1-pta PROPERTIES
@@ -34,3 +23,23 @@ foreach(filename ${pta_assert_files})
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )
 endforeach()
+
+file(GLOB icfg_assert_file RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${CMAKE_CURRENT_SOURCE_DIR}/testcases/trav/*.ll")
+foreach(filename ${icfg_assert_files})
+    add_test(
+            NAME ae_assert_tests/${filename}
+            COMMAND ass1-icfg ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+    )
+endforeach()
+
+
+file(GLOB taint_assert_file RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${CMAKE_CURRENT_SOURCE_DIR}/testcases/taint/*.ll")
+foreach(filename ${taint_assert_files})
+    add_test(
+            NAME ae_assert_tests/${filename}
+            COMMAND ass1-taint ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+    )
+endforeach()
+

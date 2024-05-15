@@ -263,6 +263,7 @@ public:
     }
 
     /// Union the inclusion set of d to that of s
+    /// IS(s) = IS(s) ∪ IS(d)
     bool unionSet(CGNode* s, CGNode* d){
         bool changed = false;
         for(auto e : d->getInclusionSet()) {

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h> // For int64_t
 #include <stdlib.h> // For exit and EXIT_FAILURE
+extern void OVERFLOW(void* data, int size);
 
 // Helper function to print int64_t values
 void printLongLongLine(int64_t value) {
@@ -19,6 +20,7 @@ void CWE121_Stack_Based_Buffer_Overflow__CWE805_int64_t_declare_loop_01_bad() {
     size_t i;
 
     // POTENTIAL FLAW: Possible buffer overflow if data < 100
+    OVERFLOW(data, 100 * sizeof(int64_t));
     for (i = 0; i < 100; i++) {
         data[i] = source[i]; // Unsafe memory access
     }

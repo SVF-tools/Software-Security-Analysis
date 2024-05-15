@@ -60,10 +60,64 @@ void AbsExe::handleWTONode(const ICFGNode* node) {
     // inlining the callee by calling handleFunc for the callee function
     if (const CallICFGNode* callnode = SVFUtil::dyn_cast<CallICFGNode>(node))
     {
-        handleCallSite(callnode);
+        // if callnode name is svf_assert or OVERFLOW
+        std::string funName = SVFUtil::getCallee(callnode->getCallSite())->getName();
+        if (funName == "OVERFLOW" || funName == "svf_assert") {
+            handleStubFunctions(callnode);
+        }
+        else {
+            handleCallSite(callnode);
+        }
     }
     else
     {
+    }
+}
+
+void AbsExe::handleStubFunctions(const SVF::CallICFGNode *callnode) {
+    if (SVFUtil::getCallee(callnode->getCallSite())->getName() == "svf_assert")
+    {
+        // if the condition is false, then the program is infeasible
+        CallSite cs = callnode->getCallSite();
+        const CallICFGNode* callNode = SVFUtil::dyn_cast<CallICFGNode>(_svfir->getICFG()->getICFGNode(cs.getInstruction()));
+        _checkpoints.erase(callNode);
+        u32_t arg0 = _svfir->getValueNode(cs.getArgument(0));
+        AbstractState&as = getAbsState(callNode);
+        if (as[arg0].is_infinite()) {
+            SVFUtil::errs() <<"svf_assert Fail. " << cs.getInstruction()->toString() << "\n";
+            assert(false);
+        } else {
+            as[arg0].getInterval().meet_with(IntervalValue(1, 1));
+            if (as[arg0].getInterval().equals(IntervalValue(1, 1))) {
+                SVFUtil::errs() << SVFUtil::sucMsg("The assertion is successfully verified!!\n");
+            } else {
+                SVFUtil::errs() << "svf_assert Fail. " << cs.getInstruction()->toString() << "\n";
+                assert(false);
+            }
+        }
+        return;
+    }
+    else if (SVFUtil::getCallee(callnode->getCallSite())->getName() == "OVERFLOW") {
+        // if the condition is false, then the program is infeasible
+        CallSite cs = callnode->getCallSite();
+        const CallICFGNode *callNode = SVFUtil::dyn_cast<CallICFGNode>(
+                _svfir->getICFG()->getICFGNode(cs.getInstruction()));
+        _checkpoints.erase(callNode);
+        u32_t arg0 = _svfir->getValueNode(cs.getArgument(0));
+        u32_t arg1 = _svfir->getValueNode(cs.getArgument(1));
+
+        AbstractState &as = getAbsState(callnode);
+        AbstractValue gepRhsVal = as[arg0];
+        for (const auto &addr: gepRhsVal.getAddrs()) {
+            s64_t baseObj = AbstractState::getInternalID(addr);
+            AbstractValue valid_sz = obj2size[baseObj];
+            bool res = valid_sz.leq(obj2size[arg1]) ? false : true;
+            if (!res) {
+                std::cerr << "BUF OVERFLOW DETECTED\n";
+            } else {
+                assert(false && "SHOULD DETECT BUF OVERFLOW DETECTED\n");
+            }
+        }
     }
 }
 
@@ -441,49 +495,7 @@ void AbsExe::updateStateOnBinary(const BinaryOPStmt* binary) {
         AbstractValue &lhs = as[op0], &rhs = as[op1];
         AbstractValue resVal;
         switch (binary->getOpcode()) {
-            case BinaryOPStmt::Add:
-            case BinaryOPStmt::FAdd:
-                resVal = (lhs + rhs);
-                break;
-            case BinaryOPStmt::Sub:
-            case BinaryOPStmt::FSub:
-                resVal = (lhs - rhs);
-                break;
-            case BinaryOPStmt::Mul:
-            case BinaryOPStmt::FMul:
-                resVal = (lhs * rhs);
-                break;
-            case BinaryOPStmt::SDiv:
-            case BinaryOPStmt::FDiv:
-            case BinaryOPStmt::UDiv:
-                resVal = (lhs / rhs);
-                break;
-            case BinaryOPStmt::SRem:
-            case BinaryOPStmt::FRem:
-            case BinaryOPStmt::URem:
-                resVal = (lhs % rhs);
-                break;
-            case BinaryOPStmt::Xor:
-                resVal = (lhs ^ rhs);
-                break;
-            case BinaryOPStmt::And:
-                resVal = (lhs & rhs);
-                break;
-            case BinaryOPStmt::Or:
-                resVal = (lhs | rhs);
-                break;
-            case BinaryOPStmt::AShr:
-                resVal = (lhs >> rhs);
-                break;
-            case BinaryOPStmt::Shl:
-                resVal = (lhs << rhs);
-                break;
-            case BinaryOPStmt::LShr:
-                resVal = (lhs >> rhs);
-                break;
-            default: {
-                assert(false && "undefined binary: ");
-            }
+            //TODO: write your code here to handle binary operations
         }
         as[res] = resVal;
     }

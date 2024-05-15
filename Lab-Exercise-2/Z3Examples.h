@@ -45,6 +45,10 @@ public:
         return ctx.int_val(val);
     }
 
+    inline bool hasZ3Expr(std::string exprName) {
+        return strToIDMap.find(exprName) != strToIDMap.end();
+    }
+
     inline z3::expr getZ3Expr(std::string exprName) {
         auto it = strToIDMap.find(exprName);
         if(it!=strToIDMap.end())
@@ -116,7 +120,6 @@ public:
 
     /// To implement
     ///@{
-    void test0();
     void test1();
     void test2();
     void test3();

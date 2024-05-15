@@ -1,5 +1,5 @@
-; ModuleID = './test2.ll'
-source_filename = "test2.c"
+; ModuleID = 'Assignment-3/Tests/buf/test2.ll'
+source_filename = "Assignment-3/Tests/buf/test2.c"
 target datalayout = "e-m:o-i64:64-i128:128-n32:64-S128"
 target triple = "arm64-apple-macosx14.0.0"
 
@@ -37,6 +37,8 @@ entry:
   br i1 %cmp, label %if.then, label %if.else
 
 if.then:                                          ; preds = %entry
+  %arraydecay = getelementptr inbounds [10 x i32], ptr %buffer, i64 0, i64 0
+  call void @OVERFLOW(ptr noundef %arraydecay, i32 noundef 396)
   %idxprom = sext i32 %rem to i64
   %arrayidx = getelementptr inbounds [10 x i32], ptr %buffer, i64 0, i64 %idxprom
   store i32 1, ptr %arrayidx, align 4
@@ -77,6 +79,8 @@ declare i32 @rand() #1
 
 ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: write)
 declare void @llvm.memset.p0.i64(ptr nocapture writeonly, i8, i64, i1 immarg) #2
+
+declare void @OVERFLOW(ptr noundef, i32 noundef) #1
 
 ; Function Attrs: noinline nounwind ssp uwtable(sync)
 define i32 @main() #0 {

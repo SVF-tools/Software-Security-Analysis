@@ -34,6 +34,8 @@
 using namespace SVF;
 using namespace SVFUtil;
 
+u32_t AbstractExecutionMgr::passed_num = 0;
+u32_t AbstractExecutionMgr::total_num = 0;
 
 int main(int argc, char** argv)
 {
@@ -62,5 +64,6 @@ int main(int argc, char** argv)
     SVFUtil::outs() << "Test 8: \n";
     mgr.test8();
     mgr.reset();
-    return 0;
+    std::cout << "Passed " << AbstractExecutionMgr::passed_num << " out of " << AbstractExecutionMgr::total_num << " tests" << std::endl;
+    return AbstractExecutionMgr::passed_num == AbstractExecutionMgr::total_num? 0 : 1;
 }
