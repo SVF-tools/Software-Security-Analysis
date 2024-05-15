@@ -28,9 +28,12 @@
 #include "Z3Mgr.h"
 #include <set>
 #include <iomanip>
+#include <iostream>
+#include <sstream>
 
 using namespace SVF;
 using namespace z3;
+using namespace std;
 
 /// Store and Select for Loc2ValMap, i.e., store and load
 z3::expr Z3Mgr::storeValue(const z3::expr loc, const z3::expr value){
