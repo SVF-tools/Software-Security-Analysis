@@ -48,24 +48,24 @@ void Test1() {
 }
 
 void Test2() {
-/*
-*        1 (11)          2 (12)
-*        |               |
-*     (Store)         (Store)
-*        |               |
-*        v               v
-*        3 (13)          4 (14)
-*        |               |
-*     (Copy)          (Copy)
-*        |               |
-*        v               v
-*        5 <--        -->6
-*        |   |        |  |
-*        |   |        | (Load)
-*        | (Store)    |  v
-*     (Load) |--------|--8
-*        v            |
-*        7-(Store)----|
+    /*
+* 11-(init)->  1               2 <-(init)- 12
+*              |               |
+*           (Store)         (Store)
+*              |               |
+*              v               v
+* 13-(init)->  3 (13)          4 <-(init)- 14
+*              |               |
+*           (Copy)          (Copy)
+*              |               |
+*              v               v
+*              5 <--        -->6
+*              |   |        |  |
+*              |   |        | (Load)
+*              | (Store)    |  v
+*           (Load) |--------|--8
+*              v            |
+*              7-(Store)----|
  * */
 // init nodes
     CGNode *node1 = new CGNode(1);
@@ -99,6 +99,11 @@ void Test2() {
     g->addNode(node14);
 
     // init edges
+    g->addEdge(node11, node1, CGEdge::Addr);
+    g->addEdge(node12, node2, CGEdge::Addr);
+    g->addEdge(node13, node3, CGEdge::Addr);
+    g->addEdge(node14, node4, CGEdge::Addr);
+
     g->addEdge(node1, node3, CGEdge::STORE);
     g->addEdge(node3, node5, CGEdge::COPY);
     g->addEdge(node5, node7, CGEdge::LOAD);
@@ -108,18 +113,7 @@ void Test2() {
     g->addEdge(node8, node5, CGEdge::STORE);
     g->addEdge(node7, node6, CGEdge::STORE);
 
-    g->addInclusionNode(node1, node11);
-
-    g->addInclusionNode(node1, node11);
-    g->addInclusionNode(node2, node12);
-    g->addInclusionNode(node3, node13);
-    g->addInclusionNode(node4, node14);
-
-    g->pushIntoWorklist(1);
-    g->pushIntoWorklist(2);
-    g->pushIntoWorklist(3);
-    g->pushIntoWorklist(4);
-    g->solveWorklist(g);
+    g->solveWorklist();
 
     std::map<unsigned, std::set<unsigned>> result = {
             {1, {11}},            {2,  {12}},

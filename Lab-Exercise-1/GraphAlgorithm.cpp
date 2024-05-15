@@ -46,7 +46,6 @@ void Graph::reachability(Node *src, Node *dst) {
 /// q <--LOAD-- p   =>  for each o ∈ IS(p) : q <--COPY-- o
 /// q <--STORE-- p  =>  for each o ∈ IS(q) : o <--COPY-- p
 /// IS(q) denotes the inclusion set of node q
-void CGraph::solveWorklist(CGraph* graph) {
-
+void CGraph::solveWorklist() {
  /// TODO: your code starts from here
 }

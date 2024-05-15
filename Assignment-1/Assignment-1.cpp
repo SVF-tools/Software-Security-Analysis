@@ -76,21 +76,6 @@ bool ICFGTraversal::aliasCheck(const CallICFGNode *src, const CallICFGNode *snk)
     return false;
 }
 
-// Process all address constraints to initialize pointers' points-to sets
-void AndersenPTA::processAllAddr() {
-    for (ConstraintGraph::const_iterator nodeIt = consCG->begin(), nodeEit = consCG->end();
-         nodeIt != nodeEit; nodeIt++) {
-        ConstraintNode *cgNode = nodeIt->second;
-        for (ConstraintEdge *edge: cgNode->getAddrInEdges()) {
-            const AddrCGEdge *addr = SVFUtil::cast<AddrCGEdge>(edge);
-            NodeID dst = addr->getDstID();
-            NodeID src = addr->getSrcID();
-            if (addPts(dst, src))
-                pushIntoWorklist(dst);
-        }
-    }
-}
-
 // Start taint checking.
 // There is a tainted flow from p@source to q@sink
 // if (1) alias(p,q)==true and (2) source reaches sink on ICFG.

@@ -275,7 +275,7 @@ public:
     }
 
     /// TODO: to be implemented
-    void solveWorklist(CGraph* graph);
+    void solveWorklist();
 
     /// Push a node into the worklist for further processing
     void pushIntoWorklist(unsigned id){

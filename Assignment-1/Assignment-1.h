@@ -51,9 +51,6 @@ public:
 
 private:
 
-    // Process all the address constraint edges
-    void processAllAddr();
-
     // To be implemented
     void solveWorklist() override;
 
