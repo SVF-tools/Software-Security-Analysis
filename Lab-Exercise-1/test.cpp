@@ -1,8 +1,6 @@
 #include "GraphAlgorithm.h"
 
-int passed_num = 0;
-int total_num = 3;
-void Test1() {
+bool Test1() {
     /*
 
 
@@ -47,20 +45,19 @@ void Test1() {
     std::set<std::string> results = {"1245", "1345"};
     if (g->getPaths().size() != results.size()) {
         std::cerr << "Test 1: Your result is not correct!" << std::endl;
-        return;
+        return false;
     } else {
         for (auto path: g->getPaths()) {
             if (results.find(path) == results.end()) {
                 std::cerr << "Test 1: Your result is not correct!" << std::endl;
-                return;
+                return false;
             }
         }
     }
-    passed_num++;
-
+    return true;
 }
 
-void Test2() {
+bool Test2() {
     /*
      *   1 --(Addr)---> 2 --(Store)---> 4 --(Copy)---> 5 --(Load)---> 6
      *   3 --------(Addr)---------------^
@@ -98,13 +95,13 @@ void Test2() {
     for (auto res: results) {
         if (res.second!= g->getInclusionSet(res.first)) {
             std::cerr << "Test 2: Your result is not correct!" << std::endl;
-            return;
+            return false;
         }
     }
-    passed_num++;
+    return true;
 }
 
-void Test3() {
+bool Test3() {
 /*
 * 11-(Addr)->  1               2 <-(Addr)- 12
 *              |               |
@@ -185,17 +182,28 @@ void Test3() {
     for (auto res: results) {
         if (res.second!= g->getInclusionSet(res.first)) {
             std::cerr << "Test 2: Your result is not correct!" << std::endl;
-            return;
+            return false;
         }
     }
-    passed_num++;
+    return true;
 }
 
 /// Entry of the program
-int main() {
-    Test1();
-    Test2();
-    Test3();
-    std::cout << "Passed " << passed_num << " out of " << total_num << " tests" << std::endl;
-    return passed_num == total_num? 0 : 1;
+int main(int argc, char **argv) {
+    if (argc != 2) {
+        std::cerr << "Usage: ./lab1 test1" << std::endl;
+        return 1;
+    }
+    std::string test_name = argv[1];
+    if (test_name == "test1") {
+        assert(Test1() && "Test 1 failed!");
+    } else if (test_name == "test2") {
+        assert(Test2() && "Test 2 failed!");
+    } else if (test_name == "test3") {
+        assert(Test3() && "Test 3 failed!");
+    } else {
+        std::cerr << "Invalid test name" << std::endl;
+        return 1;
+    }
 }
+

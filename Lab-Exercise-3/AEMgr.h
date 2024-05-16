@@ -123,27 +123,22 @@ namespace SVF
         void getExitState(AbstractState &es, NodeID x);
 
         bool svf_assert(AbstractValue absv) {
-            total_num++;
             IntervalValue iv = absv.getInterval();
             if (iv.is_numeral()) {
                 if (iv.getNumeral() == 0) {
                     SVFUtil::outs() << SVFUtil::errMsg("\t FAILURE :")  << "assertion failed\n";
-                    return false;
+                    assert(false);
                 }
                 else {
                     SVFUtil::outs() << SVFUtil::sucMsg("\t SUCCESS :")  << "assertion passed\n";
-                    passed_num++;
                     return true;
                 }
             } else {
                 SVFUtil::outs() << SVFUtil::errMsg("\t FAILURE :")  << "assertion failed\n";
-                return false;
+                assert(false);
             }
         }
         static u32_t currentExprIdx;
-        static u32_t passed_num;
-        static u32_t total_num;
-
 
     private:
 

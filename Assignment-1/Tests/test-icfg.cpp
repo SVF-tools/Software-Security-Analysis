@@ -19,6 +19,20 @@ void Test(std::vector<std::string>& moduleNameVec) {
             gt->reachability(src, snk);
         }
     }
+    std::string moduleName = moduleNameVec[0].substr(moduleNameVec[0].find_last_of('/') + 1);
+    if (moduleName == "test1.ll") {
+        std::set<std::string> expected = {"START->2->3->4->END"};
+        assert(gt->getPaths() == expected && " \n wrong paths generated - test1 failed !");
+    }
+    else if (moduleName == "test2.ll") {
+        std::set<std::string> expected = {"START->2->3->4->5->6->7->8->END", "START->2->3->4->5->6->END",
+                                          "START->4->5->6->7->8->END", "START->4->5->6->END"};
+        assert(gt->getPaths().size() == expected.size() && " \n wrong paths generated - test2 failed !");
+        for (auto path : gt->getPaths()) {
+            assert(expected.find(path) != expected.end() && " \n wrong paths generated - test2 failed !");
+        }
+    }
+
     for(auto path : gt->getPaths())
         std::cerr << path << "\n";
     SVFIR::releaseSVFIR();

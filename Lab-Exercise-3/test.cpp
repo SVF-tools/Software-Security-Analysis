@@ -34,36 +34,54 @@
 using namespace SVF;
 using namespace SVFUtil;
 
-u32_t AbstractExecutionMgr::passed_num = 0;
-u32_t AbstractExecutionMgr::total_num = 0;
 
 int main(int argc, char** argv)
 {
+    if (argc != 2) {
+        std::cerr << "Usage: ./lab3 test1" << std::endl;
+        return 1;
+    }
+
     AbstractExecutionMgr mgr;
-    SVFUtil::outs() << "Test 1: \n";
-    mgr.test1();
-    mgr.reset();
-    SVFUtil::outs() << "Test 2: \n";
-    mgr.test2();
-    mgr.reset();
-    SVFUtil::outs() << "Test 3: \n";
-    mgr.test3();
-    mgr.reset();
-    SVFUtil::outs() << "Test 4: \n";
-    mgr.test4();
-    mgr.reset();
-    SVFUtil::outs() << "Test 5: \n";
-    mgr.test5();
-    mgr.reset();
-    SVFUtil::outs() << "Test 6: \n";
-    mgr.test6();
-    mgr.reset();
-    SVFUtil::outs() << "Test 7: \n";
-    mgr.test7();
-    mgr.reset();
-    SVFUtil::outs() << "Test 8: \n";
-    mgr.test8();
-    mgr.reset();
-    std::cout << "Passed " << AbstractExecutionMgr::passed_num << " out of " << AbstractExecutionMgr::total_num << " tests" << std::endl;
-    return AbstractExecutionMgr::passed_num == AbstractExecutionMgr::total_num? 0 : 1;
+
+    std::string test_name = argv[1];
+    if (test_name == "test1") {
+        SVFUtil::outs() << "Test 1: \n";
+        mgr.test1();
+        mgr.reset();
+    } else if (test_name == "test2") {
+        SVFUtil::outs() << "Test 2: \n";
+        mgr.test2();
+        mgr.reset();
+    } else if (test_name == "test3") {
+        SVFUtil::outs() << "Test 3: \n";
+        mgr.test3();
+        mgr.reset();
+    } else if (test_name == "test4") {
+        SVFUtil::outs() << "Test 4: \n";
+        mgr.test4();
+        mgr.reset();
+    } else if (test_name == "test5") {
+        SVFUtil::outs() << "Test 5: \n";
+        mgr.test5();
+        mgr.reset();
+    } else if (test_name == "test6") {
+        SVFUtil::outs() << "Test 6: \n";
+        mgr.test6();
+        mgr.reset();
+    } else if (test_name == "test7") {
+        SVFUtil::outs() << "Test 7: \n";
+        mgr.test7();
+        mgr.reset();
+    } else if (test_name == "test8"){
+        SVFUtil::outs() << "Test 8: \n";
+        mgr.test8();
+        mgr.reset();
+    }
+    else
+    {
+        std::cerr << "Invalid test name" << std::endl;
+        return 1;
+    }
+    return 0;
 }

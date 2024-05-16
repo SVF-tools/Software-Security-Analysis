@@ -81,8 +81,8 @@ public:
         visited.clear();
     }
 
-    /// Print the ICFG path
-    virtual void printICFGPath();
+    /// TODO: Implementing the collection the ICFG paths
+    virtual void collectICFGPath();
 
     /// Depth-first-search ICFGTraversal on ICFG from src node to dst node
     void reachability(const ICFGEdge *curEdge, const ICFGNode *sink);

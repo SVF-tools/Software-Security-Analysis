@@ -39,10 +39,10 @@ void SSE::reachability(const ICFGEdge *curEdge, const ICFGNode *sink) {
     /// TODO: your code starts from here
 }
 
-/// TODO: print each path once this method is called, and
+/// TODO: collect each path once this method is called during reachability analysis, and
 /// add each path as a string into std::set<std::string> paths
-/// Print the path in the format "START: 1->2->4->5->END", where -> indicate an ICFGEdge connects two ICFGNode IDs
-void SSE::printICFGPath()
+/// Print the path in the format "START->1->2->4->5->END", where -> indicate an ICFGEdge connects two ICFGNode IDs
+void SSE::collectICFGPath()
 {
 
     /// TODO: your code starts from here

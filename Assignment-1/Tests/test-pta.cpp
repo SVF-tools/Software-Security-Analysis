@@ -11,7 +11,7 @@ using namespace SVFUtil;
 int main(int argc, char** argv)
 {
     int arg_num = 0;
-    int extraArgc = 3;
+    int extraArgc = 4;
     char **arg_value = new char *[argc + extraArgc];
     for (; arg_num < argc; ++arg_num)
     {
@@ -21,6 +21,7 @@ int main(int argc, char** argv)
     arg_value[arg_num++] = (char*) "-model-consts=true";
     arg_value[arg_num++] = (char*) "-model-arrays=true";
     arg_value[arg_num++] = (char*) "-pre-field-sensitive=false";
+    arg_value[arg_num++] = (char*) "-stat=false";
     assert(arg_num == (argc + extraArgc) && "more extra arguments? Change the value of extraArgc");
 
     std::vector<std::string> moduleNameVec;
