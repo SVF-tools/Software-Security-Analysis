@@ -1,41 +1,27 @@
-; ModuleID = 'branch.ll'
-source_filename = "branch.c"
+; ModuleID = 'Assignment-3/Tests/ae/test4.ll'
+source_filename = "Assignment-3/Tests/ae/test4.c"
 target datalayout = "e-m:o-i64:64-i128:128-n32:64-S128"
 target triple = "arm64-apple-macosx14.0.0"
 
 ; Function Attrs: noinline nounwind ssp uwtable(sync)
 define i32 @main() #0 {
 entry:
-  %call = call i32 @nd()
-  %tobool = icmp ne i32 %call, 0
-  br i1 %tobool, label %if.then, label %if.end
+  br label %while.cond
 
-if.then:                                          ; preds = %entry
-  %inc = add nsw i32 1, 1
-  %inc1 = add nsw i32 1, 1
-  br label %if.end
+while.cond:                                       ; preds = %while.body, %entry
+  %x.0 = phi i32 [ 1, %entry ], [ %inc, %while.body ]
+  %cmp = icmp slt i32 %x.0, 10000
+  br i1 %cmp, label %while.body, label %while.end
 
-if.end:                                           ; preds = %if.then, %entry
-  %x.0 = phi i32 [ %inc, %if.then ], [ 1, %entry ]
-  %y.0 = phi i32 [ %inc1, %if.then ], [ 1, %entry ]
-  %cmp = icmp sle i32 %x.0, 10
-  br i1 %cmp, label %land.lhs.true, label %land.end
+while.body:                                       ; preds = %while.cond
+  %inc = add nsw i32 %x.0, 1
+  br label %while.cond, !llvm.loop !5
 
-land.lhs.true:                                    ; preds = %if.end
-  %cmp2 = icmp sge i32 %x.0, %y.0
-  br i1 %cmp2, label %land.rhs, label %land.end
-
-land.rhs:                                         ; preds = %land.lhs.true
-  %cmp3 = icmp sle i32 %x.0, %y.0
-  br label %land.end
-
-land.end:                                         ; preds = %land.rhs, %land.lhs.true, %if.end
-  %0 = phi i1 [ false, %land.lhs.true ], [ false, %if.end ], [ %cmp3, %land.rhs ]
-  call void @svf_assert(i1 noundef zeroext %0)
+while.end:                                        ; preds = %while.cond
+  %cmp1 = icmp eq i32 %x.0, 10000
+  call void @svf_assert(i1 noundef zeroext %cmp1)
   ret i32 0
 }
-
-declare i32 @nd() #1
 
 declare void @svf_assert(i1 noundef zeroext) #1
 
@@ -50,3 +36,5 @@ attributes #1 = { "frame-pointer"="non-leaf" "no-trapping-math"="true" "stack-pr
 !2 = !{i32 7, !"uwtable", i32 1}
 !3 = !{i32 7, !"frame-pointer", i32 1}
 !4 = !{!"Homebrew clang version 16.0.6"}
+!5 = distinct !{!5, !6}
+!6 = !{!"llvm.loop.mustprogress"}

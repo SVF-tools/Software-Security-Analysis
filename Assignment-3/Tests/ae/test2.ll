@@ -1,5 +1,5 @@
-; ModuleID = 'binary_add.ll'
-source_filename = "binary_add.c"
+; ModuleID = 'Assignment-3/Tests/ae/test2.ll'
+source_filename = "Assignment-3/Tests/ae/test2.c"
 target datalayout = "e-m:o-i64:64-i128:128-n32:64-S128"
 target triple = "arm64-apple-macosx14.0.0"
 

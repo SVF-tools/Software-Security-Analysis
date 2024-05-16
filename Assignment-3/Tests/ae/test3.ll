@@ -1,13 +1,45 @@
-; ModuleID = 'binary_mul.ll'
-source_filename = "binary_mul.c"
+; ModuleID = 'Assignment-3/Tests/ae/test3.ll'
+source_filename = "Assignment-3/Tests/ae/test3.c"
 target datalayout = "e-m:o-i64:64-i128:128-n32:64-S128"
 target triple = "arm64-apple-macosx14.0.0"
 
 ; Function Attrs: noinline nounwind ssp uwtable(sync)
+define i32 @nd() #0 {
+entry:
+  ret i32 1
+}
+
+; Function Attrs: noinline nounwind ssp uwtable(sync)
 define i32 @main() #0 {
 entry:
-  %mul = mul nsw i32 -1, -1
-  %cmp = icmp sgt i32 %mul, 0
+  %call = call i32 @nd()
+  switch i32 %call, label %sw.default [
+    i32 0, label %sw.bb
+    i32 1, label %sw.bb1
+    i32 2, label %sw.bb3
+  ]
+
+sw.bb:                                            ; preds = %entry
+  %add = add nsw i32 1, 1
+  br label %sw.epilog
+
+sw.bb1:                                           ; preds = %entry
+  %add2 = add nsw i32 1, 0
+  br label %sw.epilog
+
+sw.bb3:                                           ; preds = %entry
+  %sub = sub nsw i32 1, 0
+  br label %sw.epilog
+
+sw.default:                                       ; preds = %entry
+  %inc = add nsw i32 1, 1
+  %inc4 = add nsw i32 0, 1
+  br label %sw.epilog
+
+sw.epilog:                                        ; preds = %sw.default, %sw.bb3, %sw.bb1, %sw.bb
+  %x.0 = phi i32 [ %inc, %sw.default ], [ %sub, %sw.bb3 ], [ %add2, %sw.bb1 ], [ %add, %sw.bb ]
+  %y.0 = phi i32 [ %inc4, %sw.default ], [ 0, %sw.bb3 ], [ 0, %sw.bb1 ], [ 0, %sw.bb ]
+  %cmp = icmp sge i32 %x.0, %y.0
   call void @svf_assert(i1 noundef zeroext %cmp)
   ret i32 0
 }

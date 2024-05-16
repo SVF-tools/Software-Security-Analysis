@@ -112,17 +112,25 @@ void AbsExe::handleStubFunctions(const SVF::CallICFGNode *callnode) {
 
         AbstractState &as = getAbsState(callnode);
         AbstractValue gepRhsVal = as[arg0];
-        for (const auto &addr: gepRhsVal.getAddrs()) {
-            s64_t baseObj = _svfir->getBaseObjVar(AbstractState::getInternalID(addr));
-            IntervalValue object_sz = obj2size[baseObj];
-            IntervalValue access_offset = as[arg1].getInterval();
-            bool res = object_sz.leq(access_offset) ? false : true;
-            if (!res) {
-                std::cerr << "Your implementation successfully detected the buffer overflow\n";
-            } else {
-                SVFUtil::errs() << "Your implementation failed to detect the buffer overflow!" << cs.getInstruction()->toString() << "\n";
-                assert(false);
+        if (gepRhsVal.isAddr()) {
+            for (const auto &addr: gepRhsVal.getAddrs()) {
+                s64_t baseObj = _svfir->getBaseObjVar(AbstractState::getInternalID(addr));
+                IntervalValue object_sz = obj2size[baseObj];
+                IntervalValue access_offset = as[arg1].getInterval();
+                bool res = object_sz.leq(access_offset) ? false : true;
+                if (!res) {
+                    std::cerr << "Your implementation successfully detected the buffer overflow\n";
+                } else {
+                    SVFUtil::errs() << "Your implementation failed to detect the buffer overflow!"
+                                    << cs.getInstruction()->toString() << "\n";
+                    assert(false);
+                }
             }
+        }
+        else {
+            SVFUtil::errs() << "Your implementation failed to detect the buffer overflow!"
+                            << cs.getInstruction()->toString() << "\n";
+            assert(false);
         }
     }
 }

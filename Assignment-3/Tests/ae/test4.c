@@ -1,21 +1,12 @@
-
-// CHECK: ^sat$
-
-extern int nd(void);
-
 #include "stdbool.h"
-
 extern void svf_assert(bool);
 
 int main() {
-    int x, y;
-    x = 1;
-    y = 1;
-
-    if (nd()) {
+    int x;
+    x=1;
+    while(x<10000) {
         x++;
-        y++;
     }
-    svf_assert(x <=10 && x>=y && x <= y);
+    svf_assert(x == 10000);
     return 0;
 }

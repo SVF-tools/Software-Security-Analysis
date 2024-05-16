@@ -13,7 +13,7 @@ using namespace SVFUtil;
 int main(int argc, char** argv)
 {
     int arg_num = 0;
-    int extraArgc = 4;
+    int extraArgc = 5;
     char **arg_value = new char *[argc + extraArgc];
     for (; arg_num < argc; ++arg_num)
     {

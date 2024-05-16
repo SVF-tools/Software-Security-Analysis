@@ -1,46 +1,22 @@
 #include <stdio.h>
-#include <stdlib.h> // For rand() and srand()
-#include <time.h>   // For time()
+#include <stdint.h> // For int64_t
+#include <stdlib.h> // For exit and EXIT_FAILURE
 extern void OVERFLOW(void* data, int size);
 
-// Helper function to print int values
-void printIntLine(int value) {
-    printf("%d\n", value);
-}
+void CWE121_Stack_Based_Buffer_Overflow__CWE805_int64_t_declare_loop_01_bad() {
+    int64_t dataBadBuffer[50];
 
-void printLine(const char *message) {
-    printf("%s\n", message);
-}
+    int64_t source[100] = {0}; // Fill with 0's
+    size_t i;
 
-void CWE121_Stack_Based_Buffer_Overflow__CWE129_rand_01_bad() {
-    int data;
-    /* Initialize data */
-    data = -1;
-    /* POTENTIAL FLAW: Set data to a random value */
-    srand((unsigned)time(NULL)); // Seed the random number generator
-    data = rand() % 100; // Simulating RAND32() to generate a value between 0 and 99
-
-    int i;
-    int buffer[10] = { 0 };
-    /* POTENTIAL FLAW: Attempt to write to an index of the array that is above the upper bound
-    * This code does check to see if the array index is negative */
-    if (data >= 0)
-    {
-        OVERFLOW(buffer, 99 * sizeof(int));
-        buffer[data] = 1;
-    }
-    else
-    {
-        printLine("ERROR: Array index is negative.");
-    }
-
-    /* Print the array values */
-    for(i = 0; i < 10; i++) {
-        printIntLine(buffer[i]);
+    // POTENTIAL FLAW: Possible buffer overflow if data < 100
+    OVERFLOW(dataBadBuffer, 100 * sizeof(int64_t));
+    for (i = 0; i < 100; i++) {
+        dataBadBuffer[i] = source[i]; // Unsafe memory access
     }
 }
 
 int main() {
-    CWE121_Stack_Based_Buffer_Overflow__CWE129_rand_01_bad();
+    CWE121_Stack_Based_Buffer_Overflow__CWE805_int64_t_declare_loop_01_bad();
     return 0;
 }
