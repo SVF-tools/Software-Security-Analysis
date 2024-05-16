@@ -105,7 +105,7 @@ public:
     }
 protected:
     //Record the byte size of an object
-    Map<NodeID, AbstractValue> obj2size;
+    Map<NodeID, IntervalValue> obj2size;
 };
 }
 

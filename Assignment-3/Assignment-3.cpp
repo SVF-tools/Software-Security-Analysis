@@ -74,6 +74,10 @@ void AbsExe::handleWTONode(const ICFGNode* node) {
     }
 }
 
+/// This is to check whether your abstract interpretation results are expected.
+/// The oracle (expected results) are embedded by the following stub functions.
+/// For svf_assert(expr), the expr must hold.
+/// For OVERFLOW(object, offset_access), it represents that the object_sz (i.e., size of the object) is less or equal than offset_access
 void AbsExe::handleStubFunctions(const SVF::CallICFGNode *callnode) {
     if (SVFUtil::getCallee(callnode->getCallSite())->getName() == "svf_assert")
     {
@@ -89,9 +93,9 @@ void AbsExe::handleStubFunctions(const SVF::CallICFGNode *callnode) {
         } else {
             as[arg0].getInterval().meet_with(IntervalValue(1, 1));
             if (as[arg0].getInterval().equals(IntervalValue(1, 1))) {
-                SVFUtil::errs() << SVFUtil::sucMsg("The assertion is successfully verified!!\n");
+                SVFUtil::errs() << SVFUtil::sucMsg("Your implementation successfully verified the svf_assert!\n");
             } else {
-                SVFUtil::errs() << "svf_assert Fail. " << cs.getInstruction()->toString() << "\n";
+                SVFUtil::errs() << "Your implementation failed to verify the svf_assert!" << cs.getInstruction()->toString() << "\n";
                 assert(false);
             }
         }
@@ -109,13 +113,15 @@ void AbsExe::handleStubFunctions(const SVF::CallICFGNode *callnode) {
         AbstractState &as = getAbsState(callnode);
         AbstractValue gepRhsVal = as[arg0];
         for (const auto &addr: gepRhsVal.getAddrs()) {
-            s64_t baseObj = AbstractState::getInternalID(addr);
-            AbstractValue valid_sz = obj2size[baseObj];
-            bool res = valid_sz.leq(obj2size[arg1]) ? false : true;
+            s64_t baseObj = _svfir->getBaseObjVar(AbstractState::getInternalID(addr));
+            IntervalValue object_sz = obj2size[baseObj];
+            IntervalValue access_offset = as[arg1].getInterval();
+            bool res = object_sz.leq(access_offset) ? false : true;
             if (!res) {
-                std::cerr << "BUF OVERFLOW DETECTED\n";
+                std::cerr << "Your implementation successfully detected the buffer overflow\n";
             } else {
-                assert(false && "SHOULD DETECT BUF OVERFLOW DETECTED\n");
+                SVFUtil::errs() << "Your implementation failed to detect the buffer overflow!" << cs.getInstruction()->toString() << "\n";
+                assert(false);
             }
         }
     }

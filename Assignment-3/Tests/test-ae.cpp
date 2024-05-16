@@ -23,6 +23,7 @@ int main(int argc, char** argv)
     arg_value[arg_num++] = (char*) "-model-consts=true";
     arg_value[arg_num++] = (char*) "-model-arrays=true";
     arg_value[arg_num++] = (char*) "-pre-field-sensitive=false";
+    arg_value[arg_num++] = (char*) "-field-limit=10000";
     arg_value[arg_num++] = (char*) "-stat=false";
     assert(arg_num == (argc + extraArgc) && "more extra arguments? Change the value of extraArgc");
 
