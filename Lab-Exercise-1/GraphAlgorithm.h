@@ -138,7 +138,7 @@ public:
     }
 
     /// The inclusion set of this node
-    std::set<unsigned>& getInclusionSet(){
+    std::set<unsigned>& getIS(){
         return inclusionSet;
     }
 
@@ -248,27 +248,23 @@ public:
     }
 
     /// Retrun the inclusion set of a node
-    std::set<unsigned>& getInclusionSet(unsigned id) const{
+    std::set<unsigned>& getIS(unsigned id) const{
         CGNode* node = getNode(id);
-        return node->getInclusionSet();
+        return node->getIS();
     }
 
-    /// Add the inclusion set of a node
-    bool addInclusionNode(CGNode* s, CGNode* d) {
-        if (s->getInclusionSet().find(d->getID()) == s->getInclusionSet().end()) {
-            s->getInclusionSet().insert(d->getID());
-            return true;
-        }
-        return false;
+    /// Add d to the inclusion set of s
+    bool addToIS(CGNode* s, CGNode* d) {
+        return s->getIS().insert(d->getID()).second;
     }
 
     /// Union the inclusion set of d to that of s
     /// IS(s) = IS(s) ∪ IS(d)
-    bool unionSet(CGNode* s, CGNode* d){
+    bool unionIS(CGNode* s, CGNode* d){
         bool changed = false;
-        for(auto e : d->getInclusionSet()) {
-            if (s->getInclusionSet().find(e) == s->getInclusionSet().end()) {
-                s->getInclusionSet().insert(e);
+        for(auto e : d->getIS()) {
+            if (s->getIS().find(e) == s->getIS().end()) {
+                s->getIS().insert(e);
                 changed = true;
             }
         }

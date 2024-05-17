@@ -87,7 +87,7 @@ void AbsExe::handleStubFunctions(const SVF::CallICFGNode *callnode) {
         _checkpoints.erase(callNode);
         u32_t arg0 = _svfir->getValueNode(cs.getArgument(0));
         AbstractState&as = getAbsState(callNode);
-        if (as[arg0].is_infinite()) {
+        if (as[arg0].getInterval().is_infinite()) {
             SVFUtil::errs() <<"svf_assert Fail. " << cs.getInstruction()->toString() << "\n";
             assert(false);
         } else {
@@ -274,8 +274,8 @@ void AbsExe::updateStateOnCmp(const CmpStmt* cmp)
     u32_t res = cmp->getResID();
     if (as.inVarToValTable(op0) && as.inVarToValTable(op1))
     {
-        AbstractValue resVal;
-        AbstractValue &lhs = as[op0], &rhs = as[op1];
+        IntervalValue resVal;
+        IntervalValue &lhs = as[op0].getInterval(), &rhs = as[op1].getInterval();
         //AbstractValue
         auto predicate = cmp->getPredicate();
         switch (predicate)

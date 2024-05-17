@@ -93,7 +93,7 @@ bool Test2() {
 
 
     for (auto res: results) {
-        if (res.second!= g->getInclusionSet(res.first)) {
+        if (res.second!= g->getIS(res.first)) {
             std::cerr << "Test 2: Your result is not correct!" << std::endl;
             return false;
         }
@@ -180,7 +180,7 @@ bool Test3() {
             {8,  {11, 12}},
     };
     for (auto res: results) {
-        if (res.second!= g->getInclusionSet(res.first)) {
+        if (res.second!= g->getIS(res.first)) {
             std::cerr << "Test 2: Your result is not correct!" << std::endl;
             return false;
         }

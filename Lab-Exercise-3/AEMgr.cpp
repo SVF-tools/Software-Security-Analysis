@@ -44,7 +44,7 @@ void AbstractExecutionMgr::test1() {
     NodeID b = getNodeID("b");
     /// TODO: your code starts from here
 
-    svf_assert(as[b] > IntervalValue(0,0));
+    svf_assert(as[b].getInterval() > IntervalValue(0,0));
 }
 
 
@@ -66,7 +66,7 @@ void AbstractExecutionMgr::test2() {
     NodeID b = getNodeID("b");
     /// TODO: your code starts from here
 
-    svf_assert(as[b] > IntervalValue(3,3));
+    svf_assert(as[b].getInterval() > IntervalValue(3,3));
 }
 
 
@@ -91,7 +91,7 @@ void AbstractExecutionMgr::test3() {
     NodeID x = getNodeID("x");
     /// TODO: your code starts from here
 
-    svf_assert(as[x] == IntervalValue(10, 10));
+    svf_assert(as[x].getInterval() == IntervalValue(10, 10));
 }
 
 
@@ -116,7 +116,7 @@ void AbstractExecutionMgr::test4() {    //    int main() {
     NodeID b = getNodeID("b");
     /// TODO: your code starts from here
 
-    svf_assert(as[a] + as[b] > IntervalValue(20, 20));
+    svf_assert(as[a].getInterval() + as[b].getInterval() > IntervalValue(20, 20));
 }
 
 
@@ -171,7 +171,7 @@ void AbstractExecutionMgr::test6() {
     NodeID argv = getNodeID("argv");
     /// TODO: your code starts from here
 
-    svf_assert(as[b] >= IntervalValue(5, 5));
+    svf_assert(as[b].getInterval() >= IntervalValue(5, 5));
 }
 
 
@@ -213,7 +213,7 @@ void AbstractExecutionMgr::test8() {
     NodeID x = getNodeID("x");
     /// TODO: your code starts from here
 
-    svf_assert(as[x] == IntervalValue(0, 0));
+    svf_assert(as[x].getInterval() == IntervalValue(0, 0));
 
 }
 
