@@ -126,7 +126,7 @@ class CGEdge;
 class CGNode {
 
 private:
-    std::set<unsigned> inclusionSet; // a node's inclusion set (e.g., a set of nodes which have the subset relation with this node)
+    std::set<unsigned> pointsToSet; // a node's points-to set (e.g., a set of nodes that this node points to)
     std::set<CGEdge *> inEdges; /// a set of incoming edges to this node
     std::set<CGEdge *> outEdges; /// a set of outgoing edges from this node
     unsigned nodeID;
@@ -137,9 +137,9 @@ public:
 
     }
 
-    /// The inclusion set of this node
-    std::set<unsigned>& getIS(){
-        return inclusionSet;
+    /// The points-to set of this node
+    std::set<unsigned>& getPts(){
+        return pointsToSet;
     }
 
     /// Return the outgoing edges
@@ -174,10 +174,10 @@ class CGEdge {
 public:
 
     enum EdgeType{
-        ADDR,
-        COPY,
-        STORE,
-        LOAD
+        ADDR,   // p=&a     p<--ADDR--a    where p and a are two CGNodes on the graph
+        COPY,   // p=q      p<--COPY--q
+        STORE,  // *p=q     p<--STORE--q
+        LOAD    // p=*q     p<--LOAD--q
     };
 
     /// Constructor
@@ -247,24 +247,24 @@ public:
         }
     }
 
-    /// Retrun the inclusion set of a node
-    std::set<unsigned>& getIS(unsigned id) const{
+    /// Retrun the points-to set of a node
+    std::set<unsigned>& getPts(unsigned id) const{
         CGNode* node = getNode(id);
-        return node->getIS();
+        return node->getPts();
     }
 
-    /// Add d to the inclusion set of s
-    bool addToIS(CGNode* s, CGNode* d) {
-        return s->getIS().insert(d->getID()).second;
+    /// Add d to the points-to set of s
+    bool addPts(CGNode* s, CGNode* d) {
+        return s->getPts().insert(d->getID()).second;
     }
 
-    /// Union the inclusion set of d to that of s
-    /// IS(s) = IS(s) ∪ IS(d)
-    bool unionIS(CGNode* s, CGNode* d){
+    /// Union the points-to set of d to that of s
+    /// pts(s) = pts(s) ∪ pts(d)
+    bool unionPts(CGNode* s, CGNode* d){
         bool changed = false;
-        for(auto e : d->getIS()) {
-            if (s->getIS().find(e) == s->getIS().end()) {
-                s->getIS().insert(e);
+        for(auto e : d->getPts()) {
+            if (s->getPts().find(e) == s->getPts().end()) {
+                s->getPts().insert(e);
                 changed = true;
             }
         }

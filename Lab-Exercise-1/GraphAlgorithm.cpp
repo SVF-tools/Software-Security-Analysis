@@ -39,13 +39,13 @@ void Graph::reachability(Node *src, Node *dst) {
 }
 
 
-/// TODO: Implement constraint solving by (1) propagating inclusion sets among nodes on CGraph, and (2) adding new copy edges until a fixed point is reached (i.e., no new copy edges are added).
+/// TODO: Implement constraint solving by iteratively (1) propagating points-to sets among nodes on CGraph, and (2) adding new copy edges until a fixed point is reached (i.e., no new copy edges are added).
 /// The solving rules are as follows:
-/// p <--Addr-- o   =>  IS(p) = {o}
-/// q <--COPY-- p   =>  IS(q) = IS(q) ∪ IS(p)
-/// q <--LOAD-- p   =>  for each o ∈ IS(p) : q <--COPY-- o
-/// q <--STORE-- p  =>  for each o ∈ IS(q) : o <--COPY-- p
-/// IS(q) denotes the inclusion set of node q. Refer to the APIs in CGraph, including `addToIS`, `getIS`, `unionIS` and `addEdge` for your implementation.
+/// p <--ADDR-- o   =>  pts(p) = {o}
+/// q <--COPY-- p   =>  pts(q) = pts(q) ∪ pts(p)
+/// q <--LOAD-- p   =>  for each o ∈ pts(p) : q <--COPY-- o
+/// q <--STORE-- p  =>  for each o ∈ pts(q) : o <--COPY-- p
+/// pts(q) denotes the points-to set of node q. Refer to the APIs in CGraph, including `addPts`, `getPts`, `unionPts` and `addEdge` for your implementation.
 void CGraph::solveWorklist() {
  /// TODO: your code starts from here
 }

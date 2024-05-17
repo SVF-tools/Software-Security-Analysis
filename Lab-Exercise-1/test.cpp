@@ -42,7 +42,7 @@ bool Test1() {
     // test
     g->reachability(node1, node5);
     // print paths
-    std::set<std::string> results = {"1245", "1345"};
+    std::set<std::string> results = {"START->1->2->4->5->END", "START->1->3->4->5->END"};
     if (g->getPaths().size() != results.size()) {
         std::cerr << "Test 1: Your result is not correct!" << std::endl;
         return false;
@@ -93,7 +93,7 @@ bool Test2() {
 
 
     for (auto res: results) {
-        if (res.second!= g->getIS(res.first)) {
+        if (res.second!= g->getPts(res.first)) {
             std::cerr << "Test 2: Your result is not correct!" << std::endl;
             return false;
         }
@@ -180,7 +180,7 @@ bool Test3() {
             {8,  {11, 12}},
     };
     for (auto res: results) {
-        if (res.second!= g->getIS(res.first)) {
+        if (res.second!= g->getPts(res.first)) {
             std::cerr << "Test 2: Your result is not correct!" << std::endl;
             return false;
         }
