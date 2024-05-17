@@ -41,8 +41,7 @@ using namespace SVF;
     }
 */
 void Z3Examples::test1() {
-
-    /// TODO: your code starts from here
+	/// TODO: your code starts from here
 }
 
 /*
@@ -62,10 +61,8 @@ void Z3Examples::test1() {
     }
 */
 void Z3Examples::test2() {
-
-    /// TODO: your code starts from here
+	/// TODO: your code starts from here
 }
-
 
 /*
     // Mutiple-level pointers
@@ -86,10 +83,8 @@ void Z3Examples::test2() {
     }
 */
 void Z3Examples::test3() {
-
-    /// TODO: your code starts from here
+	/// TODO: your code starts from here
 }
-
 
 /*
    // Array and pointers
@@ -111,11 +106,8 @@ void Z3Examples::test3() {
     }
 */
 void Z3Examples::test4() {
-
-    /// TODO: your code starts from here
+	/// TODO: your code starts from here
 }
-
-
 
 /*
     // Struct and pointers
@@ -143,10 +135,8 @@ void Z3Examples::test4() {
     }
 */
 void Z3Examples::test5() {
-
-    /// TODO: your code starts from here
+	/// TODO: your code starts from here
 }
-
 
 /*
     // Branches
@@ -162,8 +152,7 @@ void Z3Examples::test5() {
     }
 */
 void Z3Examples::test6() {
-
-    /// TODO: your code starts from here
+	/// TODO: your code starts from here
 }
 
 /*
@@ -180,6 +169,5 @@ int main() {
 }
 */
 void Z3Examples::test7() {
-
-    /// TODO: your code starts from here
+	/// TODO: your code starts from here
 }

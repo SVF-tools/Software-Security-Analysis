@@ -20,129 +20,124 @@
 //
 //===----------------------------------------------------------------------===//
 
-
 //
 // Created on 2024/1/10.
 //
 
-#include "Util/SVFBugReport.h"
 #include "AE/Core/ICFGWTO.h"
-#include "WPA/Andersen.h"
 #include "AE/Svfexe/SVFIR2AbsState.h"
+#include "Util/SVFBugReport.h"
+#include "WPA/Andersen.h"
 
+namespace SVF {
+	class IntervalExeState;
+	class IntervalValue;
+	class ExeState;
+	class SVFIR2ItvExeState;
 
-namespace SVF
-{
-    class IntervalExeState;
-    class IntervalValue;
-    class ExeState;
-    class SVFIR2ItvExeState;
+	class AbstractExecutionMgr {
+	 public:
+		AbstractExecutionMgr() = default;
+		~AbstractExecutionMgr() = default;
+		void test1();
+		void test2();
+		void test3();
+		void test4();
+		void test5();
+		void test6();
+		void test7();
+		void test8();
 
-    class AbstractExecutionMgr {
-    public:
-        AbstractExecutionMgr() = default;
-        ~AbstractExecutionMgr() = default;
-        void test1();
-        void test2();
-        void test3();
-        void test4();
-        void test5();
-        void test6();
-        void test7();
-        void test8();
+		void reset() {
+			_strToID.clear();
+			as.clear();
+		};
 
-        void reset() {
-            _strToID.clear();
-            as.clear();
-        };
+		NodeID getInternalID(NodeID addr) {
+			return AddressValue::getInternalID(addr);
+		}
 
-        NodeID getInternalID(NodeID addr)
-        {
-            return AddressValue::getInternalID(addr);
-        }
+		NodeID getNodeID(std::string name) {
+			auto it = _strToID.find(name);
+			if (it != _strToID.end())
+				return it->second;
+			else {
+				_strToID[name] = ++currentExprIdx;
+				return currentExprIdx;
+			}
+		}
 
-        NodeID getNodeID(std::string name) {
-            auto it = _strToID.find(name);
-            if(it!=_strToID.end())
-                return it->second;
-            else{
-                _strToID[name] = ++currentExprIdx;
-                return currentExprIdx;
-            }
-        }
+		void removeNodeID(std::string name) {
+			auto it = _strToID.find(name);
+			if (it != _strToID.end())
+				_strToID.erase(it);
+			else
+				assert(false && "removeNodeID: name not found");
+		}
 
-        void removeNodeID(std::string name) {
-            auto it = _strToID.find(name);
-            if (it != _strToID.end())
-                _strToID.erase(it);
-            else
-                assert(false && "removeNodeID: name not found");
-        }
+		NodeID getNodeID(std::string name, u32_t size) {
+			auto it = _strToID.find(name);
+			if (it != _strToID.end())
+				return it->second;
+			else {
+				_strToID[name] = ++currentExprIdx;
+				currentExprIdx += (size - 1);
+				return _strToID[name];
+			}
+		}
 
-        NodeID getNodeID(std::string name, u32_t size) {
-            auto it = _strToID.find(name);
-            if(it!=_strToID.end())
-                return it->second;
-            else{
-                _strToID[name] = ++currentExprIdx;
-                currentExprIdx += (size - 1);
-                return _strToID[name];
-            }
-        }
+		u32_t getVirtualAddr(NodeID id) const {
+			return AddressMask + id;
+		}
 
-        u32_t getVirtualAddr(NodeID id) const {
-            return AddressMask + id;
-        }
+		u32_t getMemObjAddress(std::string name) {
+			auto it = _strToID.find(name);
+			if (it == _strToID.end()) {
+				assert(false && "");
+				abort();
+			}
+			else {
+				u32_t res = _strToID[name];
+				return AddressMask + res;
+			}
+		}
 
-        u32_t getMemObjAddress(std::string name) {
-            auto it = _strToID.find(name);
-            if (it == _strToID.end())
-            {
-                assert(false && "");
-                abort();
-            }
-            else {
-                u32_t res = _strToID[name];
-                return AddressMask + res;
-            }
-        }
+		NodeID getGepObjAddress(std::string arr_name, u32_t offset) {
+			auto iter = _strToID.find(arr_name);
+			assert(iter != _strToID.end() && "Gep BaseObject expr not found?");
+			u32_t baseObjID = iter->second;
+			u32_t gepObj = baseObjID + offset;
+			if (baseObjID == gepObj) {
+				return AddressMask + baseObjID;
+			}
+			else {
+				return AddressMask + gepObj;
+			}
+		}
 
-        NodeID getGepObjAddress(std::string arr_name, u32_t offset) {
-            auto iter = _strToID.find(arr_name);
-            assert(iter != _strToID.end() && "Gep BaseObject expr not found?");
-            u32_t baseObjID = iter->second;
-            u32_t gepObj = baseObjID + offset;
-            if (baseObjID == gepObj){
-                return  AddressMask + baseObjID;
-            }
-            else {
-                return  AddressMask + gepObj;
-            }
-        }
+		void getExitState(AbstractState& es, NodeID x);
 
-        void getExitState(AbstractState &es, NodeID x);
+		bool svf_assert(AbstractValue absv) {
+			IntervalValue iv = absv.getInterval();
+			if (iv.is_numeral()) {
+				if (iv.getNumeral() == 0) {
+					SVFUtil::outs() << SVFUtil::errMsg("\t FAILURE :") << "assertion failed\n";
+					assert(false);
+				}
+				else {
+					SVFUtil::outs() << SVFUtil::sucMsg("\t SUCCESS :") << "assertion passed\n";
+					return true;
+				}
+			}
+			else {
+				SVFUtil::outs() << SVFUtil::errMsg("\t FAILURE :") << "assertion failed\n";
+				assert(false);
+			}
+		}
+		static u32_t currentExprIdx;
 
-        bool svf_assert(AbstractValue absv) {
-            IntervalValue iv = absv.getInterval();
-            if (iv.is_numeral()) {
-                if (iv.getNumeral() == 0) {
-                    SVFUtil::outs() << SVFUtil::errMsg("\t FAILURE :")  << "assertion failed\n";
-                    assert(false);
-                }
-                else {
-                    SVFUtil::outs() << SVFUtil::sucMsg("\t SUCCESS :")  << "assertion passed\n";
-                    return true;
-                }
-            } else {
-                SVFUtil::outs() << SVFUtil::errMsg("\t FAILURE :")  << "assertion failed\n";
-                assert(false);
-            }
-        }
-        static u32_t currentExprIdx;
-
-    private:
-
-        AbstractState as;
-        Map<std::string, NodeID> _strToID;
-    };
-}
+	 private:
+		AbstractState as;
+		Map<std::string, NodeID> _strToID;
+	};
+} // namespace SVF

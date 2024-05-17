@@ -26,30 +26,28 @@
  */
 
 #include "Assignment-1.h"
+#include "WPA/Andersen.h"
+#include <sys/stat.h>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <filesystem>
-#include <sys/stat.h>
-#include "WPA/Andersen.h"
 
 using namespace SVF;
 using namespace llvm;
 using namespace std;
 
-/// TODO: Implement your context-sensitive ICFG traversal here to traverse each program path (once for any loop) from src to dst
-/// Printout the path from src to dst by calling collectICFGPath
-void ICFGTraversal::reachability(const ICFGNode *src, const ICFGNode *dst) {
-
-    /// TODO: your code starts from here
+/// TODO: Implement your context-sensitive ICFG traversal here to traverse each program path (once for any loop) from
+/// src to dst Printout the path from src to dst by calling collectICFGPath
+void ICFGTraversal::reachability(const ICFGNode* src, const ICFGNode* dst) {
+	/// TODO: your code starts from here
 }
 
 /// TODO: collect each path once this method is called, and
 /// (1) add each path (a sequence of node IDs) as a string into std::set<std::string> paths
 /// in the format "START->1->2->4->5->END", where -> indicate an ICFGEdge connects two ICFGNode IDs
 void ICFGTraversal::collectICFGPath() {
-
-    /// TODO: your code starts from here
+	/// TODO: your code starts from here
 }
 
 // TODO: Implement your Andersen's Algorithm here
@@ -61,48 +59,44 @@ void ICFGTraversal::collectICFGPath() {
 /// q <--GEP, fld-- p    =>  for each o ∈ pts(p) : pts(q) = pts(q) ∪ {o.fld}
 /// pts(q) denotes the points-to set of q
 void AndersenPTA::solveWorklist() {
-
-    /// TODO: your code starts from here
+	/// TODO: your code starts from here
 }
 
 // TODO: Implement your code to parse the two lines from `SrcSnk.txt` in the form of
 // line 1 for sources  "{ api1 api2 api3 }"
 // line 2 for sinks    "{ api1 api2 api3 }"
-void ICFGTraversal::readSrcSnkFromFile(const string &filename) {
-
-    /// TODO: your code starts from here
+void ICFGTraversal::readSrcSnkFromFile(const string& filename) {
+	/// TODO: your code starts from here
 }
 
 /// TODO: Checking aliases of the two variables at source and sink. For example:
 /// src instruction:  actualRet = source();
 /// snk instruction:  sink(actualParm,...);
 /// return true if actualRet is aliased with any parameter at the snk node (e.g., via ander->alias(..,..))
-bool ICFGTraversal::aliasCheck(const CallICFGNode *src, const CallICFGNode *snk) {
-
-    /// TODO: your code starts from here
-    return false;
+bool ICFGTraversal::aliasCheck(const CallICFGNode* src, const CallICFGNode* snk) {
+	/// TODO: your code starts from here
+	return false;
 }
 
 // Start taint checking.
 // There is a tainted flow from p@source to q@sink
 // if (1) alias(p,q)==true and (2) source reaches sink on ICFG.
 void ICFGTraversal::taintChecking() {
-    const fs::path &config = CUR_DIR() / "SrcSnk.txt";
-    // configure sources and sinks for taint analysis
-    readSrcSnkFromFile(config);
+	const fs::path& config = CUR_DIR() / "SrcSnk.txt";
+	// configure sources and sinks for taint analysis
+	readSrcSnkFromFile(config);
 
-    // Set file permissions to read-only for user, group and others
-    if (chmod(config.string().c_str(), S_IRUSR | S_IRGRP | S_IROTH) == -1) {
-        std::cerr << "Error setting file permissions for " << config
-                  << ": " << std::strerror(errno) << std::endl;
-        abort();
-    }
-    ander = new AndersenPTA(pag);
-    ander->analyze();
-    for (const CallICFGNode *src: identifySources()) {
-        for (const CallICFGNode *snk: identifySinks()) {
-            if (aliasCheck(src, snk))
-                reachability(src, snk);
-        }
-    }
+	// Set file permissions to read-only for user, group and others
+	if (chmod(config.string().c_str(), S_IRUSR | S_IRGRP | S_IROTH) == -1) {
+		std::cerr << "Error setting file permissions for " << config << ": " << std::strerror(errno) << std::endl;
+		abort();
+	}
+	ander = new AndersenPTA(pag);
+	ander->analyze();
+	for (const CallICFGNode* src : identifySources()) {
+		for (const CallICFGNode* snk : identifySinks()) {
+			if (aliasCheck(src, snk))
+				reachability(src, snk);
+		}
+	}
 }

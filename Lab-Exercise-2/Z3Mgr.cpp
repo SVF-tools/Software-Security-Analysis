@@ -26,9 +26,9 @@
  */
 
 #include "Z3Mgr.h"
-#include <set>
 #include <iomanip>
 #include <iostream>
+#include <set>
 #include <sstream>
 
 using namespace SVF;
@@ -36,60 +36,56 @@ using namespace z3;
 using namespace std;
 
 /// Store and Select for Loc2ValMap, i.e., store and load
-z3::expr Z3Mgr::storeValue(const z3::expr loc, const z3::expr value){
-    z3::expr deref = getEvalExpr(loc);
-    assert(isVirtualMemAddress(deref) && "Pointer operand is not a physical address?");
-    z3::expr loc2ValMap = varID2ExprMap[lastSlot];
-    loc2ValMap = z3::store(loc2ValMap , deref, value);
-    varID2ExprMap.set(lastSlot, loc2ValMap);
-    return loc2ValMap;
+z3::expr Z3Mgr::storeValue(const z3::expr loc, const z3::expr value) {
+	z3::expr deref = getEvalExpr(loc);
+	assert(isVirtualMemAddress(deref) && "Pointer operand is not a physical address?");
+	z3::expr loc2ValMap = varID2ExprMap[lastSlot];
+	loc2ValMap = z3::store(loc2ValMap, deref, value);
+	varID2ExprMap.set(lastSlot, loc2ValMap);
+	return loc2ValMap;
 }
 
-z3::expr Z3Mgr::loadValue(const z3::expr loc){
-    z3::expr deref = getEvalExpr(loc);
-    assert(isVirtualMemAddress(deref) && "Pointer operand is not a physical address?");
-    z3::expr loc2ValMap = varID2ExprMap[lastSlot];
-    return z3::select(loc2ValMap , deref);
+z3::expr Z3Mgr::loadValue(const z3::expr loc) {
+	z3::expr deref = getEvalExpr(loc);
+	assert(isVirtualMemAddress(deref) && "Pointer operand is not a physical address?");
+	z3::expr loc2ValMap = varID2ExprMap[lastSlot];
+	return z3::select(loc2ValMap, deref);
 }
-
 
 /// Return int value from an expression if it is a numeral, otherwise return an approximate value
 s32_t Z3Mgr::z3Expr2NumValue(z3::expr e) {
-    z3::expr val = getEvalExpr(e);
-    if(val.is_numeral())
-        return val.get_numeral_int64();
-    else{
-        assert(false && "this expression is not numeral");
-        abort();
-    }
+	z3::expr val = getEvalExpr(e);
+	if (val.is_numeral())
+		return val.get_numeral_int64();
+	else {
+		assert(false && "this expression is not numeral");
+		abort();
+	}
 }
 
 /// Return int value from an expression if it is a numeral, otherwise return an approximate value
 z3::expr Z3Mgr::getEvalExpr(z3::expr e) {
-    z3::check_result res = solver.check();
-    assert(res!=z3::unsat && "unsatisfied constraints! Check your contradictory constraints added to the solver");
-    z3::model m = solver.get_model();
-    return m.eval(e);
+	z3::check_result res = solver.check();
+	assert(res != z3::unsat && "unsatisfied constraints! Check your contradictory constraints added to the solver");
+	z3::model m = solver.get_model();
+	return m.eval(e);
 }
 
-void Z3Mgr::printExprValues(){
-    std::cout.flags(std::ios::left);
-    std::cout << "-----------Var and Value-----------\n";
-    for (u32_t i = 0; i < lastSlot; i++)
-    {
-        expr e = getEvalExpr(varID2ExprMap[i]);
-        if(e.is_numeral()){
-            s32_t value = e.get_numeral_int64();
-            std::stringstream exprName;
-            exprName << "Var" << i;
-            std::cout << std::setw(25)  <<  exprName.str();
-            if(isVirtualMemAddress(value))
-                std::cout << "\t Value: "<< std::hex << "0x" << value << "\n";
-            else
-                std::cout << "\t Value: " << std::dec << value << "\n";
-        }
-    }
-    std::cout << "-----------------------------------------\n";
+void Z3Mgr::printExprValues() {
+	std::cout.flags(std::ios::left);
+	std::cout << "-----------Var and Value-----------\n";
+	for (u32_t i = 0; i < lastSlot; i++) {
+		expr e = getEvalExpr(varID2ExprMap[i]);
+		if (e.is_numeral()) {
+			s32_t value = e.get_numeral_int64();
+			std::stringstream exprName;
+			exprName << "Var" << i;
+			std::cout << std::setw(25) << exprName.str();
+			if (isVirtualMemAddress(value))
+				std::cout << "\t Value: " << std::hex << "0x" << value << "\n";
+			else
+				std::cout << "\t Value: " << std::dec << value << "\n";
+		}
+	}
+	std::cout << "-----------------------------------------\n";
 }
-
-

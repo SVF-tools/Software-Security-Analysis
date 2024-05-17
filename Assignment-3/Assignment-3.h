@@ -28,85 +28,81 @@
 #ifndef SOFTWARE_SECURITY_ANALYSIS_ASSIGNMENT_3_H
 #define SOFTWARE_SECURITY_ANALYSIS_ASSIGNMENT_3_H
 
-#include "Util/SVFBugReport.h"
 #include "AE/Core/ICFGWTO.h"
-#include "WPA/Andersen.h"
 #include "AE/Svfexe/AbstractInterpretation.h"
+#include "Util/SVFBugReport.h"
+#include "WPA/Andersen.h"
 
-namespace SVF
-{
-class AbsExe;
+namespace SVF {
+	class AbsExe;
 
-class Assign3Exception : public std::exception {
-public:
-    Assign3Exception(const std::string& message): msg_(message) {}
+	class Assign3Exception : public std::exception {
+	 public:
+		Assign3Exception(const std::string& message)
+		: msg_(message) {}
 
-    virtual const char* what() const throw() {
-        return msg_.c_str();
-    }
+		virtual const char* what() const throw() {
+			return msg_.c_str();
+		}
 
-private:
-    std::string msg_;
-};
+	 private:
+		std::string msg_;
+	};
 
+	/// AbstractInterpretation is same as Abstract Execution
+	class AbsExe : virtual public AbstractInterpretation {
+	 public:
+		/// Constructor
+		AbsExe()
+		: AbstractInterpretation() {}
 
+		virtual void runOnModule(ICFG* icfg) {
+			AbstractInterpretation::runOnModule(icfg);
+		}
 
-/// AbstractInterpretation is same as Abstract Execution
-class AbsExe: virtual public AbstractInterpretation
-{
-public:
-    /// Constructor
-    AbsExe() : AbstractInterpretation() {
-    }
+		void handleWTONode(const ICFGNode* node);
+		virtual void handleCycle(const ICFGWTOCycle* cycle);
 
-    virtual void runOnModule(ICFG* icfg) {
-        AbstractInterpretation::runOnModule(icfg);
-    }
+		/// Program entry
+		virtual void analyse();
 
-    void handleWTONode(const ICFGNode* node);
-    virtual void handleCycle(const ICFGWTOCycle* cycle);
+		virtual void updateAbsState(const SVFStmt* stmt);
+		virtual void bufOverflowDetection(const SVFStmt* stmt);
 
-    /// Program entry
-    virtual void analyse();
+		// handle SVF Statements
+		void updateStateOnAddr(const AddrStmt* addr);
+		void updateStateOnGep(const GepStmt* gep);
+		void updateStateOnStore(const StoreStmt* store);
+		void updateStateOnLoad(const LoadStmt* load);
+		void updateStateOnCmp(const CmpStmt* cmp);
+		void updateStateOnCall(const CallPE* call);
+		void updateStateOnRet(const RetPE* retPE);
+		void updateStateOnCopy(const CopyStmt* copy);
+		void updateStateOnPhi(const PhiStmt* phi);
+		void updateStateOnBinary(const BinaryOPStmt* binary);
+		void updateStateOnSelect(const SelectStmt* select);
 
-    virtual void updateAbsState(const SVFStmt* stmt);
-    virtual void bufOverflowDetection(const SVFStmt* stmt);
+		void addBugToReporter(const Assign3Exception& e, const ICFGNode* node);
 
+		// helper functions related to gep
+		void initSVFVar(AbstractState& es, u32_t varId);
+		void initObjVar(AbstractState& es, const ObjVar* objVar, u32_t varId);
+		AddressValue getGepObjAddress(AbstractState& es, u32_t pointer, APOffset offset);
+		IntervalValue getByteOffset(const AbstractState& es, const GepStmt* gep);
+		IntervalValue getElementIndex(const AbstractState& es, const GepStmt* gep);
+		const Map<const ICFGNode*, std::string>& getBugInfo() {
+			return _nodeToBugInfo;
+		}
 
-    // handle SVF Statements
-    void updateStateOnAddr(const AddrStmt* addr);
-    void updateStateOnGep(const GepStmt* gep);
-    void updateStateOnStore(const StoreStmt* store);
-    void updateStateOnLoad(const LoadStmt* load);
-    void updateStateOnCmp(const CmpStmt* cmp);
-    void updateStateOnCall(const CallPE* call);
-    void updateStateOnRet(const RetPE* retPE);
-    void updateStateOnCopy(const CopyStmt* copy);
-    void updateStateOnPhi(const PhiStmt* phi);
-    void updateStateOnBinary(const BinaryOPStmt* binary);
-    void updateStateOnSelect(const SelectStmt *select);
+		void handleStubFunctions(const CallICFGNode* call);
 
-    void addBugToReporter(const Assign3Exception& e, const ICFGNode* node);
+		/// Destructor
+		virtual ~AbsExe() {}
 
-    // helper functions related to gep
-    void initSVFVar(AbstractState& es, u32_t varId);
-    void initObjVar(AbstractState& es, const ObjVar *objVar, u32_t varId);
-    AddressValue getGepObjAddress(AbstractState& es, u32_t pointer, APOffset offset);
-    IntervalValue getByteOffset(const AbstractState& es, const GepStmt *gep);
-    IntervalValue getElementIndex(const AbstractState& es, const GepStmt *gep);
-    const Map<const ICFGNode*, std::string>& getBugInfo() {
-        return _nodeToBugInfo;
-    }
-
-    void handleStubFunctions(const CallICFGNode* call);
-
-    /// Destructor
-    virtual ~AbsExe() {
-    }
-protected:
-    //Record the byte size of an object
-    Map<NodeID, IntervalValue> obj2size;
-};
-}
+	 protected:
+		// Record the byte size of an object
+		Map<NodeID, IntervalValue> obj2size;
+	};
+} // namespace SVF
 
 #endif

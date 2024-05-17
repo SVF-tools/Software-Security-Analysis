@@ -38,101 +38,96 @@ namespace fs = std::filesystem;
 
 using namespace SVF;
 
-
 class AndersenPTA : public SVF::AndersenBase {
-public:
-    // Constructor
-    AndersenPTA(SVF::SVFIR *_pag) : AndersenBase(_pag) {};
+ public:
+	// Constructor
+	AndersenPTA(SVF::SVFIR* _pag)
+	: AndersenBase(_pag){};
 
-    //dump constraint graph
-    void dump_consCG(std::string name) {
-        consCG->dump(name);
-    };
+	// dump constraint graph
+	void dump_consCG(std::string name) {
+		consCG->dump(name);
+	};
 
-private:
+ private:
+	// To be implemented
+	void solveWorklist() override;
 
-    // To be implemented
-    void solveWorklist() override;
-
-    /// Add copy edge on constraint graph
-    virtual bool addCopyEdge(SVF::NodeID src, SVF::NodeID dst) {
-        if (consCG->addCopyCGEdge(src, dst))
-            return true;
-        else
-            return false;
-    }
-
+	/// Add copy edge on constraint graph
+	virtual bool addCopyEdge(SVF::NodeID src, SVF::NodeID dst) {
+		if (consCG->addCopyCGEdge(src, dst))
+			return true;
+		else
+			return false;
+	}
 };
 
 class ICFGTraversal {
-public:
+ public:
+	typedef std::vector<const SVFInstruction*> CallStack;
+	typedef std::pair<const ICFGNode*, CallStack> ICFGNodeCallStackPair;
 
-    typedef std::vector<const SVFInstruction *> CallStack;
-    typedef std::pair<const ICFGNode *, CallStack> ICFGNodeCallStackPair;
+ public:
+	ICFGTraversal(SVFIR* p)
+	: pag(p) {}
 
-public:
+	/// TODO: to be implemented context sensitive reachability
+	void reachability(const ICFGNode* src, const ICFGNode* dst);
 
-    ICFGTraversal(SVFIR *p) : pag(p) {}
+	// Return true if two pointers are aliases
+	bool aliasCheck(const CallICFGNode* src, const CallICFGNode* snk);
 
-    /// TODO: to be implemented context sensitive reachability
-    void reachability(const ICFGNode *src, const ICFGNode *dst);
+	// TODO: Source and sink function names read from SrcSnk.txt
+	void readSrcSnkFromFile(const std::string& filename);
 
-    // Return true if two pointers are aliases
-    bool aliasCheck(const CallICFGNode *src, const CallICFGNode *snk);
+	// The driver method for taint checking
+	void taintChecking();
 
-    // TODO: Source and sink function names read from SrcSnk.txt
-    void readSrcSnkFromFile(const std::string &filename);
+	// Identify source nodes on ICFG (i.e., call instruction with its callee function named 'src')
+	virtual std::set<const CallICFGNode*>& identifySources() {
+		for (const CallICFGNode* cs : pag->getCallSiteSet()) {
+			const SVFFunction* fun = SVFUtil::getCallee(cs->getCallSite());
+			if (checker_source_api.find(fun->getName()) != checker_source_api.end()) {
+				sources.insert(cs);
+			}
+		}
+		return sources;
+	}
 
-    // The driver method for taint checking
-    void taintChecking();
-    
-    // Identify source nodes on ICFG (i.e., call instruction with its callee function named 'src')
-    virtual std::set<const CallICFGNode *> &identifySources() {
-        for (const CallICFGNode *cs: pag->getCallSiteSet()) {
-            const SVFFunction *fun = SVFUtil::getCallee(cs->getCallSite());
-            if (checker_source_api.find(fun->getName()) != checker_source_api.end()) {
-                sources.insert(cs);
-            }
-        }
-        return sources;
-    }
+	// Identify sink nodes on ICFG (i.e., call instruction with its callee function named 'sink')
+	virtual std::set<const CallICFGNode*>& identifySinks() {
+		for (const CallICFGNode* cs : pag->getCallSiteSet()) {
+			const SVFFunction* fun = SVFUtil::getCallee(cs->getCallSite());
+			if (checker_sink_api.find(fun->getName()) != checker_sink_api.end()) {
+				sinks.insert(cs);
+			}
+		}
+		return sinks;
+	}
 
-    // Identify sink nodes on ICFG (i.e., call instruction with its callee function named 'sink')
-    virtual std::set<const CallICFGNode *> &identifySinks() {
-        for (const CallICFGNode *cs: pag->getCallSiteSet()) {
-            const SVFFunction *fun = SVFUtil::getCallee(cs->getCallSite());
-            if (checker_sink_api.find(fun->getName()) != checker_sink_api.end()) {
-                sinks.insert(cs);
-            }
-        }
-        return sinks;
-    }
+	const std::set<std::string>& getPaths() {
+		return paths;
+	}
 
-    const std::set<std::string> &getPaths() {
-        return paths;
-    }
-    
-    /// TODO: to be implemented
-    void collectICFGPath();
+	/// TODO: to be implemented
+	void collectICFGPath();
 
-protected:
-    std::set<const CallICFGNode *> sources;
-    std::set<const CallICFGNode *> sinks;
-    Set<std::pair<const ICFGNode *, CallStack>> visited;
-    CallStack callstack;
+ protected:
+	std::set<const CallICFGNode*> sources;
+	std::set<const CallICFGNode*> sinks;
+	Set<std::pair<const ICFGNode*, CallStack>> visited;
+	CallStack callstack;
 
-    SVFIR *pag;
-    std::set<std::string> paths;
-    std::vector<unsigned> path;
+	SVFIR* pag;
+	std::set<std::string> paths;
+	std::vector<unsigned> path;
 
-private:
-    AndersenPTA *ander;
+ private:
+	AndersenPTA* ander;
 
-    // default source and sink function name API if SrcSnk.txt is not added
-    std::set<std::string> checker_source_api;
-    std::set<std::string> checker_sink_api;
+	// default source and sink function name API if SrcSnk.txt is not added
+	std::set<std::string> checker_source_api;
+	std::set<std::string> checker_sink_api;
 };
 
-
 #endif
-

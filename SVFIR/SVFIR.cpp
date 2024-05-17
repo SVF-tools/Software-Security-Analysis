@@ -21,86 +21,78 @@
 //===-----------------------------------------------------------------------===//
 
 /*
- // CodeGraphs including PAG, ICFG and ConstraintGraph 
+ // CodeGraphs including PAG, ICFG and ConstraintGraph
  //
  */
 
-#include "SVF-LLVM/LLVMUtil.h"
 #include "Graphs/SVFG.h"
-#include "WPA/Andersen.h"
 #include "SABER/LeakChecker.h"
+#include "SVF-LLVM/LLVMUtil.h"
 #include "SVF-LLVM/SVFIRBuilder.h"
-
+#include "WPA/Andersen.h"
 
 using namespace SVF;
 using namespace llvm;
 using namespace std;
 
+int main(int argc, char** argv) {
+	int arg_num = 0;
+	int extraArgc = 4;
+	char** arg_value = new char*[argc + extraArgc];
+	for (; arg_num < argc; ++arg_num) {
+		arg_value[arg_num] = argv[arg_num];
+	}
+	std::vector<std::string> moduleNameVec;
 
-int main(int argc, char ** argv) {
+	int orgArgNum = arg_num;
+	arg_value[arg_num++] = (char*)"-model-arrays=true";
+	arg_value[arg_num++] = (char*)"-pre-field-sensitive=false";
+	arg_value[arg_num++] = (char*)"-model-consts=true";
+	arg_value[arg_num++] = (char*)"-stat=false";
+	assert(arg_num == (orgArgNum + extraArgc) && "more extra arguments? Change the value of extraArgc");
 
-    int arg_num = 0;
-    int extraArgc = 4;
-    char **arg_value = new char *[argc + extraArgc];
-    for (; arg_num < argc; ++arg_num) {
-        arg_value[arg_num] = argv[arg_num];
-    }
-    std::vector<std::string> moduleNameVec;
+	moduleNameVec = OptionBase::parseOptions(arg_num, arg_value, "SVF IR", "[options] <input-bitcode...>");
 
-    int orgArgNum = arg_num;
-    arg_value[arg_num++] = (char*) "-model-arrays=true";
-    arg_value[arg_num++] = (char*) "-pre-field-sensitive=false";
-    arg_value[arg_num++] = (char*) "-model-consts=true";
-    arg_value[arg_num++] = (char*) "-stat=false";
-    assert(arg_num == (orgArgNum + extraArgc) && "more extra arguments? Change the value of extraArgc");
+	SVFModule* svfModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
 
-    moduleNameVec = OptionBase::parseOptions(
-            arg_num, arg_value, "SVF IR", "[options] <input-bitcode...>"
-    );
+	/// Build Program Assignment Graph (SVFIR or PAG)
+	SVFIRBuilder builder(svfModule);
+	SVFIR* pag = builder.build();
+	// Dump pag
+	pag->dump(svfModule->getModuleIdentifier() + ".pag");
+	/// ICFG
+	ICFG* icfg = pag->getICFG();
+	/// Dump icfg
+	icfg->dump(svfModule->getModuleIdentifier() + ".icfg");
+	/// Create and dump ConstraintGraph
+	ConstraintGraph* consCG = new ConstraintGraph(pag);
+	consCG->dump(svfModule->getModuleIdentifier() + ".consG");
 
-    SVFModule* svfModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
+	std::cout << "\n\nPrinting code graphs...\n\n";
+	// iterate each SVFVar on SVFIR
+	std::map<NodeID, std::string> svfVarMap;
+	for (SVFIR::iterator p = pag->begin(); p != pag->end(); p++) {
+		SVFVar* n = p->second;
+		svfVarMap[p->first] = n->toString();
+	}
 
-    /// Build Program Assignment Graph (SVFIR or PAG)
-    SVFIRBuilder builder(svfModule);
-    SVFIR *pag = builder.build();
-    // Dump pag
-    pag->dump(svfModule->getModuleIdentifier() + ".pag");
-    /// ICFG
-    ICFG *icfg = pag->getICFG();
-    /// Dump icfg
-    icfg->dump(svfModule->getModuleIdentifier() + ".icfg");
-    /// Create and dump ConstraintGraph
-    ConstraintGraph*  consCG = new ConstraintGraph(pag);
-    consCG->dump(svfModule->getModuleIdentifier() + ".consG");
+	for (auto it = svfVarMap.begin(); it != svfVarMap.end(); ++it) {
+		std::cout << it->second << "\n\n";
+	}
 
-    std::cout  <<  "\n\nPrinting code graphs...\n\n";
-    // iterate each SVFVar on SVFIR
-    std::map<NodeID, std::string> svfVarMap;
-    for(SVFIR::iterator p = pag->begin(); p != pag->end();p++)
-    {
-        SVFVar *n = p->second;
-        svfVarMap[p->first] =  n->toString();
-    }
+	// iterate each ICFGNode on ICFG
+	std::map<NodeID, std::string> icfgMap;
+	for (ICFG::iterator i = icfg->begin(); i != icfg->end(); i++) {
+		ICFGNode* n = i->second;
+		icfgMap[i->first] = n->toString();
+	}
 
-    for (auto it = svfVarMap.begin(); it != svfVarMap.end(); ++it) {
-        std::cout  <<  it->second << "\n\n";
-    }
+	for (auto it = icfgMap.begin(); it != icfgMap.end(); ++it) {
+		std::cout << it->second << "\n\n";
+		// for(ICFGEdge* edge : icfg->getGNode(it->first)->getOutEdges()){
+		//     SVFUtil::outs() << edge->toString() << "\n";
+		// }
+	}
 
-    // iterate each ICFGNode on ICFG
-    std::map<NodeID, std::string> icfgMap;
-    for(ICFG::iterator i = icfg->begin(); i != icfg->end(); i++)
-    {
-        ICFGNode *n = i->second;
-        icfgMap[i->first] =  n->toString();
-    }
-
-    for (auto it = icfgMap.begin(); it != icfgMap.end(); ++it) {
-        std::cout  <<  it->second << "\n\n";
-        // for(ICFGEdge* edge : icfg->getGNode(it->first)->getOutEdges()){
-        //     SVFUtil::outs() << edge->toString() << "\n";
-        // }
-    }
-
-
-    return 0;
+	return 0;
 }

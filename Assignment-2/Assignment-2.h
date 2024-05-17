@@ -28,165 +28,162 @@
 #ifndef SOFTWARE_SECURITY_ANALYSIS_ASSIGNMENT_2_H
 #define SOFTWARE_SECURITY_ANALYSIS_ASSIGNMENT_2_H
 
-#include "Z3SSEMgr.h"
 #include "SVF-LLVM/SVFIRBuilder.h"
+#include "Z3SSEMgr.h"
 #include <stdlib.h>
 
-namespace SVF{
+namespace SVF {
 
-class SSE
-{
+	class SSE {
+	 public:
+		typedef std::vector<const SVFInstruction*> CallStack;
+		typedef std::pair<const ICFGEdge*, CallStack> ICFGEdgeStackPair;
 
-public:
-    typedef std::vector<const SVFInstruction*> CallStack;
-    typedef std::pair<const ICFGEdge *, CallStack > ICFGEdgeStackPair;
+		/// Constructor
+		SSE(SVFIR* s, ICFG* i)
+		: svfir(s)
+		, icfg(i) {
+			z3Mgr = new Z3SSEMgr(s);
+		}
+		/// Destructor
+		virtual ~SSE() {
+			delete z3Mgr;
+		}
 
+		/// Identify source node on ICFG
+		std::set<const ICFGNode*>& identifySources() {
+			sources.insert(icfg->getGlobalICFGNode());
+			return sources;
+		}
 
-    /// Constructor
-    SSE(SVFIR *s, ICFG *i): svfir(s), icfg(i)
-    {
-        z3Mgr = new Z3SSEMgr(s);
-    }
-    /// Destructor
-    virtual ~SSE(){
-        delete z3Mgr;
-    }
+		/// Identify the sink node which is an assertion call on ICFG
+		std::set<const ICFGNode*>& identifySinks() {
+			for (const CallICFGNode* cs : svfir->getCallSiteSet()) {
+				const SVFFunction* fun = SVFUtil::getCallee(cs->getCallSite());
+				if (isAssertFun(fun))
+					sinks.insert(cs);
+			}
+			return sinks;
+		}
 
-    /// Identify source node on ICFG
-    std::set<const ICFGNode *> &identifySources()
-    {
-        sources.insert(icfg->getGlobalICFGNode());
-        return sources;
-    }
+		/// Return true if this function is an assert function
+		inline bool isAssertFun(const SVFFunction* fun) const {
+			return (fun != NULL
+			        && (fun->getName() == "assert" || fun->getName() == "svf_assert" || fun->getName() == "sink"));
+		}
 
-    /// Identify the sink node which is an assertion call on ICFG
-    std::set<const ICFGNode *> &identifySinks()
-    {
-        for (const CallICFGNode *cs : svfir->getCallSiteSet())
-        {
-            const SVFFunction *fun = SVFUtil::getCallee(cs->getCallSite());
-            if (isAssertFun(fun))
-                sinks.insert(cs);
-        }
-        return sinks;
-    }
+		/// clear visited and callstack
+		virtual void resetSolver() {
+			visited.clear();
+		}
 
-    /// Return true if this function is an assert function
-    inline bool isAssertFun(const SVFFunction *fun) const{
-        return (fun != NULL && (fun->getName() == "assert" || fun->getName() == "svf_assert" ||fun->getName() == "sink" ));
-    }
+		/// TODO: Implementing the collection the ICFG paths
+		virtual void collectICFGPath();
 
-    /// clear visited and callstack
-    virtual void resetSolver(){
-        visited.clear();
-    }
+		/// Depth-first-search ICFGTraversal on ICFG from src node to dst node
+		void reachability(const ICFGEdge* curEdge, const ICFGNode* sink);
 
-    /// TODO: Implementing the collection the ICFG paths
-    virtual void collectICFGPath();
+		void analyse();
 
-    /// Depth-first-search ICFGTraversal on ICFG from src node to dst node
-    void reachability(const ICFGEdge *curEdge, const ICFGNode *sink);
+		virtual bool handleCall(const CallCFGEdge* call);
+		virtual bool handleRet(const RetCFGEdge* ret);
+		virtual bool handleIntra(const IntraCFGEdge* edge) {
+			if (edge->getCondition()) {
+				if (handleBranch(edge) == false)
+					return false;
+				else {
+					// if edge is from "br if.end" to stmt after if.end, should handle it as non branch
+					return handleNonBranch(edge);
+				}
+			}
+			else {
+				return handleNonBranch(edge);
+			}
+		}
 
-    void analyse();
+		/// Encode the path into Z3 constraints and return true if the path is feasible, false otherwise.
+		bool translatePath(std::vector<const ICFGEdge*>& path);
 
-    virtual bool handleCall(const CallCFGEdge* call);
-    virtual bool handleRet(const RetCFGEdge* ret);
-    virtual bool handleIntra(const IntraCFGEdge* edge){
-        if(edge->getCondition()) {
-            if (handleBranch(edge) == false)
-                return false;
-            else {
-                // if edge is from "br if.end" to stmt after if.end, should handle it as non branch
-                return handleNonBranch(edge);
-            }
-        }
-        else {
-            return handleNonBranch(edge);
-        }
-    }
+		/// Return true if svf_assert check is successful
+		bool assertchecking(const ICFGNode* inode) {
+			assert_checked++;
+			const CallICFGNode* callnode = SVFUtil::cast<CallICFGNode>(inode);
+			assert(callnode && isAssertFun(SVFUtil::getCallee(callnode->getCallSite()))
+			       && "last node is not an assert call?");
+			DBOP(std::cout << "\n## Analyzing " << callnode->toString() << "\n");
+			z3::expr arg0 = getZ3Expr(callnode->getActualParms().at(0)->getId());
+			addToSolver(arg0 > 0);
+			if (getSolver().check() == z3::unsat) {
+				DBOP(printExprValues());
+				assert(false && "The assertion is unsatisfiable");
+				return false;
+			}
+			else {
+				DBOP(printExprValues());
+				std::cerr << inode->toString() << ", " << SVFUtil::sucMsg("The assertion is successfully verified!!")
+				          << std::endl;
+				return true;
+			}
+		}
 
-    /// Encode the path into Z3 constraints and return true if the path is feasible, false otherwise.
-    bool translatePath(std::vector<const ICFGEdge *> &path);
+		bool handleNonBranch(const IntraCFGEdge* edge);
+		bool handleBranch(const IntraCFGEdge* edge);
 
-    /// Return true if svf_assert check is successful
-    bool assertchecking(const ICFGNode* inode) {
-        assert_checked++;
-        const CallICFGNode* callnode = SVFUtil::cast<CallICFGNode>(inode);
-        assert(callnode && isAssertFun(SVFUtil::getCallee(callnode->getCallSite()))  && "last node is not an assert call?");
-        DBOP(std::cout << "\n## Analyzing "<< callnode->toString() << "\n");
-        z3::expr arg0 = getZ3Expr(callnode->getActualParms().at(0)->getId());
-        addToSolver(arg0>0);
-        if (getSolver().check() == z3::unsat) {
-            DBOP(printExprValues());
-            assert(false && "The assertion is unsatisfiable");
-            return false;
-        }
-        else {
-            DBOP(printExprValues());
-            std::cerr << inode->toString() << ", " << SVFUtil::sucMsg("The assertion is successfully verified!!") << std::endl;
-            return true;
-        }
-    }
+		std::set<std::string> getPaths() {
+			return paths;
+		}
 
-    bool handleNonBranch(const IntraCFGEdge* edge);
-    bool handleBranch(const IntraCFGEdge* edge);
+		inline z3::solver& getSolver() {
+			return z3Mgr->getSolver();
+		}
 
-    std::set<std::string> getPaths(){
-        return paths;
-    }
+		inline z3::context& getCtx() {
+			return z3Mgr->getCtx();
+		}
 
-    inline z3::solver& getSolver() {
-        return z3Mgr->getSolver();
-    }
+		/// Add expr to Z3 solver
+		void addToSolver(z3::expr e) {
+			DBOP(std::cout << "==> " << e.simplify() << "\n");
+			getSolver().add(e);
+		}
 
-    inline z3::context& getCtx() {
-        return z3Mgr->getCtx();
-    }
+		/// Return Z3 expression based on ValVar ID
+		inline z3::expr getZ3Expr(NodeID idx) const {
+			return z3Mgr->getZ3Expr(idx);
+		}
 
-    /// Add expr to Z3 solver
-    void addToSolver(z3::expr e){
-        DBOP(std::cout << "==> " << e.simplify() << "\n");
-        getSolver().add(e);
-    }
+		/// Return Z3 expression based on ObjVar ID
+		inline z3::expr getMemObjAddress(NodeID idx) const {
+			return z3Mgr->getMemObjAddress(idx);
+		}
+		/// Return int value from an expression if it is a numeral, otherwise return an approximate value
+		inline z3::expr getEvalExpr(z3::expr e) {
+			return z3Mgr->getEvalExpr(e);
+		}
 
-    /// Return Z3 expression based on ValVar ID
-    inline z3::expr getZ3Expr(NodeID idx) const{
-        return z3Mgr->getZ3Expr(idx);
-    }
+		/// Dump values of all exprs
+		inline void printExprValues() {
+			z3Mgr->printExprValues();
+		}
 
-    /// Return Z3 expression based on ObjVar ID
-    inline z3::expr getMemObjAddress(NodeID idx) const{
-        return z3Mgr->getMemObjAddress(idx);
-    }
-    /// Return int value from an expression if it is a numeral, otherwise return an approximate value
-    inline z3::expr getEvalExpr(z3::expr e) {
-        return z3Mgr->getEvalExpr(e);
-    }
+		static u32_t assert_checked;
+		static u32_t assert_num;
 
-    /// Dump values of all exprs
-    inline void printExprValues(){
-        z3Mgr->printExprValues();
-    }
+	 private:
+		Z3SSEMgr* z3Mgr;
+		ICFG* icfg;
+		std::set<std::string> paths;
 
-    static u32_t assert_checked;
-    static u32_t assert_num;
+	 protected:
+		SVFIR* svfir;
+		Set<ICFGEdgeStackPair> visited;
+		CallStack callstack;
+		std::vector<const ICFGEdge*> path;
 
+		std::set<const ICFGNode*> sources;
+		std::set<const ICFGNode*> sinks;
+	};
 
-private:
-    Z3SSEMgr* z3Mgr;
-    ICFG *icfg;
-    std::set<std::string> paths;
-
-protected:
-    SVFIR *svfir;
-    Set<ICFGEdgeStackPair> visited;
-    CallStack callstack;
-    std::vector<const ICFGEdge *> path;
-
-    std::set<const ICFGNode *> sources;
-    std::set<const ICFGNode *> sinks;
-};
-
-}
+} // namespace SVF
 
 #endif
