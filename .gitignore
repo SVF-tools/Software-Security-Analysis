@@ -8,7 +8,6 @@ Debug+Asserts/
 autoconf/
 tests/result/
 doxygen/
-.*
 !.github/
 !.vscode/
 !.config.in
