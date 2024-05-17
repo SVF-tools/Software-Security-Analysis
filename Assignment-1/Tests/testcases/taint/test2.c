@@ -1,21 +1,20 @@
-#include <string.h>
-#include <stdio.h>
-extern void NOALIAS(void* p, void* q);
+#include <stdbool.h>
+
+extern void broadcast(char*);
+char* getchar(){    return "/0 ";   };   //init a char number
 extern void MAYALIAS(void* p, void* q);
-extern void broadcast(char* num);
-char *tgetstr(){
-    // e.g. sql injection init
-    static char initstr[25] = "select* From City ..";
-    return initstr;
-}
-
-
 int main(){
-    char *injection = tgetstr();
-    char* s = injection;
-    char* b = s;
-    char* safe_token = "hello";
-    broadcast(safe_token);
-    NOALIAS(safe_token,b);
-    return 0;
+    bool loopCondition = true;
+    bool BranchCondition = true;
+    char* secretToken = getchar();                  // source
+    while(loopCondition){
+        if(BranchCondition){
+            char* a = secretToken;
+            broadcast(a);                            // sink
+            MAYALIAS(a,secretToken);
+        }
+        else{
+            char* b = "hello";
+        }
+    }
 }
