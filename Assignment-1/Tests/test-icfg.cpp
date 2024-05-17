@@ -1,7 +1,7 @@
 #include <iostream>
 #include "Assignment-1.h"
 
-fs::path commonRoot = CUR_DIR() / "testcases/trav";
+fs::path commonRoot = CUR_DIR() / "testcases/icfg";
 
 void Test(std::vector<std::string>& moduleNameVec) {
 

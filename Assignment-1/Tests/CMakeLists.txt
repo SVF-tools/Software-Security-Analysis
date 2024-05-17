@@ -25,7 +25,7 @@ foreach(filename ${pta_assert_files})
     )
 endforeach()
 
-file(GLOB icfg_assert_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${CMAKE_CURRENT_SOURCE_DIR}/testcases/trav/*.ll")
+file(GLOB icfg_assert_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${CMAKE_CURRENT_SOURCE_DIR}/testcases/icfg/*.ll")
 foreach(filename ${icfg_assert_files})
     add_test(
             NAME ass1-icfg/${filename}
