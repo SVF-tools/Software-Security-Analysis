@@ -69,30 +69,32 @@ int main(int argc, char** argv) {
 	consCG->dump(svfModule->getModuleIdentifier() + ".consG");
 
 	std::cout << "\n\nPrinting code graphs...\n\n";
-	// iterate each SVFVar on SVFIR
-	std::map<NodeID, std::string> svfVarMap;
-	for (SVFIR::iterator p = pag->begin(); p != pag->end(); p++) {
-		SVFVar* n = p->second;
-		svfVarMap[p->first] = n->toString();
-	}
 
-	for (auto it = svfVarMap.begin(); it != svfVarMap.end(); ++it) {
-		std::cout << it->second << "\n\n";
+	/// iterate each ICFGNode on ICFG, 
+	/// where each node represents a SVFStatement (statement/instruction) and each edge represent a control-flow (execution order) between two statement
+	std::cout << "\n\n####Printing ICFG (Interprocedural Control-Flow Graph)###\n\n";
+	for (ICFG::iterator it = icfg->begin(); it != icfg->end(); it++) {
+		std::cout << it->second->toString() << "\n\n";
 	}
+	std::cout << "######################################################\n";
 
-	// iterate each ICFGNode on ICFG
-	std::map<NodeID, std::string> icfgMap;
-	for (ICFG::iterator i = icfg->begin(); i != icfg->end(); i++) {
-		ICFGNode* n = i->second;
-		icfgMap[i->first] = n->toString();
-	}
 
-	for (auto it = icfgMap.begin(); it != icfgMap.end(); ++it) {
-		std::cout << it->second << "\n\n";
-		// for(ICFGEdge* edge : icfg->getGNode(it->first)->getOutEdges()){
-		//     SVFUtil::outs() << edge->toString() << "\n";
-		// }
+	/// iterate each node on PAG, 
+	/// where each node represents an SVFVar (variable) and each edge represents a SVFStatment
+	std::cout << "\n\n#######Printing PAG (Program Assignment Graph)#######\n\n";
+	for (SVFIR::iterator it = pag->begin(); it != pag->end(); it++) {
+		std::cout << it->second->toString() << "\n\n";
 	}
+	std::cout << "#################################################\n";
+
+
+	/// iterate each node on Constraint Graph which is a subgraph of PAG. 
+	/// Constraint Graph only contains SVFVars are either pointers or objects (stack,global,heap and function objects)
+	std::cout << "\n\n#############Printing Constraint Graph##########\n\n";
+	for (ConstraintGraph::iterator it = consCG->begin(); it != consCG->end(); it++) {
+		std::cout << it->second->toString() << "\n\n";
+	}
+	std::cout << "#################################################\n";
 
 	return 0;
 }

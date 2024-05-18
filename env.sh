@@ -16,13 +16,13 @@ LLVMVer=${MajorLLVMVer}.0.0
 LLVMHome="llvm-${LLVMVer}.obj"
 Z3Home="z3.obj"
 
-# Get the npm installation root path
-install_path=`npm root`
+# Change this to your SVF root directory
+install_path=/Users/yulei/Documents/workspace/SVF
 
 # Export the paths for the LLVM, Z3, and SVF directories
 export LLVM_DIR=$install_path/$LLVMHome
 export Z3_DIR=$install_path/$Z3Home
-export SVF_DIR=$install_path/SVF
+export SVF_DIR=$install_path
 
 # Update the PATH to include the binary directories for SVF, LLVM, and the project
 export PATH=$SVF_DIR/Release-build/bin:$PATH
