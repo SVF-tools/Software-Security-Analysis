@@ -39,10 +39,14 @@ jobs:
       - name: env-setup
         run: |
           npm install svf-lib
-
-      # build software security analysis
+      # set SVF_DIR, LLVM_DIR and Z3_DIR and build
       - name: build
         run: |
-          source $GITHUB_WORKSPACE/env.sh
+          export SVF_DIR=$(npm root)
+          export LLVM_DIR=$(npm root)/llvm-16.0.0.obj
+          export Z3_DIR=$(npm root)/llvm-16.0.0.obj
+          echo "SVF_DIR="$SVF_DIR
+          echo "LLVM_DIR="$LLVM_DIR
+          echo "Z3_DIR="$Z3_DIR
           cmake .
           make
