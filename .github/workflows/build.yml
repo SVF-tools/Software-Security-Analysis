@@ -42,9 +42,9 @@ jobs:
       # set SVF_DIR, LLVM_DIR and Z3_DIR and build
       - name: build
         run: |
-          export SVF_DIR=$(npm root)
+          export SVF_DIR=$(npm root)/SVF
           export LLVM_DIR=$(npm root)/llvm-16.0.0.obj
-          export Z3_DIR=$(npm root)/llvm-16.0.0.obj
+          export Z3_DIR=$(npm root)/z3.obj
           echo "SVF_DIR="$SVF_DIR
           echo "LLVM_DIR="$LLVM_DIR
           echo "Z3_DIR="$Z3_DIR
