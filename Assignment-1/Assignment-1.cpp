@@ -37,9 +37,12 @@ using namespace SVF;
 using namespace llvm;
 using namespace std;
 
-/// TODO: Implement your context-sensitive ICFG traversal here to traverse each program path (once for any loop) from
-/// src to dst Printout the path from src to dst by calling collectICFGPath
-void ICFGTraversal::reachability(const ICFGNode* src, const ICFGNode* dst) {
+/// TODO: Implement your context-sensitive ICFG traversal here to traverse each program path 
+/// by matching calls and returns while maintaining a `callstack`. 
+/// Each path including loops, qualified by a `callstack`, should only be traversed once using a `visited` set.
+/// You will need to collect each path from src to snk and then add the path to the `paths` set 
+/// by implementing the `collectICFGPath` method.
+void ICFGTraversal::reachability(const ICFGNode* curNode, const ICFGNode* snk) {
 	/// TODO: your code starts from here
 }
 

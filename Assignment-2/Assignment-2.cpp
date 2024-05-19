@@ -34,8 +34,8 @@ using namespace llvm;
 using namespace z3;
 
 /// TODO: Implement your context-sensitive ICFG traversal here to traverse each program path (once for any loop) from
-/// src to dst
-void SSE::reachability(const ICFGEdge* curEdge, const ICFGNode* sink) {
+/// You will need to collect each path from src to snk and then add the path to the `paths` set by implementing the `collectICFGPath` method.
+void SSE::reachability(const ICFGNode* curNode, const ICFGNode* sink) {
 	/// TODO: your code starts from here
 }
 

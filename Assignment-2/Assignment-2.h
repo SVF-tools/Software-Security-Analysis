@@ -81,7 +81,7 @@ namespace SVF {
 		virtual void collectICFGPath();
 
 		/// Depth-first-search ICFGTraversal on ICFG from src node to dst node
-		void reachability(const ICFGEdge* curEdge, const ICFGNode* sink);
+		void reachability(const ICFGNode* curNode, const ICFGNode* sink);
 
 		void analyse();
 

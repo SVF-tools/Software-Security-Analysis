@@ -72,7 +72,7 @@ class ICFGTraversal {
 	: pag(p) {}
 
 	/// TODO: to be implemented context sensitive reachability
-	void reachability(const ICFGNode* src, const ICFGNode* dst);
+	void reachability(const ICFGNode* curNode, const ICFGNode* sink);
 
 	// Return true if two pointers are aliases
 	bool aliasCheck(const CallICFGNode* src, const CallICFGNode* snk);
