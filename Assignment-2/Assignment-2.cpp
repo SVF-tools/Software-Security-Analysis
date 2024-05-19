@@ -34,14 +34,15 @@ using namespace llvm;
 using namespace z3;
 
 /// TODO: Implement your context-sensitive ICFG traversal here to traverse each program path (once for any loop) from
-/// You will need to collect each path from src to snk and then add the path to the `paths` set by implementing the `collectICFGPath` method.
-void SSE::reachability(const ICFGNode* curNode, const ICFGNode* sink) {
+/// You will need to collect each path from src node to snk node and then add the path to the `paths` set by implementing the `collectICFGPath` method.
+/// This implementation, slightly different from Assignment-1, requires ICFGNode* as the first argument.
+void SSE::reachability(const ICFGEdge* curEdge, const ICFGNode* snk) {
 	/// TODO: your code starts from here
 }
 
 /// TODO: collect each path once this method is called during reachability analysis, and
-/// add each path as a string into std::set<std::string> paths
-/// Print the path in the format "START->1->2->4->5->END", where -> indicate an ICFGEdge connects two ICFGNode IDs
+/// add each path (a sequence of node IDs) as a string into std::set<std::string> paths
+/// in the format "START->1->2->4->5->END", where -> indicate an ICFGEdge connects two ICFGNode IDs
 void SSE::collectICFGPath() {
 	/// TODO: your code starts from here
 }

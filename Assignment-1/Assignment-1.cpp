@@ -47,7 +47,7 @@ void ICFGTraversal::reachability(const ICFGNode* curNode, const ICFGNode* snk) {
 }
 
 /// TODO: collect each path once this method is called, and
-/// (1) add each path (a sequence of node IDs) as a string into std::set<std::string> paths
+/// add each path (a sequence of node IDs) as a string into std::set<std::string> paths
 /// in the format "START->1->2->4->5->END", where -> indicate an ICFGEdge connects two ICFGNode IDs
 void ICFGTraversal::collectICFGPath() {
 	/// TODO: your code starts from here

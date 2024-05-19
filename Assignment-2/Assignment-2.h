@@ -80,8 +80,8 @@ namespace SVF {
 		/// TODO: Implementing the collection the ICFG paths
 		virtual void collectICFGPath();
 
-		/// Depth-first-search ICFGTraversal on ICFG from src node to dst node
-		void reachability(const ICFGNode* curNode, const ICFGNode* sink);
+		/// Depth-first-search ICFGTraversal on ICFG from src node to snk node
+		void reachability(const ICFGEdge* curNode, const ICFGNode* snk);
 
 		void analyse();
 
