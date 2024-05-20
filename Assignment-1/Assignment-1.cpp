@@ -37,8 +37,9 @@ using namespace SVF;
 using namespace llvm;
 using namespace std;
 
-/// TODO: Implement your context-sensitive ICFG traversal here to traverse each program path 
+/// TODO: Implement your context-sensitive ICFG traversal here to traverse each program path
 /// by matching calls and returns while maintaining a `callstack`. 
+/// Sources and sinks are identified by implementing and calling `readSrcSnkFromFile`
 /// Each path including loops, qualified by a `callstack`, should only be traversed once using a `visited` set.
 /// You will need to collect each path from src to snk and then add the path to the `paths` set 
 /// by implementing the `collectICFGPath` method.
@@ -53,6 +54,14 @@ void ICFGTraversal::collectICFGPath() {
 	/// TODO: your code starts from here
 }
 
+// TODO: Implement your code to parse the two lines to identify sources and sinks from `SrcSnk.txt` for your reachability analysis
+// The format in SrcSnk.txt is in the form of
+// line 1 for sources  "{ api1 api2 api3 }"
+// line 2 for sinks    "{ api1 api2 api3 }"
+void ICFGTraversal::readSrcSnkFromFile(const string& filename) {
+	/// TODO: your code starts from here
+}
+
 // TODO: Implement your Andersen's Algorithm here
 /// The solving rules are as follows:
 /// p <--Addr-- o        =>  pts(p) = {o}
@@ -62,13 +71,6 @@ void ICFGTraversal::collectICFGPath() {
 /// q <--GEP, fld-- p    =>  for each o ∈ pts(p) : pts(q) = pts(q) ∪ {o.fld}
 /// pts(q) denotes the points-to set of q
 void AndersenPTA::solveWorklist() {
-	/// TODO: your code starts from here
-}
-
-// TODO: Implement your code to parse the two lines from `SrcSnk.txt` in the form of
-// line 1 for sources  "{ api1 api2 api3 }"
-// line 2 for sinks    "{ api1 api2 api3 }"
-void ICFGTraversal::readSrcSnkFromFile(const string& filename) {
 	/// TODO: your code starts from here
 }
 
