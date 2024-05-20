@@ -111,6 +111,11 @@ int main(int argc, char** argv) {
 		}
 	}
 	// only one can be true
+    if (ptaEnabled + taintEnabled + icfgEnabled == 0) {
+        // default to taint
+        taintEnabled = true;
+        cout << "If no analysis is specified, the default is set to taint analysis (-taint)" << endl;
+    }
 	assert((ptaEnabled + taintEnabled + icfgEnabled) == 1 && "only one analysis can be enabled");
 
 	// You may comment it to see the details of the analysis
