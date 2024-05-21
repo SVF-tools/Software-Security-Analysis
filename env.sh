@@ -17,12 +17,12 @@ LLVMHome="llvm-${LLVMVer}.obj"
 Z3Home="z3.obj"
 
 # Change this to your SVF root directory
-install_path=/Users/yulei/Documents/workspace/SVF
+svf_root=/Users/yulei/Documents/workspace/SVF
 
 # Export the paths for the LLVM, Z3, and SVF directories
-export LLVM_DIR=$install_path/$LLVMHome
-export Z3_DIR=$install_path/$Z3Home
-export SVF_DIR=$install_path
+export LLVM_DIR=$svf_root/$LLVMHome
+export Z3_DIR=$svf_root/$Z3Home
+export SVF_DIR=$svf_root
 
 # Update the PATH to include the binary directories for SVF, LLVM, and the project
 export PATH=$SVF_DIR/Release-build/bin:$PATH
@@ -30,6 +30,6 @@ export PATH=$LLVM_DIR/bin:$PATH
 export PATH=$PROJECTHOME/bin:$PATH
 
 # Print the paths to the terminal for verification
-echo "LLVM_DIR="$LLVM_DIR
 echo "SVF_DIR="$SVF_DIR
+echo "LLVM_DIR="$LLVM_DIR
 echo "Z3_DIR="$Z3_DIR
