@@ -26,14 +26,12 @@ void TestICFG(std::vector<std::string>& moduleNameVec) {
 	}
 	std::string moduleName = moduleNameVec[0].substr(moduleNameVec[0].find_last_of('/') + 1);
 	if (moduleName == "test1.ll") {
-		std::set<std::string> expected = {"START->2->3->4->END"};
+		std::set<std::string> expected = {"START->5->6->7->8->11->1->2->3->12->15->END",
+                                          "START->5->6->7->8->9->1->2->3->10->13->END"};
 		assert(gt->getPaths() == expected && " \n wrong paths generated - test1 failed !");
 	}
 	else if (moduleName == "test2.ll") {
-		std::set<std::string> expected = {"START->2->3->4->5->6->7->8->END",
-		                                  "START->2->3->4->5->6->END",
-		                                  "START->4->5->6->7->8->END",
-		                                  "START->4->5->6->END"};
+		std::set<std::string> expected = {"START->16->1->2->END"};
 		assert(gt->getPaths().size() == expected.size() && " \n wrong paths generated - test2 failed !");
 		for (auto path : gt->getPaths()) {
 			assert(expected.find(path) != expected.end() && " \n wrong paths generated - test2 failed !");
@@ -74,17 +72,9 @@ void TestTaint(std::vector<std::string>& moduleNameVec) {
 		cout << "\n test1 passed !" << endl;
 	}
 	else if (moduleName == "test2.ll") {
-		assert(taint->getPaths().size() == 0 && " \n should not exist tainted path - test2 failed !");
-		cout << "\n test2 passed !" << endl;
-	}
-	else if (moduleName == "test3.ll") {
-		assert(taint->getPaths().size() == 0 && " \n should not exist tainted path - test3 failed !");
-		cout << "\n test3 passed !" << endl;
-	}
-	else if (moduleName == "test4.ll") {
 		set<string> expected = {"START->5->1->2->3->6->7->8->9->10->12->14->END"};
 		assert(taint->getPaths() == expected && " \n wrong paths generated - test4 failed !");
-		cout << "\n test4 passed !" << endl;
+		cout << "\n test2 passed !" << endl;
 	}
 	SVF::SVFIR::releaseSVFIR();
 	SVF::LLVMModuleSet::releaseLLVMModuleSet();
