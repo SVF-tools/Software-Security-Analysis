@@ -145,7 +145,7 @@ namespace SVF {
 		NodeID y = getNodeID("y");
 		NodeID z = getNodeID("z");
 
-		svf_assert(as[z] == IntervalValue(15, 15));
+		svf_assert(as[z].getInterval() == IntervalValue(15, 15));
 	}
 
 	//    int main(int argv) {  // argv is an interval  [4, 10]
@@ -182,8 +182,8 @@ namespace SVF {
 		NodeID y = getNodeID("y");
 		/// TODO: your code starts from here
 
-		AbstractValue cmp1 = as[x] == IntervalValue(3, 3);
-		AbstractValue cmp2 = as[y] == IntervalValue(2, 2);
+		AbstractValue cmp1 = as[x].getInterval() == IntervalValue(3, 3);
+		AbstractValue cmp2 = as[y].getInterval() == IntervalValue(2, 2);
 		cmp1.meet_with(cmp2);
 		svf_assert(cmp1);
 	}
