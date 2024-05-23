@@ -41,18 +41,13 @@ using namespace std;
 /// by matching calls and returns while maintaining a `callstack`. 
 /// Sources and sinks are identified by implementing and calling `readSrcSnkFromFile`
 /// Each path including loops, qualified by a `callstack`, should only be traversed once using a `visited` set.
-/// You will need to collect each path from src to snk and then add the path to the `paths` set 
-/// by implementing the `collectICFGPath` method.
+/// You will need to collect each path from src to snk and then add the path to the `paths` set.
+/// Add each path (a sequence of node IDs) as a string into std::set<std::string> paths
+/// in the format "START->1->2->4->5->END", where -> indicate an ICFGEdge connects two ICFGNode IDs
 void ICFGTraversal::reachability(const ICFGNode* curNode, const ICFGNode* snk) {
 	/// TODO: your code starts from here
 }
 
-/// TODO: collect each path once this method is called, and
-/// add each path (a sequence of node IDs) as a string into std::set<std::string> paths
-/// in the format "START->1->2->4->5->END", where -> indicate an ICFGEdge connects two ICFGNode IDs
-void ICFGTraversal::collectICFGPath() {
-	/// TODO: your code starts from here
-}
 
 // TODO: Implement your code to parse the two lines to identify sources and sinks from `SrcSnk.txt` for your reachability analysis
 // The format in SrcSnk.txt is in the form of
@@ -104,4 +99,23 @@ void ICFGTraversal::taintChecking() {
 				reachability(src, snk);
 		}
 	}
+}
+
+/*!
+ * Andersen analysis
+ */
+void AndersenPTA::analyze()
+{
+
+    initialize();
+    initWorklist();
+    do
+    {
+        reanalyze = false;
+        solveWorklist();
+        if (updateCallGraph(getIndirectCallsites()))
+            reanalyze = true;
+    }
+    while (reanalyze);
+    finalize();
 }

@@ -15,8 +15,10 @@ void TestICFG(std::vector<std::string>& moduleNameVec) {
 	SVFIRBuilder builder(svfModule);
 	SVFIR* pag = builder.build();
 	ICFG* icfg = pag->getICFG();
-	// If you want to test your own case, plase change the dump name
+	// If you want to test your own case, please change the dump name
 	ICFGTraversal* gt = new ICFGTraversal(pag);
+    const fs::path& config = CUR_DIR() / "../SrcSnk.txt";
+    gt->readSrcSnkFromFile(config);
 	for (const CallICFGNode* src : gt->identifySources()) {
 		for (const CallICFGNode* snk : gt->identifySinks()) {
 			gt->reachability(src, snk);
@@ -67,7 +69,7 @@ void TestTaint(std::vector<std::string>& moduleNameVec) {
 	taint->taintChecking();
 	std::string moduleName = moduleNameVec[0].substr(moduleNameVec[0].find_last_of('/') + 1);
 	if (moduleName == "test1.ll") {
-		set<string> expected = {"START: 5->1->2->3->6->7->8->9->END"};
+		set<string> expected = {"START->5->1->2->3->6->7->8->9->END"};
 		assert(taint->getPaths() == expected && " \n wrong paths generated - test1 failed !");
 		cout << "\n test1 passed !" << endl;
 	}
@@ -80,7 +82,7 @@ void TestTaint(std::vector<std::string>& moduleNameVec) {
 		cout << "\n test3 passed !" << endl;
 	}
 	else if (moduleName == "test4.ll") {
-		set<string> expected = {"START: 5->1->2->3->6->7->8->9->10->12->14->END"};
+		set<string> expected = {"START->5->1->2->3->6->7->8->9->10->12->14->END"};
 		assert(taint->getPaths() == expected && " \n wrong paths generated - test4 failed !");
 		cout << "\n test4 passed !" << endl;
 	}

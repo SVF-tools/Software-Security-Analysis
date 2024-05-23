@@ -1,16 +1,15 @@
-#include<stdbool.h>
-void sink();
-void source(int *s){
-    sink();
-};
-void sink(){
-};
-
+extern int source();
+extern void sink(int s);
+int bar(int s){
+    return s;
+}
 int main(){
-    int a = 1;
-    while ( a <=1){
-        source(&a);
-        a++;
+    int a = source();
+    if (a > 0){
+        int p = bar(a);
+        sink(p);
+    }else{
+        int q = bar(a);
+        sink(q);
     }
-    return 0;
-};
+}

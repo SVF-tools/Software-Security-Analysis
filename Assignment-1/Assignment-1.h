@@ -49,6 +49,8 @@ class AndersenPTA : public SVF::AndersenBase {
 		consCG->dump(name);
 	};
 
+	void analyze() override;
+
  private:
 	// To be implemented
 	void solveWorklist() override;
@@ -108,9 +110,6 @@ class ICFGTraversal {
 	const std::set<std::string>& getPaths() {
 		return paths;
 	}
-
-	/// TODO: to be implemented
-	void collectICFGPath();
 
  protected:
 	std::set<const CallICFGNode*> sources;
