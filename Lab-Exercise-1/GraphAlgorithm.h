@@ -242,7 +242,7 @@ class CGraph {
 		}
 	}
 
-	/// Retrun the points-to set of a node
+	/// Return the points-to set of a node
 	std::set<unsigned>& getPts(unsigned id) const {
 		CGNode* node = getNode(id);
 		return node->getPts();

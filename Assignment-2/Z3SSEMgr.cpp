@@ -82,7 +82,7 @@ z3::expr Z3SSEMgr::createExprForValVar(const ValVar* valVar) {
 }
 
 /*
- * Object must be either a constaint data or a location value (address-taken variable)
+ * Object must be either a constraint data or a location value (address-taken variable)
  * Constant data includes ConstantInt, ConstantFP, ConstantPointerNull and ConstantAggregate
  * Locations includes pointers to globals, heaps, stacks
  */
@@ -167,7 +167,7 @@ s32_t Z3SSEMgr::getGepOffset(const GepStmt* gep) {
 			continue;
 		}
 
-		/// Caculate the offset
+		/// Calculate the offset
 		if (const SVFPointerType* pty = SVFUtil::dyn_cast<SVFPointerType>(type))
 			totalOffset += offset * gep->getAccessPath().getElementNum(gep->getAccessPath().gepSrcPointeeType());
 		else
