@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
 
 
 	/// iterate each node on PAG, 
-	/// where each node represents an SVFVar (variable) and each edge represents a SVFStatment
+	/// where each node represents an SVFVar (variable) and each edge represents a SVFStatement
 	std::cout << "\n\n#######Printing PAG (Program Assignment Graph)#######\n\n";
 	for (SVFIR::iterator it = pag->begin(); it != pag->end(); it++) {
 		std::cout << it->second->toString() << "\n\n";

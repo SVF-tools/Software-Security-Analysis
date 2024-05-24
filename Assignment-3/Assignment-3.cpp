@@ -204,7 +204,7 @@ void AbstractExecution::handleCycleWTO(const ICFGCycleWTO* cycle) {
 	AbstractState pre_as = _preAbsTrace[cycle->head()->node()];
 	// set -widen-delay
 	s32_t widen_delay = Options::WidenDelay();
-	bool incresing = true;
+	bool increasing = true;
 
 	/// TODO: your code starts from here
 }

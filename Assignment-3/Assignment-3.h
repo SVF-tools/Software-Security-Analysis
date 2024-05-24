@@ -73,7 +73,7 @@ namespace SVF {
         /// Handle state updates for each type of SVF statement
         virtual void updateAbsState(const SVFStmt* stmt);
 
-        /// Fuction used to implement buffer overflow detection
+        /// Function used to implement buffer overflow detection
         virtual void bufOverflowDetection(const SVFStmt* stmt);
 
         // handle SVF Statements

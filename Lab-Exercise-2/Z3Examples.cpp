@@ -65,7 +65,7 @@ void Z3Examples::test2() {
 }
 
 /*
-    // Mutiple-level pointers
+    // Multiple-level pointers
 
     int main() {
         int** p;

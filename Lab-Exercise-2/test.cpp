@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
 		result = z3Mgr->hasZ3Expr("b") && z3Mgr->getEvalExpr(z3Mgr->getZ3Expr("b") == z3Mgr->getZ3Expr(4)).is_true();
 	}
 	else if (test_name == "test3") {
-		z3Mgr->test3(); // mutiple-level pointers
+		z3Mgr->test3(); // multiple-level pointers
 		result = z3Mgr->hasZ3Expr("q")
 		         && z3Mgr->getEvalExpr(z3Mgr->loadValue(z3Mgr->getZ3Expr("q")) == z3Mgr->getZ3Expr(10)).is_true();
 	}
