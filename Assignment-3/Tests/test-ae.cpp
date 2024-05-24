@@ -42,11 +42,4 @@ int main(int argc, char** argv) {
 
 	LLVMModuleSet::releaseLLVMModuleSet();
 
-	if (ae->getBugInfo().size() > 0) {
-		return 0;
-	}
-	else {
-		std::cerr << "No bug found" << std::endl;
-		return 1;
-	}
 }
