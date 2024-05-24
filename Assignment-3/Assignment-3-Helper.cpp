@@ -59,7 +59,7 @@ Map<s32_t, s32_t> _switch_lhsrhs_predicate =
  * @param as The abstract state to be updated
  * @param objVar The object variable to be initialized
  */
-void AbstractExe::initObjVar(AbstractState& as, ObjVar* objVar) {
+void AbstractExecution::initObjVar(AbstractState& as, ObjVar* objVar) {
     NodeID varId = objVar->getId();
 
     // Check if the object variable has an associated value
@@ -101,7 +101,7 @@ void AbstractExe::initObjVar(AbstractState& as, ObjVar* objVar) {
     return;
 }
 
-void AbstractExe::runOnModule(SVF::ICFG *icfg)
+void AbstractExecution::runOnModule(SVF::ICFG *icfg)
 {
     _svfir = PAG::getPAG();
     _ander = AndersenWaveDiff::createAndersenWaveDiff(_svfir);
@@ -110,7 +110,7 @@ void AbstractExe::runOnModule(SVF::ICFG *icfg)
     printReport();
 }
 
-void AbstractExe::printReport() {
+void AbstractExecution::printReport() {
     std::cerr << "######################Full Overflow (" + std::to_string(_nodeToBugInfo.size()) + " found)######################\n";
     std::cerr << "---------------------------------------------\n";
     for (auto& it: _nodeToBugInfo)
@@ -126,7 +126,7 @@ void AbstractExe::printReport() {
  * It does this by detecting cycles in the call graph's strongly connected components (SCC).
  * Any function found to be part of a cycle is marked as recursive.
  */
-void AbstractExe::initWTO() {
+void AbstractExecution::initWTO() {
     // Detect if the call graph has cycles by finding its strongly connected components (SCC)
     Andersen::CallGraphSCC* callGraphScc = _ander->getCallGraphSCC();
     callGraphScc->find();
@@ -158,7 +158,7 @@ void AbstractExe::initWTO() {
  * @param offset The offset to be applied to the base address
  * @return AddressValue The calculated address value for the GEP object
  */
-AddressValue AbstractExe::getGepObjAddress(AbstractState& as, u32_t pointer, APOffset offset) {
+AddressValue AbstractExecution::getGepObjAddress(AbstractState& as, u32_t pointer, APOffset offset) {
     AbstractValue addrs = as[pointer];
     AddressValue ret = AddressValue();
     for (const auto &addr: addrs.getAddrs())
@@ -186,7 +186,7 @@ AddressValue AbstractExe::getGepObjAddress(AbstractState& as, u32_t pointer, APO
  * @param gep The GEP statement for which the byte offset is to be calculated
  * @return IntervalValue The interval value of the byte offset
  */
-IntervalValue AbstractExe::getByteOffset(const AbstractState& as, const GepStmt* gep) {
+IntervalValue AbstractExecution::getByteOffset(const AbstractState& as, const GepStmt* gep) {
     // If the GEP statement has a constant byte offset, return it directly as the interval value
     if (gep->isConstantOffset())
         return IntervalValue((s64_t)gep->accumulateConstantByteOffset());
@@ -258,7 +258,7 @@ IntervalValue AbstractExe::getByteOffset(const AbstractState& as, const GepStmt*
  * @param gep The GEP statement for which the element index is to be calculated
  * @return IntervalValue The interval value of the element index
  */
-IntervalValue AbstractExe::getElementIndex(const AbstractState& as, const GepStmt* gep) {
+IntervalValue AbstractExecution::getElementIndex(const AbstractState& as, const GepStmt* gep) {
     // If the GEP statement has a constant offset, return it directly as the interval value
     if (gep->isConstantOffset())
         return IntervalValue((s64_t)gep->accumulateConstantOffset());
@@ -331,7 +331,7 @@ IntervalValue AbstractExe::getElementIndex(const AbstractState& as, const GepStm
  * @param e The exception that represents the detected bug
  * @param node The ICFG node where the bug was detected
  */
-void AbstractExe::addBugToReporter(const AEException& e, const ICFGNode* node) {
+void AbstractExecution::addBugToReporter(const AEException& e, const ICFGNode* node) {
     const SVFInstruction* inst = nullptr;
 
     // Determine the instruction associated with the ICFG node
@@ -381,7 +381,7 @@ void AbstractExe::addBugToReporter(const AEException& e, const ICFGNode* node) {
  * @param block The ICFG node (block) for which the state propagation is attempted
  * @return bool True if the state propagation is feasible and successful, false otherwise
  */
-bool AbstractExe::propagateStateIfFeasible(const ICFGNode *block) {
+bool AbstractExecution::propagateStateIfFeasible(const ICFGNode *block) {
     AbstractState as; // Initialize an empty abstract state
     u32_t inEdgeNum = 0; // Initialize the number of incoming edges with feasible states
 
@@ -422,8 +422,8 @@ bool AbstractExe::propagateStateIfFeasible(const ICFGNode *block) {
 
 
 
-bool AbstractExe::isCmpBranchFeasible(const CmpStmt* cmpStmt, s64_t succ,
-                                      AbstractState& as)
+bool AbstractExecution::isCmpBranchFeasible(const CmpStmt* cmpStmt, s64_t succ,
+                                            AbstractState& as)
 {
     AbstractState new_es = as;
     // get cmp stmt's op0, op1, and predicate
@@ -643,8 +643,8 @@ bool AbstractExe::isCmpBranchFeasible(const CmpStmt* cmpStmt, s64_t succ,
     return true;
 }
 
-bool AbstractExe::isSwitchBranchFeasible(const SVFVar* var, s64_t succ,
-                                         AbstractState& as)
+bool AbstractExecution::isSwitchBranchFeasible(const SVFVar* var, s64_t succ,
+                                               AbstractState& as)
 {
     AbstractState new_es = as;
     IntervalValue& switch_cond = new_es[var->getId()].getInterval();
@@ -687,8 +687,8 @@ bool AbstractExe::isSwitchBranchFeasible(const SVFVar* var, s64_t succ,
     return true;
 }
 
-bool AbstractExe::isBranchFeasible(const IntraCFGEdge* intraEdge,
-                                   AbstractState& as)
+bool AbstractExecution::isBranchFeasible(const IntraCFGEdge* intraEdge,
+                                         AbstractState& as)
 {
     const SVFValue *cond = intraEdge->getCondition();
     NodeID cmpID = _svfir->getValueNode(cond);
@@ -727,7 +727,7 @@ bool AbstractExe::isBranchFeasible(const IntraCFGEdge* intraEdge,
  * @param addr The address statement representing the allocation instruction
  * @return u32_t The byte size of the allocation
  */
-u32_t AbstractExe::getAllocaInstByteSize(AbstractState& as, const AddrStmt *addr) {
+u32_t AbstractExecution::getAllocaInstByteSize(AbstractState& as, const AddrStmt *addr) {
     // Check if the RHS variable of the address statement is an ObjVar (object variable)
     if (const ObjVar* objvar = SVFUtil::dyn_cast<ObjVar>(addr->getRHSVar())) {
         objvar->getType(); // Obtain the type of the object variable
@@ -763,7 +763,7 @@ u32_t AbstractExe::getAllocaInstByteSize(AbstractState& as, const AddrStmt *addr
 }
 
 /// handle global node
-void AbstractExe::handleGlobalNode()
+void AbstractExecution::handleGlobalNode()
 {
     AbstractState as;
     const ICFGNode* node = _icfg->getGlobalICFGNode();
@@ -773,37 +773,6 @@ void AbstractExe::handleGlobalNode()
     for (const SVFStmt *stmt: node->getSVFStmts())
     {
         updateAbsState(stmt);
-    }
-}
-
-/**
- * @brief Handle a function in the control flow graph
- *
- * This function processes a given function by iterating through its Weak Topological Order (WTO)
- * components and handling each component accordingly. It sets the execution state for the function entry.
- *
- * @param func The SVF function to be handled
- */
-void AbstractExe::handleFunc(const SVFFunction *func) {
-    // Retrieve the WTO for the given function
-    ICFGWTO* wto = _funcToWTO[func];
-
-    // Iterate through the WTO components of the function
-    for (auto it = wto->begin(); it != wto->end(); ++it) {
-        const ICFGWTOComp* cur = *it;
-
-        // Handle WTO nodes
-        if (const ICFGWTONode* vertex = SVFUtil::dyn_cast<ICFGWTONode>(cur)) {
-            handleSingletonWTO(vertex->node());
-        }
-            // Handle WTO cycles
-        else if (const ICFGWTOCycle* cycle = SVFUtil::dyn_cast<ICFGWTOCycle>(cur)) {
-            handleCycleWTO(cycle);
-        }
-            // Assert false for unknown WTO types
-        else {
-            assert(false && "unknown WTO type!");
-        }
     }
 }
 

@@ -34,9 +34,8 @@
 #include "WPA/Andersen.h"
 
 namespace SVF {
-	class AbstractExe;
-
     /// Exception handling for bug detections
+	class AbstractExecution;
     class AEException : public std::exception {
     public:
         AEException(const std::string& message)
@@ -50,18 +49,18 @@ namespace SVF {
         std::string msg_;
     };
 
-	/// Abstract Execution class
-    class AbstractExe {
+    /// Abstract Execution class
+    class AbstractExecution {
     public:
         /// Constructor
-        AbstractExe() {}
+        AbstractExecution() {}
 
         virtual void runOnModule(ICFG* icfg);
 
         /// Handle a Weak Topological Order (WTO) node in the control flow graph
-        void handleSingletonWTO(const ICFGNode* node);
+        void handleSingletonWTO(const ICFGSingletonWTO* node);
         /// Handle a WTO which involves control-flow cycle(s)
-        void handleCycleWTO(const ICFGWTOCycle* cycle);
+        void handleCycleWTO(const ICFGCycleWTO* cycle);
         /// Handle a function in the control flow graph
         void handleFunc(const SVFFunction *func);
 
@@ -145,7 +144,7 @@ namespace SVF {
         }
 
         /// Destructor
-        virtual ~AbstractExe() {}
+        virtual ~AbstractExecution() {}
 
     protected:
         // Map an object to its byte size

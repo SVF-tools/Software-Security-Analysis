@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
 	builder.updateCallGraph(callgraph);
 	pag->getICFG()->updateCallGraph(callgraph);
 	pag->getICFG()->dump("icfg");
-	AbstractExe* ae = new AbstractExe();
+	AbstractExecution* ae = new AbstractExecution();
 	ae->runOnModule(pag->getICFG());
 
 	LLVMModuleSet::releaseLLVMModuleSet();
