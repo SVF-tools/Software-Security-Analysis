@@ -449,9 +449,6 @@ void AbstractExecution::handleCallSite(const CallICFGNode* callNode) {
 		// Push the call node onto the call site stack
 		_callSiteStack.push_back(callNode);
 
-		// Store the post-abstract trace for the call node
-		_postAbsTrace[callNode] = as;
-
 		// Handle the callee function
 		ICFGWTO* wto = _funcToWTO[callee];
 		handleWTOComponents(wto->getWTOComponents());
