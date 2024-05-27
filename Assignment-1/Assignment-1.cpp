@@ -38,7 +38,7 @@ using namespace llvm;
 using namespace std;
 
 /// TODO: Implement your context-sensitive ICFG traversal here to traverse each program path
-/// by matching calls and returns while maintaining a `callstack`. 
+/// by matching calls and returns while maintaining a `callstack`.
 /// Sources and sinks are identified by implementing and calling `readSrcSnkFromFile`
 /// Each path including loops, qualified by a `callstack`, should only be traversed once using a `visited` set.
 /// You will need to collect each path from src to snk and then add the path to the `paths` set.
@@ -48,11 +48,9 @@ void ICFGTraversal::reachability(const ICFGNode* curNode, const ICFGNode* snk) {
 	/// TODO: your code starts from here
 }
 
-
-// TODO: Implement your code to parse the two lines to identify sources and sinks from `SrcSnk.txt` for your reachability analysis
-// The format in SrcSnk.txt is in the form of
-// line 1 for sources  "{ api1 api2 api3 }"
-// line 2 for sinks    "{ api1 api2 api3 }"
+// TODO: Implement your code to parse the two lines to identify sources and sinks from `SrcSnk.txt` for your
+// reachability analysis The format in SrcSnk.txt is in the form of line 1 for sources  "{ api1 api2 api3 }" line 2 for
+// sinks    "{ api1 api2 api3 }"
 void ICFGTraversal::readSrcSnkFromFile(const string& filename) {
 	/// TODO: your code starts from here
 }
@@ -104,18 +102,14 @@ void ICFGTraversal::taintChecking() {
 /*!
  * Andersen analysis
  */
-void AndersenPTA::analyze()
-{
-
-    initialize();
-    initWorklist();
-    do
-    {
-        reanalyze = false;
-        solveWorklist();
-        if (updateCallGraph(getIndirectCallsites()))
-            reanalyze = true;
-    }
-    while (reanalyze);
-    finalize();
+void AndersenPTA::analyze() {
+	initialize();
+	initWorklist();
+	do {
+		reanalyze = false;
+		solveWorklist();
+		if (updateCallGraph(getIndirectCallsites()))
+			reanalyze = true;
+	} while (reanalyze);
+	finalize();
 }

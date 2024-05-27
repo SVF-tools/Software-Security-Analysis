@@ -70,16 +70,16 @@ int main(int argc, char** argv) {
 
 	std::cout << "\n\nPrinting code graphs...\n\n";
 
-	/// iterate each ICFGNode on ICFG, 
-	/// where each node represents a SVFStatement (statement/instruction) and each edge represent a control-flow (execution order) between two statement
+	/// iterate each ICFGNode on ICFG,
+	/// where each node represents a SVFStatement (statement/instruction) and each edge represent a control-flow
+	/// (execution order) between two statement
 	std::cout << "\n\n####Printing ICFG (Interprocedural Control-Flow Graph)###\n\n";
 	for (ICFG::iterator it = icfg->begin(); it != icfg->end(); it++) {
 		std::cout << it->second->toString() << "\n\n";
 	}
 	std::cout << "######################################################\n";
 
-
-	/// iterate each node on PAG, 
+	/// iterate each node on PAG,
 	/// where each node represents an SVFVar (variable) and each edge represents a SVFStatement
 	std::cout << "\n\n#######Printing PAG (Program Assignment Graph)#######\n\n";
 	for (SVFIR::iterator it = pag->begin(); it != pag->end(); it++) {
@@ -87,8 +87,7 @@ int main(int argc, char** argv) {
 	}
 	std::cout << "#################################################\n";
 
-
-	/// iterate each node on Constraint Graph which is a subgraph of PAG. 
+	/// iterate each node on Constraint Graph which is a subgraph of PAG.
 	/// Constraint Graph only contains SVFVars are either pointers or objects (stack,global,heap and function objects)
 	std::cout << "\n\n#############Printing Constraint Graph##########\n\n";
 	for (ConstraintGraph::iterator it = consCG->begin(); it != consCG->end(); it++) {

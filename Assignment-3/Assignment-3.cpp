@@ -41,36 +41,37 @@ using namespace SVFUtil;
  * It marks recursive functions, initializes WTOs for each function, and processes the main function.
  */
 void AbstractExecution::analyse() {
-    // Init WTOs for all functions, and handle Global ICFGNode of SVFModule
-    initWTO();
+	// Init WTOs for all functions, and handle Global ICFGNode of SVFModule
+	initWTO();
 
-    // Handle the global node
-    handleGlobalNode();
+	// Handle the global node
+	handleGlobalNode();
 
-    // Process the main function if it exists
-    if (const SVFFunction* fun = _svfir->getModule()->getSVFFunction("main")) {
-        ICFGWTO* wto = _funcToWTO[fun];
-
-        // Iterate through the WTO components of the main function
-        for (auto it = wto->begin(); it != wto->end(); ++it) {
-            const ICFGWTOComp* cur = *it;
-
-            // Handle WTO nodes
-            if (const ICFGSingletonWTO* wtoNode = SVFUtil::dyn_cast<ICFGSingletonWTO>(cur)) {
-                handleSingletonWTO(wtoNode);
-            }
-                // Handle WTO cycles
-            else if (const ICFGCycleWTO* cycle = SVFUtil::dyn_cast<ICFGCycleWTO>(cur)) {
-                handleCycleWTO(cycle);
-            }
-                // Assert false for unknown WTO types
-            else {
-                assert(false && "unknown WTO type!");
-            }
-        }
-    }
+	// Process the main function if it exists
+	if (const SVFFunction* fun = _svfir->getModule()->getSVFFunction("main")) {
+		ICFGWTO* wto = _funcToWTO[fun];
+		handleWTOComponents(wto->getWTOComponents());
+	}
 }
 
+/**
+ * @brief Hanlde two types of WTO components (singleton and cycle)
+ */
+void AbstractExecution::handleWTOComponents(const std::list<const ICFGWTOComp*>& wtoComps) {
+	for (const ICFGWTOComp* wtoNode : wtoComps) {
+		if (const ICFGSingletonWTO* node = SVFUtil::dyn_cast<ICFGSingletonWTO>(wtoNode)) {
+			handleSingletonWTO(node);
+		}
+		// Handle WTO cycles
+		else if (const ICFGCycleWTO* cycle = SVFUtil::dyn_cast<ICFGCycleWTO>(wtoNode)) {
+			handleCycleWTO(cycle);
+		}
+		// Assert false for unknown WTO types
+		else {
+			assert(false && "unknown WTO type!");
+		}
+	}
+}
 
 /**
  * @brief Handle a Weak Topological Order (WTO) node in the control flow graph
@@ -83,37 +84,36 @@ void AbstractExecution::analyse() {
  * @param node The WTO node to be processed
  */
 void AbstractExecution::handleSingletonWTO(const ICFGSingletonWTO* singletonWTO) {
-    const ICFGNode* node = singletonWTO->node();
-    // Propagate the state to the node if feasible
-    if (!propagateStateIfFeasible(node)) {
-        // No abstract state (AS) on the incoming edges - Infeasible block
-        return;
-    } else {
-        // Has abstract state on the incoming edges - Feasible block
-        // Get the execution state from incoming edges
-        _postAbsTrace[node] = _preAbsTrace[node];
-    }
+	const ICFGNode* node = singletonWTO->node();
+	// Propagate the states from predecessors to the current node and return true if the control-flow is feasible
+	bool is_feasible = mergeStatesFromPredecessors(node, _preAbsTrace[node]);
+	if (is_feasible) {
+		_postAbsTrace[node] = _preAbsTrace[node];
+	}
+	else {
+		return;
+	}
 
-    std::deque<const ICFGNode*> worklist;
+	std::deque<const ICFGNode*> worklist;
 
-    // Handle each SVF statement in the node
-    for (const SVFStmt* stmt : node->getSVFStmts()) {
-        updateAbsState(stmt);        // Update the abstract state with the current statement
-        bufOverflowDetection(stmt);  // Perform buffer overflow detection for the statement
-    }
+	// Handle each SVF statement in the node
+	for (const SVFStmt* stmt : node->getSVFStmts()) {
+		updateAbsState(stmt); // Update the abstract state with the current statement
+		bufOverflowDetection(stmt); // Perform buffer overflow detection for the statement
+	}
 
-    // Handle call nodes by inlining the callee function
-    if (const CallICFGNode* callnode = SVFUtil::dyn_cast<CallICFGNode>(node)) {
-        // Get the name of the callee function
-        std::string funName = SVFUtil::getCallee(callnode->getCallSite())->getName();
-        if (funName == "OVERFLOW" || funName == "svf_assert") {
-            handleStubFunctions(callnode);  // Handle specific stub functions
-        } else {
-            handleCallSite(callnode);  // Handle general call sites
-        }
-    }
+	// Handle call nodes by inlining the callee function
+	if (const CallICFGNode* callnode = SVFUtil::dyn_cast<CallICFGNode>(node)) {
+		// Get the name of the callee function
+		std::string funName = SVFUtil::getCallee(callnode->getCallSite())->getName();
+		if (funName == "OVERFLOW" || funName == "svf_assert") {
+			handleStubFunctions(callnode); // Handle specific stub functions
+		}
+		else {
+			handleCallSite(callnode); // Handle general call sites
+		}
+	}
 }
-
 
 /**
  * @brief Handle state updates for each type of SVF statement
@@ -124,58 +124,58 @@ void AbstractExecution::handleSingletonWTO(const ICFGSingletonWTO* singletonWTO)
  * @param stmt The SVF statement for which the state needs to be updated
  */
 void AbstractExecution::updateAbsState(const SVFStmt* stmt) {
-    // Handle address statements
-    if (const AddrStmt* addr = SVFUtil::dyn_cast<AddrStmt>(stmt)) {
-        updateStateOnAddr(addr);
-    }
-        // Handle binary operation statements
-    else if (const BinaryOPStmt* binary = SVFUtil::dyn_cast<BinaryOPStmt>(stmt)) {
-        updateStateOnBinary(binary);
-    }
-        // Handle comparison statements
-    else if (const CmpStmt* cmp = SVFUtil::dyn_cast<CmpStmt>(stmt)) {
-        updateStateOnCmp(cmp);
-    }
-        // Handle load statements
-    else if (const LoadStmt* load = SVFUtil::dyn_cast<LoadStmt>(stmt)) {
-        updateStateOnLoad(load);
-    }
-        // Handle store statements
-    else if (const StoreStmt* store = SVFUtil::dyn_cast<StoreStmt>(stmt)) {
-        updateStateOnStore(store);
-    }
-        // Handle copy statements
-    else if (const CopyStmt* copy = SVFUtil::dyn_cast<CopyStmt>(stmt)) {
-        updateStateOnCopy(copy);
-    }
-        // Handle GEP (GetElementPtr) statements
-    else if (const GepStmt* gep = SVFUtil::dyn_cast<GepStmt>(stmt)) {
-        updateStateOnGep(gep);
-    }
-        // Handle phi statements
-    else if (const PhiStmt* phi = SVFUtil::dyn_cast<PhiStmt>(stmt)) {
-        updateStateOnPhi(phi);
-    }
-        // Handle call procedure entries
-    else if (const CallPE* callPE = SVFUtil::dyn_cast<CallPE>(stmt)) {
-        updateStateOnCall(callPE);
-    }
-        // Handle return procedure entries
-    else if (const RetPE* retPE = SVFUtil::dyn_cast<RetPE>(stmt)) {
-        updateStateOnRet(retPE);
-    }
-        // Handle select statements
-    else if (const SelectStmt* select = SVFUtil::dyn_cast<SelectStmt>(stmt)) {
-        updateStateOnSelect(select);
-    }
-        // Handle unary operations and branch statements (no action needed)
-    else if (SVFUtil::isa<UnaryOPStmt>(stmt) || SVFUtil::isa<BranchStmt>(stmt)) {
-        // Nothing needs to be done here as BranchStmt is handled in hasBranchES
-    }
-        // Assert false for unsupported statement types
-    else {
-        assert(false && "implement this part");
-    }
+	// Handle address statements
+	if (const AddrStmt* addr = SVFUtil::dyn_cast<AddrStmt>(stmt)) {
+		updateStateOnAddr(addr);
+	}
+	// Handle binary operation statements
+	else if (const BinaryOPStmt* binary = SVFUtil::dyn_cast<BinaryOPStmt>(stmt)) {
+		updateStateOnBinary(binary);
+	}
+	// Handle comparison statements
+	else if (const CmpStmt* cmp = SVFUtil::dyn_cast<CmpStmt>(stmt)) {
+		updateStateOnCmp(cmp);
+	}
+	// Handle load statements
+	else if (const LoadStmt* load = SVFUtil::dyn_cast<LoadStmt>(stmt)) {
+		updateStateOnLoad(load);
+	}
+	// Handle store statements
+	else if (const StoreStmt* store = SVFUtil::dyn_cast<StoreStmt>(stmt)) {
+		updateStateOnStore(store);
+	}
+	// Handle copy statements
+	else if (const CopyStmt* copy = SVFUtil::dyn_cast<CopyStmt>(stmt)) {
+		updateStateOnCopy(copy);
+	}
+	// Handle GEP (GetElementPtr) statements
+	else if (const GepStmt* gep = SVFUtil::dyn_cast<GepStmt>(stmt)) {
+		updateStateOnGep(gep);
+	}
+	// Handle phi statements
+	else if (const PhiStmt* phi = SVFUtil::dyn_cast<PhiStmt>(stmt)) {
+		updateStateOnPhi(phi);
+	}
+	// Handle call procedure entries
+	else if (const CallPE* callPE = SVFUtil::dyn_cast<CallPE>(stmt)) {
+		updateStateOnCall(callPE);
+	}
+	// Handle return procedure entries
+	else if (const RetPE* retPE = SVFUtil::dyn_cast<RetPE>(stmt)) {
+		updateStateOnRet(retPE);
+	}
+	// Handle select statements
+	else if (const SelectStmt* select = SVFUtil::dyn_cast<SelectStmt>(stmt)) {
+		updateStateOnSelect(select);
+	}
+	// Handle unary operations and branch statements (no action needed)
+	else if (SVFUtil::isa<UnaryOPStmt>(stmt) || SVFUtil::isa<BranchStmt>(stmt)) {
+		// Nothing needs to be done here as BranchStmt is handled in hasBranchES
+	}
+	// Assert false for unsupported statement types
+	else {
+		assert(false && "implement this part");
+	}
 }
 
 /// TODO: handle object allocation and record its size
@@ -197,8 +197,10 @@ void AbstractExecution::bufOverflowDetection(const SVF::SVFStmt* stmt) {
 /// TODO : Implement the handleCycleWTO function
 void AbstractExecution::handleCycleWTO(const ICFGCycleWTO* cycle) {
 	// Get execution states from in edges
-	if (!propagateStateIfFeasible(cycle->head()->node())) {
-		// No ES on the in edges - Infeasible block
+	bool is_feasible = mergeStatesFromPredecessors(cycle->head()->node(), _preAbsTrace[cycle->head()->node()]);
+	if (is_feasible) {
+	}
+	else {
 		return;
 	}
 	AbstractState pre_as = _preAbsTrace[cycle->head()->node()];
@@ -223,7 +225,6 @@ void AbstractExecution::updateStateOnStore(const StoreStmt* store) {
 }
 
 void AbstractExecution::updateStateOnLoad(const LoadStmt* load) {
-
 	/// TODO: your code starts from here
 }
 
@@ -231,13 +232,12 @@ void AbstractExecution::updateStateOnGep(const GepStmt* gep) {
 	/// TODO: your code starts from here
 }
 
-
 /// Abstract state updates on an AddrStmt
 void AbstractExecution::updateStateOnAddr(const AddrStmt* addr) {
 	const ICFGNode* node = addr->getICFGNode();
 	AbstractState& as = getAbsState(node);
-    initObjVar(as, SVFUtil::cast<ObjVar>(addr->getRHSVar()));
-    as[addr->getLHSVarID()] = as[addr->getRHSVarID()];
+	initObjVar(as, SVFUtil::cast<ObjVar>(addr->getRHSVar()));
+	as[addr->getLHSVarID()] = as[addr->getRHSVarID()];
 }
 
 /// Abstract state updates on an CmpStmt
@@ -255,10 +255,7 @@ void AbstractExecution::updateStateOnCmp(const CmpStmt* cmp) {
 		switch (predicate) {
 		case CmpStmt::ICMP_EQ:
 		case CmpStmt::FCMP_OEQ:
-		case CmpStmt::FCMP_UEQ:
-			resVal = (lhs == rhs);
-			// resVal = (lhs.getInterval() == rhs.getInterval());
-			break;
+		case CmpStmt::FCMP_UEQ: resVal = (lhs == rhs); break;
 		case CmpStmt::ICMP_NE:
 		case CmpStmt::FCMP_ONE:
 		case CmpStmt::FCMP_UNE: resVal = (lhs != rhs); break;
@@ -385,18 +382,18 @@ void AbstractExecution::updateStateOnCmp(const CmpStmt* cmp) {
 void AbstractExecution::updateStateOnCall(const CallPE* call) {
 	const ICFGNode* node = call->getICFGNode();
 	AbstractState& as = getAbsState(node);
-    NodeID lhs = call->getLHSVarID();
-    NodeID rhs = call->getRHSVarID();
-    as[lhs] = as[rhs];
+	NodeID lhs = call->getLHSVarID();
+	NodeID rhs = call->getRHSVarID();
+	as[lhs] = as[rhs];
 }
 
 /// Abstract state updates on an RetPE
 void AbstractExecution::updateStateOnRet(const RetPE* retPE) {
 	const ICFGNode* node = retPE->getICFGNode();
 	AbstractState& as = getAbsState(node);
-    NodeID lhs = retPE->getLHSVarID();
-    NodeID rhs = retPE->getRHSVarID();
-    as[lhs] = as[rhs];
+	NodeID lhs = retPE->getLHSVarID();
+	NodeID rhs = retPE->getRHSVarID();
+	as[lhs] = as[rhs];
 }
 
 /// Abstract state updates on an PhiStmt
@@ -404,32 +401,30 @@ void AbstractExecution::updateStateOnPhi(const PhiStmt* phi) {
 	const ICFGNode* node = phi->getICFGNode();
 	AbstractState& as = getAbsState(node);
 	u32_t res = phi->getResID();
-    AbstractValue rhs;
-    for (u32_t i = 0; i < phi->getOpVarNum(); i++)
-    {
-        NodeID curId = phi->getOpVarID(i);
-        rhs.join_with(as[curId]);
-    }
-    as[res] = rhs;
+	AbstractValue rhs;
+	for (u32_t i = 0; i < phi->getOpVarNum(); i++) {
+		NodeID curId = phi->getOpVarID(i);
+		rhs.join_with(as[curId]);
+	}
+	as[res] = rhs;
 }
 
 /// Abstract state updates on an SelectStmt
 void AbstractExecution::updateStateOnSelect(const SelectStmt* select) {
 	const ICFGNode* node = select->getICFGNode();
 	AbstractState& as = getAbsState(node);
-    u32_t res = select->getResID();
-    u32_t tval = select->getTrueValue()->getId();
-    u32_t fval = select->getFalseValue()->getId();
-    u32_t cond = select->getCondition()->getId();
-    if (as[cond].getInterval().is_numeral()) {
-        as[res] = as[cond].getInterval().is_zero() ? as[fval] : as[tval];
-    }
-    else {
-        as[res] = as[tval];
-        as[res].join_with(as[fval]);
-    }
+	u32_t res = select->getResID();
+	u32_t tval = select->getTrueValue()->getId();
+	u32_t fval = select->getFalseValue()->getId();
+	u32_t cond = select->getCondition()->getId();
+	if (as[cond].getInterval().is_numeral()) {
+		as[res] = as[cond].getInterval().is_zero() ? as[fval] : as[tval];
+	}
+	else {
+		as[res] = as[tval];
+		as[res].join_with(as[fval]);
+	}
 }
-
 
 /**
  * @brief Handle a call site in the control flow graph
@@ -440,63 +435,31 @@ void AbstractExecution::updateStateOnSelect(const SelectStmt* select) {
  * @param node The call site node to be handled
  */
 void AbstractExecution::handleCallSite(const CallICFGNode* callNode) {
-    // Get the abstract state associated with the call node
-    AbstractState& as = getAbsState(callNode);
+	// Get the abstract state associated with the call node
+	AbstractState& as = getAbsState(callNode);
 
-    // Get the callee function associated with the call site
-    const SVFFunction *callee = SVFUtil::getCallee(callNode->getCallSite());
+	// Get the callee function associated with the call site
+	const SVFFunction* callee = SVFUtil::getCallee(callNode->getCallSite());
 
-    if (_recursiveFuns.find(callee) != _recursiveFuns.end()) {
-        // skip recursive functions
-        return;
-    } else {
+	if (_recursiveFuns.find(callee) != _recursiveFuns.end()) {
+		// skip recursive functions
+		return;
+	}
+	else {
+		// Push the call node onto the call site stack
+		_callSiteStack.push_back(callNode);
 
-        // Push the call node onto the call site stack
-        _callSiteStack.push_back(callNode);
+		// Store the post-abstract trace for the call node
+		_postAbsTrace[callNode] = as;
 
-        // Store the post-abstract trace for the call node
-        _postAbsTrace[callNode] = as;
+		// Handle the callee function
+		ICFGWTO* wto = _funcToWTO[callee];
+		handleWTOComponents(wto->getWTOComponents());
 
-        // Handle the callee function
-        handleFunc(callee);
-
-        // Pop the call node from the call site stack
-        _callSiteStack.pop_back();
-    }
+		// Pop the call node from the call site stack
+		_callSiteStack.pop_back();
+	}
 }
-
-/**
- * @brief Handle a function in the control flow graph
- *
- * This function processes a given function by iterating through its Weak Topological Order (WTO)
- * components and handling each component accordingly. It sets the execution state for the function entry.
- *
- * @param func The SVF function to be handled
- */
-void AbstractExecution::handleFunc(const SVFFunction *func) {
-    // Retrieve the WTO for the given function
-    ICFGWTO* wto = _funcToWTO[func];
-
-    // Iterate through the WTO components of the function
-    for (auto it = wto->begin(); it != wto->end(); ++it) {
-        const ICFGWTOComp* cur = *it;
-
-        // Handle WTO nodes
-        if (const ICFGSingletonWTO* vertex = SVFUtil::dyn_cast<ICFGSingletonWTO>(cur)) {
-            handleSingletonWTO(vertex);
-        }
-            // Handle WTO cycles
-        else if (const ICFGCycleWTO* cycle = SVFUtil::dyn_cast<ICFGCycleWTO>(cur)) {
-            handleCycleWTO(cycle);
-        }
-            // Assert false for unknown WTO types
-        else {
-            assert(false && "unknown WTO type!");
-        }
-    }
-}
-
-
 
 /**
  * @brief Handle stub functions for verifying abstract interpretation results
@@ -509,58 +472,77 @@ void AbstractExecution::handleFunc(const SVFFunction *func) {
  */
 
 void AbstractExecution::handleStubFunctions(const SVF::CallICFGNode* callnode) {
-    // Handle the 'svf_assert' stub function
-    if (SVFUtil::getCallee(callnode->getCallSite())->getName() == "svf_assert") {
-        // If the condition is false, the program is infeasible
-        CallSite cs = callnode->getCallSite();
-        const CallICFGNode* callNode = SVFUtil::dyn_cast<CallICFGNode>(_svfir->getICFG()->getICFGNode(cs.getInstruction()));
-        u32_t arg0 = _svfir->getValueNode(cs.getArgument(0));
-        AbstractState& as = getAbsState(callNode);
+	// Handle the 'svf_assert' stub function
+	if (SVFUtil::getCallee(callnode->getCallSite())->getName() == "svf_assert") {
+		_assert_points.insert(callnode);
+		// If the condition is false, the program is infeasible
+		CallSite cs = callnode->getCallSite();
+		const CallICFGNode* callNode =
+		    SVFUtil::dyn_cast<CallICFGNode>(_svfir->getICFG()->getICFGNode(cs.getInstruction()));
+		u32_t arg0 = _svfir->getValueNode(cs.getArgument(0));
+		AbstractState& as = getAbsState(callNode);
 
-        // Check if the interval for the argument is infinite
-        if (as[arg0].getInterval().is_infinite()) {
-            SVFUtil::errs() << "svf_assert Fail. " << cs.getInstruction()->toString() << "\n";
-            assert(false);
-        } else {
-            as[arg0].getInterval().meet_with(IntervalValue(1, 1));
-            if (as[arg0].getInterval().equals(IntervalValue(1, 1))) {
-                SVFUtil::errs() << SVFUtil::sucMsg("Your implementation successfully verified the svf_assert!\n");
-            } else {
-                SVFUtil::errs() << "Your implementation failed to verify the svf_assert!" << cs.getInstruction()->toString() << "\n";
-                assert(false);
-            }
-        }
-        return;
-    }
-        // Handle the 'OVERFLOW' stub function
-    else if (SVFUtil::getCallee(callnode->getCallSite())->getName() == "OVERFLOW") {
-        // If the condition is false, the program is infeasible
-        CallSite cs = callnode->getCallSite();
-        const CallICFGNode* callNode = SVFUtil::dyn_cast<CallICFGNode>(_svfir->getICFG()->getICFGNode(cs.getInstruction()));
-        u32_t arg0 = _svfir->getValueNode(cs.getArgument(0));
-        u32_t arg1 = _svfir->getValueNode(cs.getArgument(1));
+		// Check if the interval for the argument is infinite
+		if (as[arg0].getInterval().is_infinite()) {
+			SVFUtil::errs() << "svf_assert Fail. " << cs.getInstruction()->toString() << "\n";
+			assert(false);
+		}
+		else {
+			as[arg0].getInterval().meet_with(IntervalValue(1, 1));
+			if (as[arg0].getInterval().equals(IntervalValue(1, 1))) {
+				SVFUtil::errs() << SVFUtil::sucMsg("Your implementation successfully verified the svf_assert!\n");
+			}
+			else {
+				SVFUtil::errs() << "Your implementation failed to verify the svf_assert!"
+				                << cs.getInstruction()->toString() << "\n";
+				assert(false);
+			}
+		}
+		return;
+	}
+	// Handle the 'OVERFLOW' stub function
+	else if (SVFUtil::getCallee(callnode->getCallSite())->getName() == "OVERFLOW") {
+		// If the condition is false, the program is infeasible
+		_assert_points.insert(callnode);
+		CallSite cs = callnode->getCallSite();
+		const CallICFGNode* callNode =
+		    SVFUtil::dyn_cast<CallICFGNode>(_svfir->getICFG()->getICFGNode(cs.getInstruction()));
+		u32_t arg0 = _svfir->getValueNode(cs.getArgument(0));
+		u32_t arg1 = _svfir->getValueNode(cs.getArgument(1));
 
-        AbstractState& as = getAbsState(callnode);
-        AbstractValue gepRhsVal = as[arg0];
+		AbstractState& as = getAbsState(callnode);
+		AbstractValue gepRhsVal = as[arg0];
 
-        // Check if the RHS value is an address
-        if (gepRhsVal.isAddr()) {
-            for (const auto& addr : gepRhsVal.getAddrs()) {
-                s64_t baseObj = _svfir->getBaseObjVar(AbstractState::getInternalID(addr));
-                IntervalValue object_sz = obj2size[baseObj];
-                IntervalValue access_offset = as[arg1].getInterval();
-                // TODO: add testcase whose access_offset is intervals
-                bool overflow = object_sz.lb().getIntNumeral() <= access_offset.ub().getIntNumeral() ? false : true;
-                if (!overflow) {
-                    std::cerr << "Your implementation successfully detected the buffer overflow\n";
-                } else {
-                    SVFUtil::errs() << "Your implementation failed to detect the buffer overflow!" << cs.getInstruction()->toString() << "\n";
-                    assert(false);
-                }
-            }
-        } else {
-            SVFUtil::errs() << "Your implementation failed to detect the buffer overflow!" << cs.getInstruction()->toString() << "\n";
-            assert(false);
-        }
-    }
+		// Check if the RHS value is an address
+		if (gepRhsVal.isAddr()) {
+			bool overflow = false;
+			for (const auto& addr : gepRhsVal.getAddrs()) {
+				u64_t access_offset = as[arg1].getInterval().getIntNumeral();
+				NodeID objId = AbstractState::getInternalID(addr);
+				const GepObjVar* gepLhsObjVar = SVFUtil::cast<GepObjVar>(_svfir->getGNode(objId));
+				auto size = _svfir->getBaseObj(objId)->getByteSizeOfObj();
+				if (_bufOverflowHelper.hasGepObjOffsetFromBase(gepLhsObjVar)) {
+					overflow =
+					    (_bufOverflowHelper.getGepObjOffsetFromBase(gepLhsObjVar).ub().getIntNumeral() + access_offset
+					     >= size);
+				}
+				else {
+					assert(false && "pointer not found in gepObjOffsetFromBase");
+				}
+			}
+			if (overflow) {
+				std::cerr << "Your implementation successfully detected the buffer overflow\n";
+			}
+			else {
+				SVFUtil::errs() << "Your implementation failed to detect the buffer overflow!"
+				                << cs.getInstruction()->toString() << "\n";
+				assert(false);
+			}
+		}
+		else {
+			SVFUtil::errs() << "Your implementation failed to detect the buffer overflow!"
+			                << cs.getInstruction()->toString() << "\n";
+			assert(false);
+		}
+	}
 }

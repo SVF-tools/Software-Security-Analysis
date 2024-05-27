@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
 	pag->getICFG()->dump("icfg");
 	AbstractExecution* ae = new AbstractExecution();
 	ae->runOnModule(pag->getICFG());
+	ae->ensureAllAssertsValidated();
 
 	LLVMModuleSet::releaseLLVMModuleSet();
-
 }

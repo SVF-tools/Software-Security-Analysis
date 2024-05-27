@@ -17,8 +17,8 @@ void TestICFG(std::vector<std::string>& moduleNameVec) {
 	ICFG* icfg = pag->getICFG();
 	// If you want to test your own case, please change the dump name
 	ICFGTraversal* gt = new ICFGTraversal(pag);
-    const fs::path& config = CUR_DIR() / "../SrcSnk.txt";
-    gt->readSrcSnkFromFile(config);
+	const fs::path& config = CUR_DIR() / "../SrcSnk.txt";
+	gt->readSrcSnkFromFile(config);
 	for (const CallICFGNode* src : gt->identifySources()) {
 		for (const CallICFGNode* snk : gt->identifySinks()) {
 			gt->reachability(src, snk);
@@ -27,7 +27,7 @@ void TestICFG(std::vector<std::string>& moduleNameVec) {
 	std::string moduleName = moduleNameVec[0].substr(moduleNameVec[0].find_last_of('/') + 1);
 	if (moduleName == "test1.ll") {
 		std::set<std::string> expected = {"START->5->6->7->8->11->1->2->3->12->15->END",
-                                          "START->5->6->7->8->9->1->2->3->10->13->END"};
+		                                  "START->5->6->7->8->9->1->2->3->10->13->END"};
 		assert(gt->getPaths() == expected && " \n wrong paths generated - test1 failed !");
 	}
 	else if (moduleName == "test2.ll") {
@@ -103,11 +103,11 @@ int main(int argc, char** argv) {
 		}
 	}
 	// only one can be true
-    if (ptaEnabled + taintEnabled + icfgEnabled == 0) {
-        // default to taint
-        taintEnabled = true;
-        cout << "If no analysis is specified, the default is set to taint analysis (-taint)" << endl;
-    }
+	if (ptaEnabled + taintEnabled + icfgEnabled == 0) {
+		// default to taint
+		taintEnabled = true;
+		cout << "If no analysis is specified, the default is set to taint analysis (-taint)" << endl;
+	}
 	assert((ptaEnabled + taintEnabled + icfgEnabled) == 1 && "only one analysis can be enabled");
 
 	// You may comment it to see the details of the analysis
