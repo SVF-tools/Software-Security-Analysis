@@ -3,9 +3,9 @@
   "configurations": [
     {
       "name": "(lldb) Launch",
-      "type": "cppdbg",
+      "type": "lldb",
       "request": "launch",
-      // Please change to the executable of your current lab or assignment 
+      // Please change to the executable of your current lab or assignment
       // |  Lab/Assignment  | "program"                          | "args"  |
       // |  Lab-Exercise-1  | "${workspaceFolder}/bin/lab1"      | "test1" |
       // |  Lab-Exercise-2  | "${workspaceFolder}/bin/lab2"      | "test1" |
@@ -15,17 +15,7 @@
       // |  Assignment-3    | "${workspaceFolder}/bin/ass3"      | "Assignment-3/Tests/testcases/ae/test1.ll" |
       "program": "${workspaceFolder}/bin/hello",
       "args": [], // may input the test llvm bc file or other options and flags the program may use
-      "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
-      "environment": [],
-      "MIMode": "lldb",
-      "setupCommands": [
-        {
-          "description": "Enable pretty-printing for gdb",
-          "text": "-enable-pretty-printing",
-          "ignoreFailures": true
-        }
-      ],
       "preLaunchTask": "C/C++: cpp build active file"
     }
   ]
