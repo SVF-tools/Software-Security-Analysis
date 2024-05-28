@@ -1,14 +1,24 @@
-; ModuleID = 'Assignment-3/Tests/ae/test2.ll'
-source_filename = "Assignment-3/Tests/ae/test2.c"
+; ModuleID = 'test2.c'
+source_filename = "test2.c"
 target datalayout = "e-m:o-i64:64-i128:128-n32:64-S128"
 target triple = "arm64-apple-macosx14.0.0"
 
 ; Function Attrs: noinline nounwind ssp uwtable(sync)
-define i32 @main(i32 noundef %i) #0 {
+define i32 @main() #0 {
 entry:
-  %add = add nsw i32 %i, 1
-  %add1 = add nsw i32 %i, 1
-  %cmp = icmp eq i32 %add, %add1
+  %retval = alloca i32, align 4
+  %a = alloca i32, align 4
+  %b = alloca i32, align 4
+  %c = alloca i32, align 4
+  store i32 0, ptr %retval, align 4
+  store i32 10, ptr %a, align 4
+  store i32 5, ptr %b, align 4
+  %0 = load i32, ptr %a, align 4
+  %1 = load i32, ptr %b, align 4
+  %div = sdiv i32 %0, %1
+  store i32 %div, ptr %c, align 4
+  %2 = load i32, ptr %c, align 4
+  %cmp = icmp eq i32 %2, 2
   call void @svf_assert(i1 noundef zeroext %cmp)
   ret i32 0
 }
