@@ -48,9 +48,10 @@ void ICFGTraversal::reachability(const ICFGNode* curNode, const ICFGNode* snk) {
 	/// TODO: your code starts from here
 }
 
-// TODO: Implement your code to parse the two lines to identify sources and sinks from `SrcSnk.txt` for your
-// reachability analysis The format in SrcSnk.txt is in the form of line 1 for sources  "{ api1 api2 api3 }" line 2 for
-// sinks    "{ api1 api2 api3 }"
+/// TODO: Implement your code to parse the two lines to identify sources and sinks from `SrcSnk.txt` for your
+/// reachability analysis The format in SrcSnk.txt is in the form of 
+/// line 1 for sources  "{ api1 api2 api3 }" 
+/// line 2 for sinks    "{ api1 api2 api3 }"
 void ICFGTraversal::readSrcSnkFromFile(const string& filename) {
 	/// TODO: your code starts from here
 }
