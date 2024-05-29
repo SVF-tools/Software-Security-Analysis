@@ -36,7 +36,6 @@ int main(int argc, char** argv) {
 	PTACallGraph* callgraph = ander->getPTACallGraph();
 	builder.updateCallGraph(callgraph);
 	pag->getICFG()->updateCallGraph(callgraph);
-	pag->getICFG()->dump("icfg");
 	AbstractExecution* ae = new AbstractExecution();
 	ae->runOnModule(pag->getICFG());
 	ae->ensureAllAssertsValidated();

@@ -65,16 +65,55 @@ void TestTaint(std::vector<std::string>& moduleNameVec) {
 	ICFGTraversal* taint = new ICFGTraversal(pag);
 
 	taint->taintChecking();
+	std::cerr << "######################Tainted Information Flow (" + std::to_string(taint->getPaths().size())
+	                 + " found)######################\n";
+	std::cerr << "---------------------------------------------\n";
+	for (std::string path: taint->getPaths())  {
+		std::string originPath = path;
+		const std::string prefix = "START->";
+		const std::string suffix = "->END";
+
+		if (path.find(prefix) == 0) {
+			path.erase(0, prefix.length());
+		}
+		if (path.rfind(suffix) == path.length() - suffix.length()) {
+			path.erase(path.length() - suffix.length(), suffix.length());
+		}
+		std::vector<std::string> numbers;
+		std::vector<std::string> tokens;
+		size_t start = 0, end = 0;
+		while ((end = path.find("->", start)) != std::string::npos) {
+			tokens.push_back(path.substr(start, end - start));
+			start = end + 2;
+		}
+		tokens.push_back(path.substr(start));
+		NodeID srcID = std::stoi(tokens[0]);
+		NodeID dstID = std::stoi(tokens.back());
+		const ICFGNode* srcNode = PAG::getPAG()->getICFG()->getICFGNode(srcID);
+		const ICFGNode* dstNode = PAG::getPAG()->getICFG()->getICFGNode(dstID);
+		// print the source and sink node
+		std::stringstream ss;
+		ss << originPath << std::endl << "Source: " << srcNode->toString() <<
+		    "\nSink: " << dstNode->toString()
+		   << "\n---------------------------------------------\n";
+		SVFUtil::outs() << ss.str() << std::endl;
+	}
+	if (taint->getPaths().empty()) {
+		SVFUtil::outs() << "No tainted information flow found" << std::endl;
+	}
+	else {
+
+	}
 	std::string moduleName = moduleNameVec[0].substr(moduleNameVec[0].find_last_of('/') + 1);
 	if (moduleName == "test1.ll") {
 		set<string> expected = {"START->5->1->2->3->6->7->8->9->END"};
-		assert(taint->getPaths() == expected && " \n wrong paths generated - test1 failed !");
-		cout << "\n test1 passed !" << endl;
+		assert(taint->getPaths() == expected && " \n Wrong paths generated - Test1 failed !");
+		cout << "\n Test1 passed !" << endl;
 	}
 	else if (moduleName == "test2.ll") {
 		set<string> expected = {"START->5->1->2->3->6->7->8->9->10->12->14->END"};
-		assert(taint->getPaths() == expected && " \n wrong paths generated - test4 failed !");
-		cout << "\n test2 passed !" << endl;
+		assert(taint->getPaths() == expected && " \n Wrong paths generated - Test4 failed !");
+		cout << "\n Test2 passed !" << endl;
 	}
 	SVF::SVFIR::releaseSVFIR();
 	SVF::LLVMModuleSet::releaseLLVMModuleSet();
@@ -103,10 +142,10 @@ int main(int argc, char** argv) {
 		}
 	}
 	// only one can be true
+	// If no analysis is specified, the default is set to taint analysis (-taint)
 	if (ptaEnabled + taintEnabled + icfgEnabled == 0) {
 		// default to taint
 		taintEnabled = true;
-		cout << "If no analysis is specified, the default is set to taint analysis (-taint)" << endl;
 	}
 	assert((ptaEnabled + taintEnabled + icfgEnabled) == 1 && "only one analysis can be enabled");
 

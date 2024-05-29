@@ -121,16 +121,16 @@ namespace SVF {
 			IntervalValue iv = absv.getInterval();
 			if (iv.is_numeral()) {
 				if (iv.getNumeral() == 0) {
-					SVFUtil::outs() << SVFUtil::errMsg("\t FAILURE :") << "assertion failed\n";
+					SVFUtil::outs() << SVFUtil::errMsg("\t FAILURE :") << "the assertion is unsatisfiable\n";
 					assert(false);
 				}
 				else {
-					SVFUtil::outs() << SVFUtil::sucMsg("\t SUCCESS :") << "assertion passed\n";
+					SVFUtil::outs() << SVFUtil::sucMsg("\t SUCCESS :") << "the assertion is successfully verified\n";
 					return true;
 				}
 			}
 			else {
-				SVFUtil::outs() << SVFUtil::errMsg("\t FAILURE :") << "assertion failed\n";
+				SVFUtil::outs() << SVFUtil::errMsg("\t FAILURE :") << "the assertion is unsatisfiable\n";
 				assert(false);
 			}
 		}

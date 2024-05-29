@@ -48,7 +48,6 @@ int main(int argc, char** argv) {
 	ICFG* icfg = svfir->getICFG();
 	icfg->updateCallGraph(callgraph);
 	icfg->dump(moduleNameVec[0] + ".icfg");
-	SVFUtil::outs() << "\n";
 
 	SSE* sse = new SSE(svfir, icfg);
 	sse->analyse();

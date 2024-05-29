@@ -89,11 +89,13 @@ namespace SVF {
 		}
 
 		void printReport() {
-			std::cerr << "######################Full Overflow (" + std::to_string(_nodeToBugInfo.size())
-			                 + " found)######################\n";
-			std::cerr << "---------------------------------------------\n";
-			for (auto& it : _nodeToBugInfo) {
-				std::cerr << it.second << "\n---------------------------------------------\n";
+			if (_nodeToBugInfo.size() > 0) {
+				std::cerr << "######################Buffer Overflow (" + std::to_string(_nodeToBugInfo.size())
+				                 + " found)######################\n";
+				std::cerr << "---------------------------------------------\n";
+				for (auto& it : _nodeToBugInfo) {
+					std::cerr << it.second << "\n---------------------------------------------\n";
+				}
 			}
 		}
 		///@}

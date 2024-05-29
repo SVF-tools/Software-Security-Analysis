@@ -487,11 +487,14 @@ void AbstractExecution::handleStubFunctions(const SVF::CallICFGNode* callnode) {
 		else {
 			as[arg0].getInterval().meet_with(IntervalValue(1, 1));
 			if (as[arg0].getInterval().equals(IntervalValue(1, 1))) {
-				SVFUtil::errs() << SVFUtil::sucMsg("Your implementation successfully verified the svf_assert!\n");
+				std::stringstream ss;
+				ss << "The assertion ("<< callnode->toString() << ")" << " is successfully verified!!\n";
+				SVFUtil::outs() << ss.str() << std::endl;
 			}
 			else {
-				SVFUtil::errs() << "Your implementation failed to verify the svf_assert!"
-				                << cs.getInstruction()->toString() << "\n";
+				std::stringstream ss;
+				ss << "The assertion ("<< callnode->toString() << ")" << " is unsatisfiable!!\n";
+				SVFUtil::outs() << ss.str() << std::endl;
 				assert(false);
 			}
 		}

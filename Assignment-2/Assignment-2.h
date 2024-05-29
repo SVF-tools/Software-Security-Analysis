@@ -115,16 +115,21 @@ namespace SVF {
 			addToSolver(arg0 > 0);
 			if (getSolver().check() == z3::unsat) {
 				DBOP(printExprValues());
-				assert(false && "The assertion is unsatisfiable");
+				std::stringstream ss;
+				ss << "The assertion is unsatisfiable!! ("<< inode->toString() << ")" << "\n";
+				SVFUtil::outs() << ss.str() << std::endl;
+				assert(false);
 				return false;
 			}
 			else {
 				DBOP(printExprValues());
-				std::cerr << inode->toString() << ", " << SVFUtil::sucMsg("The assertion is successfully verified!!")
-				          << std::endl;
+				std::stringstream ss;
+                ss << "The assertion is successfully verified!! ("<< inode->toString() << ")" << "\n";
+				SVFUtil::outs() << ss.str() << std::endl;
 				return true;
 			}
 		}
+
 
 		bool handleNonBranch(const IntraCFGEdge* edge);
 		bool handleBranch(const IntraCFGEdge* edge);
