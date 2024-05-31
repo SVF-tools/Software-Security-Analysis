@@ -190,11 +190,11 @@ namespace SVF {
 
 	// int main() {
 	//    int x;
-	//    x=0;
-	//    while(x<20) {
-	//        x+=2;
+	//    x=20;
+	//    while(x>0) {
+	//        x--;
 	//    }
-	//    assert(x == 20);
+	//    assert(x == 0);
 	//    return 0;
 	// }
 	void AbstractExecutionMgr::test8() {
