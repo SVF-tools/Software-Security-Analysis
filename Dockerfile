@@ -56,6 +56,5 @@ WORKDIR ${HOME}
 RUN git clone "https://github.com/SVF-tools/Software-Security-Analysis.git"
 WORKDIR ${HOME}/Software-Security-Analysis
 RUN echo "Building Software-Security-Analysis ..."
-RUN sed -i 's/lldb/gdb/g' ${HOME}/Software-Security-Analysis/.vscode/launch.json
 RUN cmake -DCMAKE_BUILD_TYPE=MinSizeRel .
 RUN make -j8
