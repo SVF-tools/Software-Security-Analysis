@@ -118,7 +118,6 @@ class Graph {
 	std::set<std::string> paths;
 	std::set<Node*> visited;
 	std::vector<unsigned> path;
-	std::queue<unsigned> worklist;
 };
 
 class CGEdge;
