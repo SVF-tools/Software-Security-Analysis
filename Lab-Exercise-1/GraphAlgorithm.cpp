@@ -29,7 +29,7 @@
 
 using namespace std;
 
-/// TODO: Implement your depth-first search here to traverse each program path (once for any loop) from src to dst.
+/// TODO: Implement your depth-first search here to traverse each program path from src to dst (each node appears at most once in each path).
 /// Add each path as a string into std::set<std::string> paths.
 /// Each path should have a format like this: "START->1->2->4->5->END", where -> indicates an edge connecting two node IDs.
 void Graph::reachability(Node* src, Node* dst) {
