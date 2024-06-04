@@ -4,8 +4,11 @@ void swap(char **p, char **q){
        *q = t;
 }
 int main(){
-      char a1, b1; 
-      char *a = &a1;
-      char *b = &b1;
+      char a1;
+      char b1; 
+      char *a;
+      char *b;
+      a = &a1;
+      b = &b1;
       swap(&a,&b);
 }
