@@ -17,7 +17,7 @@ LLVMHome="llvm-${LLVMVer}.obj"
 Z3Home="z3.obj"
 
 # Change this to your SVF root directory
-svf_root=/Users/yulei/Documents/workspace/SVF
+svf_root=`pwd`/../SVF
 
 # Export the paths for the LLVM, Z3, and SVF directories
 export LLVM_DIR=$svf_root/$LLVMHome
