@@ -62,6 +62,10 @@ class AndersenPTA : public SVF::AndersenBase {
 		else
 			return false;
 	}
+	/// Return the field object (GepObjVar) given a struct object and a field index
+	inline NodeID getGepObjVar(NodeID id, const APOffset& apOffset) {
+		return consCG->getGepObjVar(id,apOffset);
+	}
 };
 
 class ICFGTraversal {
