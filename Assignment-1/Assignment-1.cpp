@@ -58,7 +58,7 @@ void ICFGTraversal::readSrcSnkFromFile(const string& filename) {
 
 // TODO: Implement your Andersen's Algorithm here
 /// The solving rules are as follows:
-/// p <--Addr-- o        =>  pts(p) = {o}
+/// p <--Addr-- o        =>  pts(p) = pts(p) ∪ {o}
 /// q <--COPY-- p        =>  pts(q) = pts(q) ∪ pts(p)
 /// q <--LOAD-- p        =>  for each o ∈ pts(p) : q <--COPY-- o
 /// q <--STORE-- p       =>  for each o ∈ pts(q) : o <--COPY-- p

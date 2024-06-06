@@ -39,7 +39,7 @@ void Graph::reachability(Node* src, Node* dst) {
 /// TODO: Implement constraint solving by iteratively (1) propagating points-to sets among nodes on CGraph, and (2)
 /// adding new copy edges until a fixed point is reached (i.e., no new copy edges are added). 
 /// The solving rules are as follows: 
-/// p <--ADDR-- o   =>  pts(p) = {o} 
+/// p <--ADDR-- o   =>  pts(p) = pts(p) ∪ {o}
 /// q <--COPY-- p   =>  pts(q) = pts(q) ∪ pts(p) 
 /// q <--LOAD-- p   =>  for each o ∈ pts(p) : q <--COPY-- o 
 /// q <--STORE-- p  =>  for each o ∈ pts(q) : o <--COPY-- p 
