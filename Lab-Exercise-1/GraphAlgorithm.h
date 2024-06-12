@@ -247,18 +247,18 @@ class CGraph {
 		return node->getPts();
 	}
 
-	/// Add d to the points-to set of s
-	bool addPts(CGNode* s, CGNode* d) {
-		return s->getPts().insert(d->getID()).second;
+	/// Add o to the points-to set of p
+	bool addPts(CGNode* p, CGNode* o) {
+		return p->getPts().insert(o->getID()).second;
 	}
 
-	/// Union the points-to set of d to that of s
-	/// pts(s) = pts(s) ∪ pts(d)
-	bool unionPts(CGNode* s, CGNode* d) {
+	/// Union the points-to set of q to that of p
+	/// pts(p) = pts(p) ∪ pts(q)
+	bool unionPts(CGNode* p, CGNode* q) {
 		bool changed = false;
-		for (auto e : d->getPts()) {
-			if (s->getPts().find(e) == s->getPts().end()) {
-				s->getPts().insert(e);
+		for (auto e : q->getPts()) {
+			if (p->getPts().find(e) == p->getPts().end()) {
+				p->getPts().insert(e);
 				changed = true;
 			}
 		}
