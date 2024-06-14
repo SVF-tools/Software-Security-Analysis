@@ -3,11 +3,8 @@
     {
       "name": "Linux",
       "includePath": [
-        "/usr/include/**",
         "/usr/local/include/**",
-        "/home/SVF-tools/SVF/**",
         "${workspaceFolder}/**",
-        "/home/SVF-tools/SVF/llvm-16.0.0.obj/**",
         "../SVF/**"
       ],
       "defines": [],
