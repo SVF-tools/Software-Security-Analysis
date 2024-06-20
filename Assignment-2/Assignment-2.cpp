@@ -35,8 +35,8 @@ using namespace z3;
 
 /// TODO: Implement your context-sensitive ICFG traversal here to traverse each program path (once for any loop) from
 /// You will need to collect each path from src node to snk node and then add the path to the `paths` set by
-/// implementing the `collectICFGPath` method. This implementation, slightly different from Assignment-1, requires
-/// ICFGNode* as the first argument.
+/// calling the `collectAndTranslatePath` method which is then trigger the path translation. 
+/// This implementation, slightly different from Assignment-1, requires ICFGNode* as the first argument.
 void SSE::reachability(const ICFGEdge* curEdge, const ICFGNode* snk) {
 	/// TODO: your code starts from here
 }
@@ -44,7 +44,7 @@ void SSE::reachability(const ICFGEdge* curEdge, const ICFGNode* snk) {
 /// TODO: collect each path once this method is called during reachability analysis, and
 /// Collect each program path from the entry to each assertion of the program. In this function,
 /// you will need (1) add each path into the paths set, (2) call translatePath to convert each path into Z3 expressions.
-/// Note that translatePath returns true if the path is feasible, infeasible otherwise. (3) If a path is feasible,
+/// Note that translatePath returns true if the path is feasible, false if the path is infeasible. (3) If a path is feasible,
 /// you will need to call assertchecking to verify the assertion (which is the last ICFGNode of this path).
 void SSE::collectAndTranslatePath() {
 	/// TODO: your code starts from here
@@ -64,8 +64,16 @@ bool SSE::handleRet(const RetCFGEdge* retEdge) {
 	return true;
 }
 
-/// TODO: Implement handling of branch statement inside a function
-/// Return true means a feasible path, false otherwise
+/// TODO: Implement handling of branch statements inside a function
+/// Return true if the path is feasible, false otherwise.
+/// A given branch on the ICFG looks like the following:
+///       	     ICFGNode1 (condition %cmp)
+///       	     1	/    \  0
+///       	  ICFGNode2   ICFGNode3
+/// edge->getCondition() returns the branch condition variable (%cmp) of type SVFValue* (for if/else) or a numeric condition variable (for switch). 
+/// Given the condition variable, you could obtain the SVFVar ID via "svfir->getValueNode(edge->getCondition())""
+/// edge->getCondition() returns nullptr if this IntraCFGEdge is not a branch.
+/// edge->getSuccessorCondValue() returns the actual condition value (1/0 for if/else) when this branch/IntraCFGEdge is executed. For example, the successorCondValue is 1 on the edge from ICFGNode1 to ICFGNode2, and 0 on the edge from ICFGNode1 to ICFGNode3
 bool SSE::handleBranch(const IntraCFGEdge* edge) {
 	/// TODO: your code starts from here
 	return true;
@@ -100,6 +108,12 @@ bool SSE::handleNonBranch(const IntraCFGEdge* edge) {
 		{
 			// TODO: implement GepStmt handler here
 		}
+		/// Given a CmpStmt "r = a > b"
+		/// cmp->getOpVarID(0)/cmp->getOpVarID(1) returns the first/second operand, i.e., "a" and "b"
+		/// cmp->getResID() returns the result operand "r" and cmp->getPredicate() gives you the predicate ">"
+		/// Find the comparison predicates in "class CmpStmt:Predicate" under SVF/svf/include/SVFIR/SVFStatements.h
+		/// You are only required to handle integer predicates, including ICMP_EQ, ICMP_NE, ICMP_UGT, ICMP_UGE, ICMP_ULT, ICMP_ULE, ICMP_SGT, ICMP_SGE, ICMP_SLE
+		/// We assume integer-overflow-free in this assignment
 		else if (const CmpStmt *cmp = SVFUtil::dyn_cast<CmpStmt>(stmt))
 		{
 			// TODO: implement CmpStmt handler here
@@ -201,7 +215,7 @@ void SSE::analyse() {
 		assert(SVFUtil::isa<GlobalICFGNode>(src) && "reachability should start with GlobalICFGNode!");
 		for (const ICFGNode* sink : identifySinks()) {
 			const IntraCFGEdge startEdge(nullptr, const_cast<ICFGNode*>(src));
-			handleIntra(&startEdge);
+			/// start traversing from the entry to each assertion and translate each path
 			reachability(&startEdge, sink);
 			resetSolver();
 		}

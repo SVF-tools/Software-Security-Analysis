@@ -2,8 +2,8 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "(lldb) Launch",
-      "type": "lldb",
+      "name": "(debug) Launch",
+      "type": "cppdbg",
       "request": "launch",
       // Please change to the executable of your current lab or assignment
       // |  Lab/Assignment  | "program"                          | "args"  |
@@ -16,7 +16,8 @@
       "program": "${workspaceFolder}/bin/hello",
       "args": [], // may input the test llvm bc file or other options and flags the program may use
       "cwd": "${workspaceFolder}",
-      "preLaunchTask": "C/C++: cpp build active file"
+      "preLaunchTask": "C/C++: cpp build active file",
+      "MIMode": "lldb"
     }
   ]
 }

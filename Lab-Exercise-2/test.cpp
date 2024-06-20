@@ -98,10 +98,10 @@ int main(int argc, char** argv) {
 	}
 
 	if (result) {
-		std::cout << "The test-" << test_name << " passed!!" << std::endl;
+		std::cout << test_name << " passed!!" << std::endl;
 	}
 	else {
-		std::cout << SVFUtil::errMsg("The test-") << SVFUtil::errMsg(test_name)
+		std::cout << SVFUtil::errMsg(test_name)
 		          << SVFUtil::errMsg(" assertion is unsatisfiable!!") << std::endl;
 		assert(result);
 	}
