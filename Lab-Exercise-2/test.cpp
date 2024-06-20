@@ -45,41 +45,62 @@ int main(int argc, char** argv) {
 	bool result;
 	std::string test_name = argv[1];
 	if (test_name == "test1") {
-		z3Mgr->test1(); // simple integers
+		z3Mgr->test1();
 		result = z3Mgr->hasZ3Expr("b") && z3Mgr->getEvalExpr(z3Mgr->getZ3Expr("b") == z3Mgr->getZ3Expr(1)).is_true();
 	}
 	else if (test_name == "test2") {
-		z3Mgr->test2(); // one-level pointers
+		z3Mgr->test2();
 		result = z3Mgr->hasZ3Expr("b") && z3Mgr->getEvalExpr(z3Mgr->getZ3Expr("b") == z3Mgr->getZ3Expr(4)).is_true();
 	}
 	else if (test_name == "test3") {
-		z3Mgr->test3(); // multiple-level pointers
+		z3Mgr->test3();
 		result = z3Mgr->hasZ3Expr("q")
 		         && z3Mgr->getEvalExpr(z3Mgr->loadValue(z3Mgr->getZ3Expr("q")) == z3Mgr->getZ3Expr(10)).is_true();
 	}
 	else if (test_name == "test4") {
-		z3Mgr->test4(); // array and pointers
-		result = z3Mgr->hasZ3Expr("a") && z3Mgr->getEvalExpr(z3Mgr->getZ3Expr("a") == z3Mgr->getZ3Expr(10)).is_true();
+		z3Mgr->test4();
+		// You are suggested to write your own results checking here
+		result = false;
 	}
 	else if (test_name == "test5") {
-		z3Mgr->test5(); // struct and pointers
-		result = z3Mgr->hasZ3Expr("q")
-		         && z3Mgr->getEvalExpr(z3Mgr->loadValue(z3Mgr->getZ3Expr("q")) == z3Mgr->getZ3Expr(10)).is_true();
+		z3Mgr->test5();
+		// You are suggested to write your own results checking here
+		result = false;
 	}
 	else if (test_name == "test6") {
-		z3Mgr->test6(); // branches
-		result = z3Mgr->hasZ3Expr("b") && z3Mgr->getEvalExpr(z3Mgr->getZ3Expr("b") == z3Mgr->getZ3Expr(5)).is_true();
+		z3Mgr->test6();
+		// You are suggested to write your own results checking here
+		result = false;
 	}
 	else if (test_name == "test7") {
-		z3Mgr->test7(); // call
-		result = z3Mgr->hasZ3Expr("x") && (z3Mgr->getEvalExpr(z3Mgr->getZ3Expr("x") == 3)).is_true();
+		z3Mgr->test7();
+		// You are suggested to write your own results checking here
+		result = false;
+	}
+	else if (test_name == "test8") {
+		z3Mgr->test8();
+		// You are suggested to write your own results checking here
+		result = false;
+	}
+	else if (test_name == "test9") {
+		z3Mgr->test9();
+		// You are suggested to write your own results checking here
+		result = false;
+	}
+	else if (test_name == "test10") {
+		z3Mgr->test10();
+		// You are suggested to write your own results checking here
+		result = false;
 	}
 	else {
 		std::cerr << "Invalid test name" << std::endl;
 		return 1;
 	}
 
-	if (result == false) {
+	if (result) {
+		std::cout << "The test-" << test_name << " passed!!" << std::endl;
+	}
+	else {
 		std::cout << SVFUtil::errMsg("The test-") << SVFUtil::errMsg(test_name)
 		          << SVFUtil::errMsg(" assertion is unsatisfiable!!") << std::endl;
 		assert(result);

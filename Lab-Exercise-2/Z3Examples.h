@@ -43,14 +43,17 @@ namespace SVF {
 		, maxNumOfExpr(max)
 		, currentExprIdx(0) {}
 
+		// Return an z3 expr given an id
 		inline z3::expr getZ3Expr(u32_t val) {
 			return ctx.int_val(val);
 		}
 
+		// Return true if strToIDMap has this expression name
 		inline bool hasZ3Expr(std::string exprName) {
 			return strToIDMap.find(exprName) != strToIDMap.end();
 		}
 
+		// Return an z3 expr given a string name
 		inline z3::expr getZ3Expr(std::string exprName) {
 			auto it = strToIDMap.find(exprName);
 			if (it != strToIDMap.end())
@@ -63,6 +66,8 @@ namespace SVF {
 				return e;
 			}
 		}
+
+		// Return an z3 expr for an object given a string name
 		inline z3::expr getMemObjAddress(std::string exprName) {
 			z3::expr e = getZ3Expr(exprName);
 			auto iter = strToIDMap.find(exprName);
@@ -72,6 +77,7 @@ namespace SVF {
 			return e;
 		}
 
+		// Return a field object or array element object given a base pointer and an offset
 		inline z3::expr getGepObjAddress(z3::expr pointer, u32_t offset) {
 			std::string baseObjName = pointer.to_string();
 			auto iter = strToIDMap.find(baseObjName);
@@ -88,10 +94,12 @@ namespace SVF {
 			}
 		}
 
+		// Add an z3 expression into solver for later satisfiability solving
 		void addToSolver(z3::expr e) {
 			solver.add(e);
 		}
 
+		// Reset solver's stack and clear up the maps
 		void resetSolver() {
 			solver.reset();
 			strToIDMap.clear();
@@ -99,6 +107,7 @@ namespace SVF {
 			clearVarID2ExprMap();
 		}
 
+		/// Print out all expressions' values after evaluation
 		void printExprValues() {
 			std::cout.flags(std::ios::left);
 			std::cout << "-----------Var and Value-----------\n";
@@ -127,9 +136,13 @@ namespace SVF {
 		void test5();
 		void test6();
 		void test7();
+		void test8();
+		void test9();
+		void test10();
 		///@}
+
 	 private:
-		std::map<std::string, u32_t> strToIDMap;
+		std::map<std::string, u32_t> strToIDMap;	/// map a string name to its corresponding id (only used in Lab-Exercise-2)
 		u32_t maxNumOfExpr;
 		u32_t currentExprIdx;
 	};

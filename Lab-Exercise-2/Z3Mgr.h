@@ -38,7 +38,10 @@ namespace SVF {
 #	define DBOP(X)
 #endif
 
-#define AddressMask 0x7f000000
+// an ObjVar's ID in SVFIR will be marked using AddressMask (0x7f000000) to mimic the virtual memory address.
+// Note that this is not a physical runtime address but an abstract address to easy debugging purposes
+// FlippedAddressMask is used to strip off the mask
+#define AddressMask 0x7f000000		
 #define FlippedAddressMask (AddressMask ^ 0xffffffff)
 
 	typedef unsigned u32_t;
@@ -55,6 +58,9 @@ namespace SVF {
 			resetZ3ExprMap();
 		}
 
+		/// reset and reinitialize Z3Exprs. 
+		/// varID2ExprMap: maps a variable id to its z3 expression
+		/// loc2ValMap: maps an address location to its stored value, e.g., loc2ValMap[addr] = val
 		inline void resetZ3ExprMap() {
 			varID2ExprMap.resize(lastSlot + 1);
 			z3::expr loc2ValMap = ctx.constant("loc2ValMap", ctx.array_sort(ctx.int_sort(), ctx.int_sort()));
@@ -63,7 +69,6 @@ namespace SVF {
 
 		/// Store and Select for Loc2ValMap, i.e., store and load
 		z3::expr storeValue(const z3::expr loc, const z3::expr value);
-
 		z3::expr loadValue(const z3::expr loc);
 
 		/// The physical address starts with 0x7f...... + idx
@@ -107,20 +112,27 @@ namespace SVF {
 		/// Return int value from an expression if it is a numeral, otherwise return an approximate value
 		s32_t z3Expr2NumValue(z3::expr e);
 
-		/// Return int value from an expression if it is a numeral, otherwise return an approximate value
+		/// It checks if the constraints added to the Z3 solver are satisfiable.
+		/// If they are, it retrieves the model that satisfies these constraints
+		/// and evaluates the given complex expression e within this model, returning the evaluated result
 		z3::expr getEvalExpr(z3::expr e);
 
-		/// Print values of all expressions
+		/// Print all expressions' values after evaluation
 		void printExprValues();
 
+		// Print all Z3 expressions
+		void printZ3Exprs();
+
+		/// Return the z3 solver
 		inline z3::solver& getSolver() {
 			return solver;
 		}
-
+		/// Return the z3 solver context (typically corresponding to a program)
 		inline z3::context& getCtx() {
 			return ctx;
 		}
 
+		// Clean up the maps
 		inline void clearVarID2ExprMap() {
 			while (!varID2ExprMap.empty())
 				varID2ExprMap.pop_back();
@@ -133,8 +145,8 @@ namespace SVF {
 		z3::solver solver;
 
 	 private:
-		z3::expr_vector varID2ExprMap;
-		u32_t lastSlot;
+		z3::expr_vector varID2ExprMap;	/// var to z3 expression
+		u32_t lastSlot;		/// the last slot in the map for the z3 expression.
 	};
 
 } // namespace SVF

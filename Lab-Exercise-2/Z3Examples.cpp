@@ -32,130 +32,208 @@ using namespace SVF;
 /*
 // Simple integers
 
-    int main() {
-        int a;
-        int b;
-        a = 0;
-        b = a + 1;
-        assert(b>0);
-    }
+int main() {
+    int a;
+    int b;
+    a = 0;
+    b = a + 1;
+    assert(b>0);
+}
 */
 void Z3Examples::test1() {
 	/// TODO: your code starts from here
+
 }
 
-/*
-  // One-level pointers
 
-    int main() {
-        int* p;
-        int q;
-        int b;
-        int a;
-        p = &a;
-        *p = 0;
-        q = *p;
-        *p = 3;
-        b = *p + 1;
-        assert(b>3);
-    }
+
+/*
+// Single-level pointers
+int main() {
+    int* p;
+    int q;
+    int b;
+    int a;
+    p = &a;
+    *p = 0;
+    q = *p;
+    *p = 3;
+    b = *p + 1;
+    assert(b>3);
+}
 */
 void Z3Examples::test2() {
 	/// TODO: your code starts from here
+
 }
 
+
+
 /*
-    // Multiple-level pointers
+// Multiple-level pointers
+int main() {
+    int** p;
+    int* q;
+    int* r;
+    int x;
 
-    int main() {
-        int** p;
-        int* q;
-        int* r;
-        int x;
-
-        p = malloc1(..);
-        q = malloc2(..);
-        *p = q;
-        *q = 10;
-        r = *p;
-        x = *r;
-        assert(x==10);
-    }
+    p = malloc1(..);
+    q = malloc2(..);
+    *p = q;
+    *q = 10;
+    r = *p;
+    x = *r;
+    assert(x==10);
+}
 */
 void Z3Examples::test3() {
 	/// TODO: your code starts from here
+
 }
 
-/*
-   // Array and pointers
 
-    int main() {
-        int* p;
-        int* x;
-        int* y;
-        int a;
-        int b;
-        p = malloc;
-        x = &p[0];
-        y = &p[1]
-        *x = 10;
-        *y = 11;
-        a = *x;
-        b = *y;
-        assert((a + b)>20);
-    }
+
+/*
+// Array and pointers
+int main() {
+    int* p;
+    int* x;
+    int* y;
+    int a;
+    int b;
+    p = malloc;
+    x = &p[0];
+    y = &p[1]
+    *x = 10;
+    *y = 11;
+    a = *x;
+    b = *y;
+    assert((a + b)>20);
+}
 */
-void Z3Examples::test4() {
+void Z3Examples::test4(){
 	/// TODO: your code starts from here
+
 }
 
-/*
-    // Struct and pointers
 
-    struct A{ int f0; int* f1;};
-    int main() {
-       struct A* p;
-       int a;
-       int* x;
-       int* q;
-       int** r;
-       int* y;
-       int z;
-
-       p = malloc;
-       x = &a;
-       *x = 5;
-       q = &(p->f0);
-       *q = 10;
-       r = &(p->f1);
-       *r = x;
-       y = *r;
-       z = *q + *y;
-       assert(z==15);
-    }
-*/
-void Z3Examples::test5() {
-	/// TODO: your code starts from here
-}
 
 /*
-    // Branches
-
-    int main(int argv) {
+// Branches
+int main(int argv) {
     int a;
     int b;
     a = argv + 1;
     b = 5;
     if(a > 10)
-       b = a;
+        b = a;
     assert(b>=5);
-    }
+}
+*/
+void Z3Examples::test5(){
+	/// TODO: your code starts from here
+
+}
+
+
+
+/*
+// Compare and pointers
+int main() {
+   int a = 5, b = 10;
+   int *p;
+   if (a < b) {
+       p = &a;
+   } else {
+       p = &b;
+   }
+   assert(*p == 5);
+   return 0;
+}
 */
 void Z3Examples::test6() {
 	/// TODO: your code starts from here
+
 }
 
+
+
 /*
+/// Binary operations and branch
+int main() {
+    int a = 1, b = 2, c = 3;
+	int d;
+    if (a > 0) {
+      	d = b + c;
+    }
+    else {
+      	d = b - c;
+    }
+    assert(d == 5);
+}
+*/
+void Z3Examples::test7() {
+	/// TODO: your code starts from here
+
+}
+
+
+
+/*
+/// Array and branches
+int main() {
+   int arr[2] = {0, 1};
+   int a = 10;
+   int *p;
+   if (a > 5) {
+       p = &arr[0];
+   }
+   else {
+       p = &arr[1];
+   }
+   assert(*p == 0);
+}
+*/
+void Z3Examples::test8() {
+	/// TODO: your code starts from here
+
+}
+
+
+
+/*
+// Struct and pointers
+struct A{ int f0; int* f1;};
+int main() {
+    struct A* p;
+    int a;
+    int* x;
+    int* q;
+    int** r;
+    int* y;
+    int z;
+
+    p = malloc;
+    x = &a;
+    *x = 5;
+    q = &(p->f0);
+    *q = 10;
+    r = &(p->f1);
+    *r = x;
+    y = *r;
+    z = *q + *y;
+    assert(z==15);
+}
+*/
+void Z3Examples::test9(){
+	/// TODO: your code starts from here
+
+}
+
+
+
+/*
+/// Function calls
 int foo(int z) {
     k = z;
     return k;
@@ -168,6 +246,7 @@ int main() {
   assert(x== 3 && y==2);
 }
 */
-void Z3Examples::test7() {
+void Z3Examples::test10(){
 	/// TODO: your code starts from here
+
 }

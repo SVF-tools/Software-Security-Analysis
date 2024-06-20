@@ -36,20 +36,21 @@ using namespace z3;
 using namespace std;
 
 /// Store and Select for Loc2ValMap, i.e., store and load
+/// The address needs to be evaluated to a value before accessing loc2ValMap
 z3::expr Z3Mgr::storeValue(const z3::expr loc, const z3::expr value) {
-	z3::expr deref = getEvalExpr(loc);
-	assert(isVirtualMemAddress(deref) && "Pointer operand is not a physical address?");
+	z3::expr addr = getEvalExpr(loc);
+	assert(isVirtualMemAddress(addr) && "Pointer operand is not a physical address?");
 	z3::expr loc2ValMap = varID2ExprMap[lastSlot];
-	loc2ValMap = z3::store(loc2ValMap, deref, value);
+	loc2ValMap = z3::store(loc2ValMap, addr, value);
 	varID2ExprMap.set(lastSlot, loc2ValMap);
 	return loc2ValMap;
 }
 
 z3::expr Z3Mgr::loadValue(const z3::expr loc) {
-	z3::expr deref = getEvalExpr(loc);
-	assert(isVirtualMemAddress(deref) && "Pointer operand is not a physical address?");
+	z3::expr addr = getEvalExpr(loc);
+	assert(isVirtualMemAddress(addr) && "Pointer operand is not a physical address?");
 	z3::expr loc2ValMap = varID2ExprMap[lastSlot];
-	return z3::select(loc2ValMap, deref);
+	return z3::select(loc2ValMap, addr);
 }
 
 /// Return int value from an expression if it is a numeral, otherwise return an approximate value
@@ -63,7 +64,9 @@ s32_t Z3Mgr::z3Expr2NumValue(z3::expr e) {
 	}
 }
 
-/// Return int value from an expression if it is a numeral, otherwise return an approximate value
+/// It checks if the constraints added to the Z3 solver are satisfiable.
+/// If they are, it retrieves the model that satisfies these constraints
+/// and evaluates the given complex expression e within this model, returning the evaluated result
 z3::expr Z3Mgr::getEvalExpr(z3::expr e) {
 	z3::check_result res = solver.check();
 	assert(res != z3::unsat && "unsatisfied constraints! Check your contradictory constraints added to the solver");
@@ -71,6 +74,7 @@ z3::expr Z3Mgr::getEvalExpr(z3::expr e) {
 	return m.eval(e);
 }
 
+/// Print all expressions' values after evaluation
 void Z3Mgr::printExprValues() {
 	std::cout.flags(std::ios::left);
 	std::cout << "-----------Var and Value-----------\n";
@@ -88,4 +92,8 @@ void Z3Mgr::printExprValues() {
 		}
 	}
 	std::cout << "-----------------------------------------\n";
+}
+
+void Z3Mgr::printZ3Exprs() {
+	std::cout << solver << "\n";
 }

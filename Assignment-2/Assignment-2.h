@@ -50,13 +50,13 @@ namespace SVF {
 			delete z3Mgr;
 		}
 
-		/// Identify source node on ICFG
+		/// Identify source which is the program entry ICFGNode (GlobalICFGNode)
 		std::set<const ICFGNode*>& identifySources() {
 			sources.insert(icfg->getGlobalICFGNode());
 			return sources;
 		}
 
-		/// Identify the sink node which is an assertion call on ICFG
+		/// Identify the sink nodes which are assertion ICFGNodes
 		std::set<const ICFGNode*>& identifySinks() {
 			for (const CallICFGNode* cs : svfir->getCallSiteSet()) {
 				const SVFFunction* fun = SVFUtil::getCallee(cs->getCallSite());
@@ -78,7 +78,7 @@ namespace SVF {
 		}
 
 		/// TODO: Implementing the collection the ICFG paths
-		virtual void collectICFGPath();
+		virtual void collectAndTranslatePath();
 
 		/// Depth-first-search ICFGTraversal on ICFG from src node to snk node
 		void reachability(const ICFGEdge* curNode, const ICFGNode* snk);
@@ -100,6 +100,8 @@ namespace SVF {
 				return handleNonBranch(edge);
 			}
 		}
+		bool handleNonBranch(const IntraCFGEdge* edge);
+		bool handleBranch(const IntraCFGEdge* edge);
 
 		/// Encode the path into Z3 constraints and return true if the path is feasible, false otherwise.
 		bool translatePath(std::vector<const ICFGEdge*>& path);
@@ -129,10 +131,6 @@ namespace SVF {
 				return true;
 			}
 		}
-
-
-		bool handleNonBranch(const IntraCFGEdge* edge);
-		bool handleBranch(const IntraCFGEdge* edge);
 
 		std::set<std::string> getPaths() {
 			return paths;

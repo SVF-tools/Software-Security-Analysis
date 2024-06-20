@@ -42,9 +42,11 @@ void SSE::reachability(const ICFGEdge* curEdge, const ICFGNode* snk) {
 }
 
 /// TODO: collect each path once this method is called during reachability analysis, and
-/// add each path (a sequence of node IDs) as a string into std::set<std::string> paths
-/// in the format "START->1->2->4->5->END", where -> indicate an ICFGEdge connects two ICFGNode IDs
-void SSE::collectICFGPath() {
+/// Collect each program path from the entry to each assertion of the program. In this function,
+/// you will need (1) add each path into the paths set, (2) call translatePath to convert each path into Z3 expressions.
+/// Note that translatePath returns true if the path is feasible, infeasible otherwise. (3) If a path is feasible,
+/// you will need to call assertchecking to verify the assertion (which is the last ICFGNode of this path).
+void SSE::collectAndTranslatePath() {
 	/// TODO: your code starts from here
 }
 
@@ -69,11 +71,107 @@ bool SSE::handleBranch(const IntraCFGEdge* edge) {
 	return true;
 }
 
-/// TODO: Implement handling of non-branch statement inside a function
-/// including handling of (1) AddrStmt, (2) CopyStmt, (3) LoadStmt, (4) StoreStmt, (5) GepStmt and (6) any other types
-/// of intra SVFStmts Return true means a feasible path, false otherwise
+/// TODO: Translate AddrStmt, CopyStmt, LoadStmt, StoreStmt, GepStmt and CmpStmt
+/// Translate AddrStmt, CopyStmt, LoadStmt, StoreStmt, GepStmt, BinaryOPStmt, CmpStmt, SelectStmt, and PhiStmt
 bool SSE::handleNonBranch(const IntraCFGEdge* edge) {
-	/// TODO: your code starts from here
+	const ICFGNode* dstNode = edge->getDstNode();
+	const ICFGNode* srcNode = edge->getSrcNode();
+	DBOP(if(!SVFUtil::isa<CallICFGNode>(dstNode) && !SVFUtil::isa<RetICFGNode>(dstNode)) std::cout << "\n## Analyzing "<< dstNode->toString() << "\n");
+
+	for (const SVFStmt *stmt : dstNode->getSVFStmts())
+	{
+		if (const AddrStmt *addr = SVFUtil::dyn_cast<AddrStmt>(stmt))
+		{
+			// TODO: implement AddrStmt handler here
+		}
+		else if (const CopyStmt *copy = SVFUtil::dyn_cast<CopyStmt>(stmt))
+		{
+			// TODO: implement CopyStmt handler her
+		}
+		else if (const LoadStmt *load = SVFUtil::dyn_cast<LoadStmt>(stmt))
+		{
+			// TODO: implement LoadStmt handler here
+		}
+		else if (const StoreStmt *store = SVFUtil::dyn_cast<StoreStmt>(stmt))
+		{
+			// TODO: implement StoreStmt handler here
+		}
+		else if (const GepStmt *gep = SVFUtil::dyn_cast<GepStmt>(stmt))
+		{
+			// TODO: implement GepStmt handler here
+		}
+		else if (const CmpStmt *cmp = SVFUtil::dyn_cast<CmpStmt>(stmt))
+		{
+			// TODO: implement CmpStmt handler here
+		}
+		else if (const BinaryOPStmt *binary = SVFUtil::dyn_cast<BinaryOPStmt>(stmt))
+		{
+			expr op0 = getZ3Expr(binary->getOpVarID(0));
+			expr op1 = getZ3Expr(binary->getOpVarID(1));
+			expr res = getZ3Expr(binary->getResID());
+			switch (binary->getOpcode())
+			{
+			case BinaryOperator::Add:
+				addToSolver(res == op0 + op1);
+				break;
+			case BinaryOperator::Sub:
+				addToSolver(res == op0 - op1);
+				break;
+			case BinaryOperator::Mul:
+				addToSolver(res == op0 * op1);
+				break;
+			case BinaryOperator::SDiv:
+				addToSolver(res == op0 / op1);
+				break;
+			case BinaryOperator::SRem:
+				addToSolver(res == op0 % op1);
+				break;
+			case BinaryOperator::Xor:
+				addToSolver(int2bv(32, res) == (int2bv(32, op0) ^ int2bv(32, op1)));
+				break;
+			case BinaryOperator::And:
+				addToSolver(int2bv(32, res) == (int2bv(32, op0) & int2bv(32, op1)));
+				break;
+			case BinaryOperator::Or:
+				addToSolver(int2bv(32, res) == (int2bv(32, op0) | int2bv(32, op1)));
+				break;
+			case BinaryOperator::AShr:
+				addToSolver(int2bv(32, res) == ashr(int2bv(32, op0), int2bv(32, op1)));
+				break;
+			case BinaryOperator::Shl:
+				addToSolver(int2bv(32, res) == shl(int2bv(32, op0), int2bv(32, op1)));
+				break;
+			default:
+				assert(false && "implement this part");
+			}
+		}
+		else if (const BranchStmt *br = SVFUtil::dyn_cast<BranchStmt>(stmt))
+		{
+			DBOP(std::cout << "\t skip handled when traversal Conditional IntraCFGEdge \n");
+		}
+		else if (const SelectStmt *select = SVFUtil::dyn_cast<SelectStmt>(stmt)) {
+			expr res = getZ3Expr(select->getResID());
+			expr tval = getZ3Expr(select->getTrueValue()->getId());
+			expr fval = getZ3Expr(select->getFalseValue()->getId());
+			expr cond = getZ3Expr(select->getCondition()->getId());
+			addToSolver(res == ite(cond == getCtx().int_val(1), tval, fval));
+		}
+		else if (const PhiStmt *phi = SVFUtil::dyn_cast<PhiStmt>(stmt)) {
+			expr res = getZ3Expr(phi->getResID());
+			bool opINodeFound = false;
+			for(u32_t i = 0; i < phi->getOpVarNum(); i++){
+				assert(srcNode && "we don't have a predecessor ICFGNode?");
+				if (srcNode->getFun()->postDominate(srcNode->getBB(),phi->getOpICFGNode(i)->getBB()))
+				{
+					expr ope = getZ3Expr(phi->getOpVar(i)->getId());
+					addToSolver(res == ope);
+					opINodeFound = true;
+				}
+			}
+			assert(opINodeFound && "predecessor ICFGNode of this PhiStmt not found?");
+		}
+	}
+
 	return true;
 }
 
