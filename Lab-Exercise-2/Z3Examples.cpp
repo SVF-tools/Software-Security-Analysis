@@ -53,8 +53,7 @@ int main() {
     int* p;
     int q;
     int b;
-    int a;
-    p = &a;
+    p = malloc;
     *p = 0;
     q = *p;
     *p = 3;
