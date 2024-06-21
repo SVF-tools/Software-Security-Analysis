@@ -88,6 +88,7 @@ namespace SVF {
 				return pointer;
 			}
 			else {
+				gepObj += maxNumOfExpr/2; // gep obj ID starts from maxNumOfExpr/2 in this lab exercise
 				z3::expr e = getZ3Expr(Z3Mgr::getVirtualMemAddress(gepObj));
 				updateZ3Expr(gepObj, e);
 				return e;
