@@ -12,3 +12,5 @@ foreach (i RANGE 1 3)
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )
 endforeach ()
+
+enable_testing()
