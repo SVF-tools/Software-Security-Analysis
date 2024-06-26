@@ -29,6 +29,7 @@
 #define SOFTWARE_SECURITY_ANALYSIS_Z3SSEMGR_H
 
 #include "Z3Mgr.h"
+#include "SVFIR/SVFIR.h"
 
 namespace SVF {
 
@@ -38,33 +39,30 @@ namespace SVF {
 	class GepStmt;
 
 	class Z3SSEMgr : public Z3Mgr {
+		typedef std::vector<const SVFInstruction*> CallStack;
 	 public:
 		/// Constructor
 		Z3SSEMgr(SVFIR* ir);
 
-		/// Initialize map (varID2ExprMap: ID->expr)from VARID to z3 expr                                            ---
-		/// Using elements from 0 to lastSlot Initialize map (loc2ValMap: ID->ID) from Location (pointer address) to
-		/// Value    --- Using the last slot V = L U C    (V is SVFVar, L is Pointers + Nonconst Objects, C is Constants
-		/// ) loc2ValMap : IDX(L) -> IDX(V) idx \in IDX(V) (IDX is a set of Indices of all SVFVars)
-		void initMap();
 
-		/// Declare the expr type for each top-level pointers
-		z3::expr createExprForValVar(const ValVar* val);
+		std::string callingCtxToStr(const CallStack& callingCtx);
+
+		z3::expr getZ3Expr(u32_t idx, const CallStack& callingCtx);
 
 		/// Initialize the expr value for each objects (address-taken variables and constants)
 		z3::expr createExprForObjVar(const ObjVar* obj);
 
 		/// Return the address expr of a ObjVar
-		z3::expr getMemObjAddress(u32_t idx) const;
+		z3::expr getMemObjAddress(u32_t idx);
 
 		/// Return the field address given a pointer points to a struct object and an offset
 		z3::expr getGepObjAddress(z3::expr pointer, u32_t offset);
 
 		/// Return the offset expression of a GepStmt
-		s32_t getGepOffset(const GepStmt* gep);
+		s32_t getGepOffset(const GepStmt* gep, const CallStack& callingCtx);
 
 		/// Dump values of all exprs
-		virtual void printExprValues();
+		virtual void printExprValues(const CallStack& callingCtx);
 
 	 private:
 		SVFIR* svfir;

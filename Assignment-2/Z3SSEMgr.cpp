@@ -39,59 +39,18 @@ using namespace z3;
 Z3SSEMgr::Z3SSEMgr(SVFIR* ir)
 : Z3Mgr(ir->getPAGNodeNum() * 10)
 , svfir(ir) {
-	initMap();
 }
 
-/*
- * (1) Create Z3 expressions for top-level variables and objects, and (2) create loc2val map
- */
-void Z3SSEMgr::initMap() {
-	for (SVFIR::iterator nIter = svfir->begin(); nIter != svfir->end(); ++nIter) {
-		if (const ValVar* val = SVFUtil::dyn_cast<ValVar>(nIter->second))
-			createExprForValVar(val);
-		else if (const ObjVar* obj = SVFUtil::dyn_cast<ObjVar>(nIter->second))
-			createExprForObjVar(obj);
-		else
-			assert(false && "SVFVar type not supported");
-	}
-	DBOP(printExprValues());
-}
 
 /*
- * We initialize all ValVar to be an int expression.
- * ValVar of PointerTy/isFunctionTy is assigned with an ID to represent the address of an object
- * ValVar of IntegerTy is assigned with an integer value
- * ValVar of FloatingPointTy is assigned with an integer value casted from a float
- * ValVar of StructTy/ArrayTy is assigned with their elements of the above types in the form of integer values
- */
-z3::expr Z3SSEMgr::createExprForValVar(const ValVar* valVar) {
-	std::string str;
-	raw_string_ostream rawstr(str);
-	rawstr << "ValVar" << valVar->getId();
-	expr e(ctx);
-	if (const SVFType* type = valVar->getType()) {
-		e = ctx.int_const(rawstr.str().c_str());
-	}
-	else {
-		e = ctx.int_const(rawstr.str().c_str());
-		assert(SVFUtil::isa<DummyValVar>(valVar) && "not a DummValVar if it has no type?");
-	}
-
-	updateZ3Expr(valVar->getId(), e);
-	return e;
-}
-
-/*
- * Object must be either a constraint data or a location value (address-taken variable)
+ * Object must be either a constaint data or a location value (address-taken variable)
  * Constant data includes ConstantInt, ConstantFP, ConstantPointerNull and ConstantAggregate
  * Locations includes pointers to globals, heaps, stacks
  */
 z3::expr Z3SSEMgr::createExprForObjVar(const ObjVar* objVar) {
 	std::string str;
 	raw_string_ostream rawstr(str);
-	rawstr << "ObjVar" << objVar->getId();
-
-	expr e = ctx.int_const(rawstr.str().c_str());
+	expr e(ctx);
 	if (objVar->hasValue()) {
 		const MemObj* obj = objVar->getMemObj();
 		/// constant data
@@ -122,30 +81,63 @@ z3::expr Z3SSEMgr::createExprForObjVar(const ObjVar* objVar) {
 		       && "it should either be a blackhole or constant dummy if this obj has no value?");
 		e = ctx.int_val(getVirtualMemAddress(objVar->getId()));
 	}
-
-	updateZ3Expr(objVar->getId(), e);
 	return e;
 }
 
+std::string Z3SSEMgr::callingCtxToStr(const CallStack& callingCtx) {
+	std::string str;
+	std::stringstream rawstr(str);
+	rawstr << "ctx:[ ";
+	for (const auto &inst : callingCtx) {
+
+		rawstr << svfir->getICFG()->getICFGNode(inst)->getId() << " ";
+	}
+	rawstr << "] ";
+	return rawstr.str();
+}
+
+z3::expr Z3SSEMgr::getZ3Expr(SVF::u32_t idx, const CallStack& callingCtx) {
+	u32_t varId = getInternalID(idx);
+	assert(varId == idx && "SVFVar idx overflow > 0x7f000000?");
+	std::string str;
+	std::stringstream rawstr(str);
+	const SVFVar *svfVar = svfir->getGNode(varId);
+	if (const ObjVar* objVar = SVFUtil::dyn_cast<ObjVar>(svfVar)) {
+		return createExprForObjVar(objVar);
+	} else {
+
+		// Check if svfVar does not have a value or it has a constant value
+		if (svfVar->hasValue() && !SVFUtil::isa<SVFConstant>(svfVar->getValue())) {
+			// If there is a non-constant value, add callingCtx to z3 expr
+			rawstr << callingCtxToStr(callingCtx);
+		} else {
+			// If there's no value or it's a constant, we do not add the callingCtx to z3 expr
+		}
+		rawstr << "ValVar" << varId;
+		std::string name = rawstr.str();
+		return ctx.int_const(name.c_str());
+	}
+}
+
 /// Return the address expr of a ObjVar
-z3::expr Z3SSEMgr::getMemObjAddress(u32_t idx) const {
+z3::expr Z3SSEMgr::getMemObjAddress(u32_t idx) {
 	NodeID objIdx = getInternalID(idx);
 	assert(SVFUtil::isa<ObjVar>(svfir->getGNode(objIdx)) && "Fail to get the MemObj!");
-	return getZ3Expr(objIdx);
+	return createExprForObjVar(SVFUtil::cast<ObjVar>(svfir->getGNode(objIdx)));
 }
 
 z3::expr Z3SSEMgr::getGepObjAddress(z3::expr pointer, u32_t offset) {
-	NodeID baseObj = getInternalID(z3Expr2NumValue(pointer));
-	assert(SVFUtil::isa<ObjVar>(svfir->getGNode(baseObj)) && "Fail to get the base object address!");
-	NodeID gepObj = svfir->getGepObjVar(baseObj, offset);
+	NodeID obj = getInternalID(z3Expr2NumValue(pointer));
+	assert(SVFUtil::isa<ObjVar>(svfir->getGNode(obj)) && "Fail to get the base object address!");
+	NodeID gepObj = svfir->getGepObjVar(obj, offset);
 	/// TODO: check whether this node has been created before or not to save creation time
-	if (baseObj == gepObj)
-		return getZ3Expr(baseObj);
+	if (obj == gepObj)
+		return createExprForObjVar(SVFUtil::cast<ObjVar>(svfir->getGNode(obj)));
 	else
 		return createExprForObjVar(SVFUtil::cast<GepObjVar>(svfir->getGNode(gepObj)));
 }
 
-s32_t Z3SSEMgr::getGepOffset(const GepStmt* gep) {
+s32_t Z3SSEMgr::getGepOffset(const GepStmt* gep, const CallStack& callingCtx) {
 	if (gep->getOffsetVarAndGepTypePairVec().empty())
 		return gep->getConstantStructFldIdx();
 
@@ -160,14 +152,14 @@ s32_t Z3SSEMgr::getGepOffset(const GepStmt* gep) {
 			offset = op->getSExtValue();
 		/// variable as the offset
 		else
-			offset = z3Expr2NumValue(getZ3Expr(svfir->getValueNode(value)));
+			offset = z3Expr2NumValue(getZ3Expr(svfir->getValueNode(value), callingCtx));
 
 		if (type == nullptr) {
 			totalOffset += offset;
 			continue;
 		}
 
-		/// Calculate the offset
+		/// Caculate the offset
 		if (const SVFPointerType* pty = SVFUtil::dyn_cast<SVFPointerType>(type))
 			totalOffset += offset * gep->getAccessPath().getElementNum(gep->getAccessPath().gepSrcPointeeType());
 		else
@@ -176,14 +168,14 @@ s32_t Z3SSEMgr::getGepOffset(const GepStmt* gep) {
 	return totalOffset;
 }
 
-void Z3SSEMgr::printExprValues() {
+void Z3SSEMgr::printExprValues(const CallStack& callingCtx) {
 	std::cout.flags(std::ios::left);
-	std::cout << "-----------SVFVar and Value-----------\n";
+	std::cout << "\n-----------SVFVar and Value-----------\n";
 	std::map<std::string, std::string> printValMap;
 	std::map<NodeID, std::string> objKeyMap;
 	std::map<NodeID, std::string> valKeyMap;
 	for (SVFIR::iterator nIter = svfir->begin(); nIter != svfir->end(); ++nIter) {
-		expr e = getEvalExpr(getZ3Expr(nIter->first));
+		expr e = getEvalExpr(getZ3Expr(nIter->first, callingCtx));
 		if (e.is_numeral()) {
 			NodeID varID = nIter->second->getId();
 			s32_t value = e.get_numeral_int64();

@@ -66,11 +66,11 @@ bool SSE::handleRet(const RetCFGEdge* retEdge) {
 
 /// TODO: Implement handling of branch statements inside a function
 /// Return true if the path is feasible, false otherwise.
-/// A given branch on the ICFG looks like the following:
+/// A given if/else branch on the ICFG looks like the following:
 ///       	     ICFGNode1 (condition %cmp)
 ///       	     1	/    \  0
 ///       	  ICFGNode2   ICFGNode3
-/// edge->getCondition() returns the branch condition variable (%cmp) of type SVFValue* (for if/else) or a numeric condition variable (for switch). 
+/// edge->getCondition() returns the branch condition variable (%cmp) of type SVFValue* (for if/else) or a numeric condition variable (for switch).
 /// Given the condition variable, you could obtain the SVFVar ID via "svfir->getValueNode(edge->getCondition())""
 /// edge->getCondition() returns nullptr if this IntraCFGEdge is not a branch.
 /// edge->getSuccessorCondValue() returns the actual condition value (1/0 for if/else) when this branch/IntraCFGEdge is executed. For example, the successorCondValue is 1 on the edge from ICFGNode1 to ICFGNode2, and 0 on the edge from ICFGNode1 to ICFGNode3
@@ -159,10 +159,6 @@ bool SSE::handleNonBranch(const IntraCFGEdge* edge) {
 				assert(false && "implement this part");
 			}
 		}
-		else if (const BranchStmt *br = SVFUtil::dyn_cast<BranchStmt>(stmt))
-		{
-			DBOP(std::cout << "\t skip handled when traversal Conditional IntraCFGEdge \n");
-		}
 		else if (const SelectStmt *select = SVFUtil::dyn_cast<SelectStmt>(stmt)) {
 			expr res = getZ3Expr(select->getResID());
 			expr tval = getZ3Expr(select->getTrueValue()->getId());
@@ -183,6 +179,9 @@ bool SSE::handleNonBranch(const IntraCFGEdge* edge) {
 				}
 			}
 			assert(opINodeFound && "predecessor ICFGNode of this PhiStmt not found?");
+		}
+		else {
+			DBOP(std::cout << "\t skip handling BranchStmt/Call/Ret as they have been processed \n");
 		}
 	}
 

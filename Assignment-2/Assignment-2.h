@@ -72,9 +72,9 @@ namespace SVF {
 			        && (fun->getName() == "assert" || fun->getName() == "svf_assert" || fun->getName() == "sink"));
 		}
 
-		/// clear visited and callstack
+		/// reset z3 solver
 		virtual void resetSolver() {
-			visited.clear();
+			getSolver().reset();
 		}
 
 		/// TODO: Implementing the collection the ICFG paths
@@ -114,11 +114,12 @@ namespace SVF {
 			       && "last node is not an assert call?");
 			DBOP(std::cout << "\n## Analyzing " << callnode->toString() << "\n");
 			z3::expr arg0 = getZ3Expr(callnode->getActualParms().at(0)->getId());
-			addToSolver(arg0 > 0);
-			if (getSolver().check() == z3::unsat) {
+			addToSolver(arg0 == getCtx().int_val(0));
+			if (getSolver().check() != z3::unsat) {
 				DBOP(printExprValues());
 				std::stringstream ss;
 				ss << "The assertion is unsatisfiable!! ("<< inode->toString() << ")" << "\n";
+				ss << "Counterexample: " << getSolver().get_model() << "\n";
 				SVFUtil::outs() << ss.str() << std::endl;
 				assert(false);
 				return false;
@@ -126,7 +127,7 @@ namespace SVF {
 			else {
 				DBOP(printExprValues());
 				std::stringstream ss;
-                ss << "The assertion is successfully verified!! ("<< inode->toString() << ")" << "\n";
+				ss << "The assertion is successfully verified!! ("<< inode->toString() << ")" << "\n";
 				SVFUtil::outs() << ss.str() << std::endl;
 				return true;
 			}
@@ -134,6 +135,14 @@ namespace SVF {
 
 		std::set<std::string> getPaths() {
 			return paths;
+		}
+
+		void pushCallingCtx(const SVFInstruction* c) {
+			callingCtx.push_back(c);
+		}
+
+		void popCallingCtx() {
+			callingCtx.pop_back();
 		}
 
 		inline z3::solver& getSolver() {
@@ -152,7 +161,7 @@ namespace SVF {
 
 		/// Return Z3 expression based on ValVar ID
 		inline z3::expr getZ3Expr(NodeID idx) const {
-			return z3Mgr->getZ3Expr(idx);
+			return z3Mgr->getZ3Expr(idx, callingCtx);
 		}
 
 		/// Return Z3 expression based on ObjVar ID
@@ -166,7 +175,7 @@ namespace SVF {
 
 		/// Dump values of all exprs
 		inline void printExprValues() {
-			z3Mgr->printExprValues();
+			z3Mgr->printExprValues(callingCtx);
 		}
 
 		static u32_t assert_checked;
@@ -181,6 +190,7 @@ namespace SVF {
 		SVFIR* svfir;
 		Set<ICFGEdgeStackPair> visited;
 		CallStack callstack;
+		CallStack callingCtx;
 		std::vector<const ICFGEdge*> path;
 
 		std::set<const ICFGNode*> sources;
