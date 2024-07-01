@@ -75,6 +75,7 @@ namespace SVF {
 		/// reset z3 solver
 		virtual void resetSolver() {
 			getSolver().reset();
+			callingCtx.clear();
 		}
 
 		/// TODO: Implementing the collection the ICFG paths
