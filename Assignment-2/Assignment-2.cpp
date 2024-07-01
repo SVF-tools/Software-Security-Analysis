@@ -141,19 +141,19 @@ bool SSE::handleNonBranch(const IntraCFGEdge* edge) {
 				addToSolver(res == op0 % op1);
 				break;
 			case BinaryOperator::Xor:
-				addToSolver(int2bv(32, res) == (int2bv(32, op0) ^ int2bv(32, op1)));
+				addToSolver(res == bv2int(int2bv(32, op0) ^ int2bv(32, op1), 1));
 				break;
 			case BinaryOperator::And:
-				addToSolver(int2bv(32, res) == (int2bv(32, op0) & int2bv(32, op1)));
+				addToSolver(res == bv2int(int2bv(32, op0) & int2bv(32, op1), 1));
 				break;
 			case BinaryOperator::Or:
-				addToSolver(int2bv(32, res) == (int2bv(32, op0) | int2bv(32, op1)));
+				addToSolver(res == bv2int(int2bv(32, op0) | int2bv(32, op1), 1));
 				break;
 			case BinaryOperator::AShr:
-				addToSolver(int2bv(32, res) == ashr(int2bv(32, op0), int2bv(32, op1)));
+				addToSolver(res == bv2int(ashr(int2bv(32, op0), int2bv(32, op1)), 1));
 				break;
 			case BinaryOperator::Shl:
-				addToSolver(int2bv(32, res) == shl(int2bv(32, op0), int2bv(32, op1)));
+				addToSolver(res == bv2int(shl(int2bv(32, op0), int2bv(32, op1)), 1));
 				break;
 			default:
 				assert(false && "implement this part");
