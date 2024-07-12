@@ -7,5 +7,5 @@ int main(int x){
 		y = x + 1;
 	else
 		y = 10;
-	svf_assert(y>x+1);
+	svf_assert(y>=x+1);
 }
