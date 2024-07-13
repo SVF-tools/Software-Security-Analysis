@@ -67,8 +67,8 @@ z3::expr Z3SSEMgr::createExprForObjVar(const ObjVar* objVar) {
 			else if (obj->isConstantArray() || obj->isConstantStruct())
 				assert(false && "implement this part");
 			else {
-				std::cerr << obj->getValue()->toString() << "\n";
-				assert(false && "what other types of values we have?");
+				/// For llvm's own intrinsics `memcpy` instruction which can introduces new objects. 
+				e = ctx.int_val(getVirtualMemAddress(objVar->getId()));
 			}
 		}
 		/// locations (address-taken variables)
