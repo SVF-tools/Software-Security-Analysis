@@ -27,43 +27,91 @@
 #include "AEMgr.h"
 
 namespace SVF {
+	AEState AbstractExecutionMgr::test0() {
+		/*
+		// A simple example
 
-	u32_t AbstractExecutionMgr::currentExprIdx = 0;
+		int main() {
+			int* p;
+			int q;
+			int* r;
+			int x;
+
+			p = malloc;
+			q = 5;
+			*p = q;
+			x = *p;
+			assert(x==10);
+		}
+		*/
+
+		AEState as;
+		//  int** p;
+		NodeID p = getNodeID("p");
+
+		//  int q;
+		NodeID q = getNodeID("q");
+
+		//  int* r;
+		NodeID r = getNodeID("r");
+
+		//  int x;
+		NodeID x = getNodeID("x");
+
+		// p = malloc(..);
+		NodeID malloc = getNodeID("malloc");
+		as[p] = AddressValue(getMemObjAddress("malloc"));
+
+		// q = 5;
+		as[q] = IntervalValue(5, 5);
+
+		// *p = q;
+		as.storeValue(p, as[q]);
+
+		// x = *p;
+		as[x] = as.loadValue(p);
+		return as;
+	}
 
 	//    int main() {
-	//        int a;  ID 0
-	//        int b;  ID 1
+	//        int a;
+	//        int b;
 	//        a = 0;
 	//        b = a + 1;
 	//        assert(b>0);
 	//    }
-	void AbstractExecutionMgr::test1() {
+	AEState AbstractExecutionMgr::test1() {
+		AEState as;
 		NodeID a = getNodeID("a");
 		NodeID b = getNodeID("b");
 		/// TODO: your code starts from here
 
-		svf_assert(as[b].getInterval() > IntervalValue(0, 0));
+
+		return as;
 	}
 
-	//        int main() {
+	//    int main() {
 	//        int* p;
 	//        int q;
 	//        int b;
 	//        int a;
-	//        p = &a;
+	//
+	//        p = malloc;
 	//        *p = 0;
 	//        q = *p;
 	//        *p = 3;
 	//        b = *p + 1;
 	//        assert(b>3);
 	//    }
-	void AbstractExecutionMgr::test2() {
+	AEState AbstractExecutionMgr::test2() {
+		AEState as;
 		NodeID p = getNodeID("p");
 		NodeID q = getNodeID("q");
 		NodeID b = getNodeID("b");
 		/// TODO: your code starts from here
 
-		svf_assert(as[b].getInterval() > IntervalValue(3, 3));
+
+		return as;
 	}
 
 	//    int main() {
@@ -80,14 +128,16 @@ namespace SVF {
 	//        x = *r;
 	//        assert(x==10);
 	//    }
-	void AbstractExecutionMgr::test3() {
+	AEState AbstractExecutionMgr::test3() {
+		AEState as;
 		NodeID p = getNodeID("p");
 		NodeID q = getNodeID("q");
 		NodeID r = getNodeID("r");
 		NodeID x = getNodeID("x");
 		/// TODO: your code starts from here
 
-		svf_assert(as[x].getInterval() == IntervalValue(10, 10));
+
+		return as;
 	}
 
 	//        int* p;
@@ -103,7 +153,8 @@ namespace SVF {
 	//        a = *x;
 	//        b = *y;
 	//        assert((a + b)>20);
-	void AbstractExecutionMgr::test4() { //    int main() {
+	AEState AbstractExecutionMgr::test4() {
+		AEState as;
 		NodeID p = getNodeID("p");
 		NodeID x = getNodeID("x");
 		NodeID y = getNodeID("y");
@@ -111,7 +162,9 @@ namespace SVF {
 		NodeID b = getNodeID("b");
 		/// TODO: your code starts from here
 
-		svf_assert(as[a].getInterval() + as[b].getInterval() > IntervalValue(20, 20));
+
+		return as;
+
 	}
 
 	//// Struct and pointers
@@ -119,15 +172,14 @@ namespace SVF {
 	//    struct A{ int f0; int* f1;};
 	//    int main() {
 	//       struct A* p;
-	//       int a;
 	//       int* x;
 	//       int* q;
 	//       int** r;
 	//       int* y;
 	//       int z;
 	//
-	//       p = malloc;
-	//       x = &a;
+	//       p = malloc1;
+	//       x = malloc2;
 	//       *x = 5;
 	//       q = &(p->f0);
 	//       *q = 10;
@@ -136,16 +188,18 @@ namespace SVF {
 	//       y = *r;
 	//       z = *q + *y;
 	//       assert(z==15);
-	void AbstractExecutionMgr::test5() {
+	AEState AbstractExecutionMgr::test5() {
+		AEState as;
 		NodeID p = getNodeID("p", 2);
-		NodeID a = getNodeID("a");
 		NodeID x = getNodeID("x");
 		NodeID q = getNodeID("q");
 		NodeID r = getNodeID("r");
 		NodeID y = getNodeID("y");
 		NodeID z = getNodeID("z");
+		/// TODO: your code starts from here
 
-		svf_assert(as[z].getInterval() == IntervalValue(15, 15));
+
+		return as;
 	}
 
 	//    int main(int argv) {  // argv is an interval  [4, 10]
@@ -157,13 +211,15 @@ namespace SVF {
 	//       b = a;
 	//    assert(b>=5);
 	//    }
-	void AbstractExecutionMgr::test6() {
+	AEState AbstractExecutionMgr::test6() {
+		AEState as;
 		NodeID a = getNodeID("a");
 		NodeID b = getNodeID("b");
 		NodeID argv = getNodeID("argv");
 		/// TODO: your code starts from here
 
-		svf_assert(as[b].getInterval() >= IntervalValue(5, 5));
+
+		return as;
 	}
 
 	// int foo(int z) {
@@ -177,15 +233,14 @@ namespace SVF {
 	//   x = foo(3);
 	//   assert(x== 3 && y==2);
 	// }
-	void AbstractExecutionMgr::test7() {
+	AEState AbstractExecutionMgr::test7() {
+		AEState as;
 		NodeID x = getNodeID("x");
 		NodeID y = getNodeID("y");
 		/// TODO: your code starts from here
 
-		AbstractValue cmp1 = as[x].getInterval() == IntervalValue(3, 3);
-		AbstractValue cmp2 = as[y].getInterval() == IntervalValue(2, 2);
-		cmp1.meet_with(cmp2);
-		svf_assert(cmp1);
+
+		return as;
 	}
 
 	// int main() {
@@ -197,11 +252,13 @@ namespace SVF {
 	//    assert(x == 0);
 	//    return 0;
 	// }
-	void AbstractExecutionMgr::test8() {
+	AEState AbstractExecutionMgr::test8() {
+		AEState as;
 		NodeID x = getNodeID("x");
 		/// TODO: your code starts from here
 
-		svf_assert(as[x].getInterval() == IntervalValue(0, 0));
+
+		return as;
 	}
 
 } // namespace SVF

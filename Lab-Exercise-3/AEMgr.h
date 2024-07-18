@@ -24,8 +24,8 @@
 // Created on 2024/1/10.
 //
 
+#include "AE/Core/AbstractState.h"
 #include "AE/Core/ICFGWTO.h"
-#include "AE/Svfexe/SVFIR2AbsState.h"
 #include "Util/SVFBugReport.h"
 #include "WPA/Andersen.h"
 
@@ -35,22 +35,100 @@ namespace SVF {
 	class ExeState;
 	class SVFIR2ItvExeState;
 
+	class AEState : public AbstractState {
+	 public:
+		AbstractValue loadValue(NodeID varId) {
+			AbstractValue res;
+			for (auto addr : (*this)[varId].getAddrs()) {
+				res.join_with(load(addr)); // q = *p
+			}
+			return res;
+		}
+
+		void storeValue(NodeID varId, AbstractValue val) {
+			for (auto addr : (*this)[varId].getAddrs()) {
+				store(addr, val); // *p = q
+			}
+		}
+
+		AEState widening(const AEState& other) {
+			AbstractState widened = AbstractState::widening(other);
+			return AEState(static_cast<const AEState&>(widened));
+		}
+
+		AEState narrowing(const AEState& other) {
+			AbstractState narrowed = AbstractState::narrowing(other);
+			return AEState(static_cast<const AEState&>(narrowed));
+		}
+
+		void printAbstractState() const {
+			SVFUtil::outs() << "-----------Var and Value-----------\n";
+			u32_t fieldWidth = 20;
+			SVFUtil::outs().flags(std::ios::left);
+			for (const auto &item: _varToAbsVal) {
+				SVFUtil::outs() << std::left << std::setw(fieldWidth) << ("Var" + std::to_string(item.first));
+				if (item.second.isInterval()) {
+					SVFUtil::outs() << " Value: " << item.second.getInterval().toString() << "\n";
+				} else if (item.second.isAddr()) {
+					SVFUtil::outs() << " Value: {";
+					u32_t i = 0;
+					for (const auto& addr: item.second.getAddrs()) {
+						++i;
+						if (i < item.second.getAddrs().size()) {
+							SVFUtil::outs() << "0x" << std::hex << addr << ", ";
+						} else {
+							SVFUtil::outs() << "0x" << std::hex << addr;
+						}
+					}
+					SVFUtil::outs() << "}\n";
+				} else {
+					SVFUtil::outs() << " Value: ⊥\n";
+				}
+			}
+
+			for (const auto& item: _addrToAbsVal) {
+				std::ostringstream oss;
+				oss << "0x" << std::hex << AEState::getVirtualMemAddress(item.first);
+				SVFUtil::outs() << std::left << std::setw(fieldWidth) << oss.str();
+				if (item.second.isInterval()) {
+					SVFUtil::outs() << " Value: " << item.second.getInterval().toString() << "\n";
+				} else if (item.second.isAddr()) {
+					SVFUtil::outs() << " Value: {";
+					u32_t i = 0;
+					for (const auto& addr: item.second.getAddrs()) {
+						++i;
+						if (i < item.second.getAddrs().size()) {
+							SVFUtil::outs() << "0x" << std::hex << addr << ", ";
+						} else {
+							SVFUtil::outs() << "0x" << std::hex << addr;
+						}
+					}
+					SVFUtil::outs() << "}\n";
+				} else {
+					SVFUtil::outs() << " Value: ⊥\n";
+				}
+			}
+			SVFUtil::outs() << "-----------------------------------------\n";
+		}
+	};
+
 	class AbstractExecutionMgr {
 	 public:
 		AbstractExecutionMgr() = default;
 		~AbstractExecutionMgr() = default;
-		void test1();
-		void test2();
-		void test3();
-		void test4();
-		void test5();
-		void test6();
-		void test7();
-		void test8();
+		AEState test0();
+		AEState test1();
+		AEState test2();
+		AEState test3();
+		AEState test4();
+		AEState test5();
+		AEState test6();
+		AEState test7();
+		AEState test8();
 
 		void reset() {
+			currentExprIdx = 0;
 			_strToID.clear();
-			as.clear();
 		};
 
 		NodeID getInternalID(NodeID addr) {
@@ -115,8 +193,6 @@ namespace SVF {
 			}
 		}
 
-		void getExitState(AbstractState& es, NodeID x);
-
 		bool svf_assert(AbstractValue absv) {
 			IntervalValue iv = absv.getInterval();
 			if (iv.is_numeral()) {
@@ -134,10 +210,10 @@ namespace SVF {
 				assert(false);
 			}
 		}
-		static u32_t currentExprIdx;
+
+		u32_t currentExprIdx{0};
 
 	 private:
-		AbstractState as;
 		Map<std::string, NodeID> _strToID;
 	};
 } // namespace SVF

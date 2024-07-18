@@ -43,44 +43,79 @@ int main(int argc, char** argv) {
 	AbstractExecutionMgr mgr;
 
 	std::string test_name = argv[1];
-	if (test_name == "test1") {
+	if (test_name == "test0") {
+		SVFUtil::outs() << "Test 0: \n";
+		AEState as = mgr.test0();
+		// assert(x==5);
+		// svf_assert(as[x].getInterval() == IntervalValue(5,5));
+		mgr.svf_assert(as[mgr.getNodeID("x")].getInterval() == IntervalValue(5, 5));
+		mgr.reset();
+	}
+	else if (test_name == "test1") {
 		SVFUtil::outs() << "Test 1: \n";
-		mgr.test1();
+		AEState as = mgr.test1();
+		// assert(b>0);
+		// svf_assert(as[b].getInterval() > IntervalValue(0,0));
+		mgr.svf_assert(as[mgr.getNodeID("b")].getInterval() > IntervalValue(0, 0));
 		mgr.reset();
 	}
 	else if (test_name == "test2") {
 		SVFUtil::outs() << "Test 2: \n";
-		mgr.test2();
+		AEState as = mgr.test2();
+		// assert(b>3);
+		// svf_assert(as[b].getInterval() > IntervalValue(3,3));
+		mgr.svf_assert(as[mgr.getNodeID("b")].getInterval() > IntervalValue(3, 3));
 		mgr.reset();
 	}
 	else if (test_name == "test3") {
 		SVFUtil::outs() << "Test 3: \n";
-		mgr.test3();
+		AEState as = mgr.test3();
+		// assert(x==10);
+		// svf_assert(as[x].getInterval() == IntervalValue(10, 10));
+		mgr.svf_assert(as[mgr.getNodeID("x")].getInterval() == IntervalValue(10, 10));
 		mgr.reset();
 	}
 	else if (test_name == "test4") {
 		SVFUtil::outs() << "Test 4: \n";
-		mgr.test4();
+		AEState as = mgr.test4();
+		// assert((a + b)>20);
+		// svf_assert(as[a].getInterval() + as[b].getInterval() > IntervalValue(20, 20));
+		mgr.svf_assert(as[mgr.getNodeID("a")].getInterval() + as[mgr.getNodeID("b")].getInterval()
+		               > IntervalValue(20, 20));
 		mgr.reset();
 	}
 	else if (test_name == "test5") {
 		SVFUtil::outs() << "Test 5: \n";
-		mgr.test5();
+		AEState as = mgr.test5();
+		// assert(z==15);
+		// svf_assert(as[z].getInterval() == IntervalValue(15, 15));
+		mgr.svf_assert(as[mgr.getNodeID("z")].getInterval() == IntervalValue(15, 15));
 		mgr.reset();
 	}
 	else if (test_name == "test6") {
 		SVFUtil::outs() << "Test 6: \n";
-		mgr.test6();
+		AEState as = mgr.test6();
+		// assert(b>=5);
+		// svf_assert(as[b].getInterval() >= IntervalValue(5, 5));
+		mgr.svf_assert(as[mgr.getNodeID("b")].getInterval() >= IntervalValue(5, 5));
 		mgr.reset();
 	}
 	else if (test_name == "test7") {
 		SVFUtil::outs() << "Test 7: \n";
-		mgr.test7();
+		AEState as = mgr.test7();
+		// assert(x== 3 && y==2);
+		// AbstractValue cmp1 = as[x].getInterval() == IntervalValue(3, 3);
+		// AbstractValue cmp2 = as[y].getInterval() == IntervalValue(2, 2);
+		mgr.svf_assert(as[mgr.getNodeID("x")].getInterval() == IntervalValue(3, 3));
+		mgr.svf_assert(as[mgr.getNodeID("y")].getInterval() == IntervalValue(2, 2));
 		mgr.reset();
 	}
 	else if (test_name == "test8") {
 		SVFUtil::outs() << "Test 8: \n";
-		mgr.test8();
+		AEState as = mgr.test8();
+		// assert(x == 0);
+		// svf_assert(as[x].getInterval() == IntervalValue(0, 0));
+		mgr.svf_assert(as[mgr.getNodeID("x")].getInterval() == IntervalValue(0, 0));
 		mgr.reset();
 	}
 	else {

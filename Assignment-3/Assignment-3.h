@@ -25,105 +25,49 @@
  * Created on: Feb 19, 2024
  */
 
-#ifndef SOFTWARE_SECURITY_ANALYSIS_ASSIGNMENT_3_H
-#define SOFTWARE_SECURITY_ANALYSIS_ASSIGNMENT_3_H
-
-#include "AE/Core/AbstractState.h"
-#include "AE/Core/ICFGWTO.h"
-#include "Util/SVFBugReport.h"
-#include "WPA/Andersen.h"
+#include "Assignment-3-Helper.h"
+#include "SVFIR/SVFIR.h"
 
 namespace SVF {
-	/// Exception handling for bug detections
-	class AbstractExecution;
-	class AEException : public std::exception {
+	class AEState : public AbstractState {
 	 public:
-		AEException(const std::string& message)
-		: msg_(message) {}
-
-		virtual const char* what() const throw() {
-			return msg_.c_str();
+		AbstractValue loadValue(NodeID varId) {
+			AbstractValue res;
+			for (auto addr : (*this)[varId].getAddrs()) {
+				res.join_with(load(addr)); // q = *p
+			}
+			return res;
 		}
 
-	 private:
-		std::string msg_;
-	};
-
-	class AbstractExecutionHelper {
-	 public:
-		/// Add a detected bug to the bug reporter and print the report
-		///@{
-		void addBugToReporter(const AEException& e, const ICFGNode* node) {
-			const SVFInstruction* inst = nullptr;
-
-			// Determine the instruction associated with the ICFG node
-			if (const CallICFGNode* call = SVFUtil::dyn_cast<CallICFGNode>(node)) {
-				inst = call->getCallSite(); // If the node is a call node, get the call site instruction
-			}
-			else {
-				inst = node->getSVFStmts().back()->getInst(); // Otherwise, get the last instruction of the node's
-				                                              // statements
-			}
-
-			GenericBug::EventStack eventStack;
-			SVFBugEvent sourceInstEvent(SVFBugEvent::EventType::SourceInst, inst);
-			eventStack.push_back(sourceInstEvent); // Add the source instruction event to the event stack
-
-			if (eventStack.size() == 0) {
-				return; // If the event stack is empty, return early
-			}
-
-			std::string loc = eventStack.back().getEventLoc(); // Get the location of the last event in the stack
-
-			// Check if the bug at this location has already been reported
-			if (_bugLoc.find(loc) != _bugLoc.end()) {
-				return; // If the bug location is already reported, return early
-			}
-			else {
-				_bugLoc.insert(loc); // Otherwise, mark this location as reported
-			}
-
-			// Add the bug to the recorder with details from the event stack
-			_recoder.addAbsExecBug(GenericBug::FULLBUFOVERFLOW, eventStack, 0, 0, 0, 0);
-			_nodeToBugInfo[node] = e.what(); // Record the exception information for the node
-		}
-
-		void printReport() {
-			if (_nodeToBugInfo.size() > 0) {
-				std::cerr << "######################Buffer Overflow (" + std::to_string(_nodeToBugInfo.size())
-				                 + " found)######################\n";
-				std::cerr << "---------------------------------------------\n";
-				for (auto& it : _nodeToBugInfo) {
-					std::cerr << it.second << "\n---------------------------------------------\n";
-				}
+		void storeValue(NodeID varId, AbstractValue val) {
+			for (auto addr : (*this)[varId].getAddrs()) {
+				store(addr, val); // *p = q
 			}
 		}
-		///@}
 
-		void addToGepObjOffsetFromBase(const GepObjVar* obj, const IntervalValue& offset) {
-			gepObjOffsetFromBase[obj] = offset;
+		AEState widening(const AEState& other) {
+			AbstractState widened = AbstractState::widening(other);
+			return AEState(static_cast<const AEState&>(widened));
 		}
 
-		bool hasGepObjOffsetFromBase(const GepObjVar* obj) const {
-			return gepObjOffsetFromBase.find(obj) != gepObjOffsetFromBase.end();
+		AEState narrowing(const AEState& other) {
+			AbstractState narrowed = AbstractState::narrowing(other);
+			return AEState(static_cast<const AEState&>(narrowed));
 		}
 
-		IntervalValue getGepObjOffsetFromBase(const GepObjVar* obj) const {
-			if (hasGepObjOffsetFromBase(obj))
-				return gepObjOffsetFromBase.at(obj);
-			else
-				assert(false && "GepObjVar not found in gepObjOffsetFromBase");
-		}
+		void printAbstractState() const;
 
-	 private:
-		/// Map a GEP objVar to its offset from the base address
-		/// e.g. alloca [i32*10] x; lhs = gep x, 3
-		/// gepObjOffsetFromBase[lhs] = [12, 12]
-		Map<const GepObjVar*, IntervalValue> gepObjOffsetFromBase;
-		/// Bug reporter
-		Set<std::string> _bugLoc;
-		SVFBugReport _recoder;
-		Map<const ICFGNode*, std::string> _nodeToBugInfo;
+		/// Get the byte offset interval for a given abstract state and GEP statement
+		IntervalValue getByteOffset(const GepStmt* gep);
+
+		/// Get the interval value of an element index for a given abstract state and GEP statement
+		IntervalValue getElementIndex(const GepStmt* gep);
+
+		/// Initialize an object variable in the abstract state
+		void initObjVar(ObjVar* objVar);
+
+		/// Get the address values for a range of offsets for a GEP (GetElementPtr) object
+		AddressValue getGepObjAddrs(NodeID rhs, IntervalValue offset);
 	};
 
 	/// Abstract Execution class
@@ -151,6 +95,9 @@ namespace SVF {
 		/// Fuction used to implement buffer overflow detection
 		virtual void bufOverflowDetection(const SVFStmt* stmt);
 
+		/// Report a buffer overflow for a given ICFG node
+		void reportBufOverflow(const ICFGNode* node);
+
 		// handle SVF Statements
 		///@{
 		void updateStateOnAddr(const AddrStmt* addr);
@@ -166,16 +113,6 @@ namespace SVF {
 		void updateStateOnSelect(const SelectStmt* select);
 		///@}
 
-		/// Initialize an object variable in the abstract state
-		void initObjVar(AbstractState& as, ObjVar* objVar);
-
-		/// Get the address value for a GEP (GetElementPtr) object
-		AddressValue getGepObjAddress(AbstractState& es, u32_t pointer, APOffset offset);
-		/// Get the byte offset interval for a given abstract state and GEP statement
-		IntervalValue getByteOffset(const AbstractState& es, const GepStmt* gep);
-		/// Get the interval value of an element index for a given abstract state and GEP statement
-		IntervalValue getElementIndex(const AbstractState& es, const GepStmt* gep);
-
 		/// Handle stub functions for verifying abstract interpretation results
 		void handleStubFunctions(const CallICFGNode* call);
 
@@ -186,25 +123,56 @@ namespace SVF {
 
 		/// Path feasiblity handling
 		///@{
-		bool mergeStatesFromPredecessors(const ICFGNode* curNode, AbstractState& as);
+		bool mergeStatesFromPredecessors(const ICFGNode* curNode, AEState& as);
 
-		bool isCmpBranchFeasible(const CmpStmt* cmpStmt, s64_t succ, AbstractState& as);
-		bool isSwitchBranchFeasible(const SVFVar* var, s64_t succ, AbstractState& as);
-		bool isBranchFeasible(const IntraCFGEdge* intraEdge, AbstractState& as);
+		bool isCmpBranchFeasible(const CmpStmt* cmpStmt, s64_t succ, AEState& as);
+		bool isSwitchBranchFeasible(const SVFVar* var, s64_t succ, AEState& as);
+		bool isBranchFeasible(const IntraCFGEdge* intraEdge, AEState& as);
 		///@}
 
 		/// Handle a call site in the control flow graph
 		void handleCallSite(const CallICFGNode* callnode);
 
 		/// Return its abstract state given an ICFGNode
-		AbstractState& getAbsState(const ICFGNode* node) {
-			const ICFGNode* repNode = _icfg->getRepNode(node);
-			if (_postAbsTrace.count(repNode) == 0)
+		AEState& getAbsStateFromTrace(const ICFGNode* node) {
+			const ICFGNode* repNode = icfg->getRepNode(node);
+			if (postAbsTrace.count(repNode) == 0)
 				assert(0 && "No preAbsTrace for this node");
 			else
-				return _postAbsTrace[repNode];
+				return postAbsTrace[repNode];
 		}
 
+		void updateGepObjOffsetFromBase(AddressValue gepAddrs, AddressValue objAddrs, IntervalValue offset) {
+			for (const auto& objAddr : objAddrs) {
+				NodeID objId = AEState::getInternalID(objAddr);
+				auto obj = svfir->getGNode(objId);
+				if (SVFUtil::isa<FIObjVar>(obj)) {
+					for (const auto& gepAddr : gepAddrs) {
+						NodeID gepObj = AEState::getInternalID(gepAddr);
+						const GepObjVar* gepObjVar = SVFUtil::cast<GepObjVar>(svfir->getGNode(gepObj));
+						bufOverflowHelper.addToGepObjOffsetFromBase(gepObjVar, offset);
+					}
+				}
+				else if (SVFUtil::isa<GepObjVar>(obj)) {
+					const GepObjVar* objVar = SVFUtil::cast<GepObjVar>(obj);
+					for (const auto& gepAddr : gepAddrs) {
+						NodeID gepObj = AEState::getInternalID(gepAddr);
+						const GepObjVar* gepObjVar = SVFUtil::cast<GepObjVar>(svfir->getGNode(gepObj));
+						if (bufOverflowHelper.hasGepObjOffsetFromBase(objVar)) {
+							IntervalValue objOffsetFromBase = bufOverflowHelper.getGepObjOffsetFromBase(objVar);
+							bufOverflowHelper.addToGepObjOffsetFromBase(gepObjVar, objOffsetFromBase + offset);
+						}
+						else {
+							assert(false && "gepRhsObjVar has no gepObjOffsetFromBase");
+						}
+					}
+				}
+			}
+		}
+
+		/// Return the accessing offset of an object at a GepStmt
+		IntervalValue getAccessOffset(NodeID objId, const GepStmt* gep);
+		
 		void ensureAllAssertsValidated();
 
 		/// Destructor
@@ -212,26 +180,24 @@ namespace SVF {
 
 	 protected:
 		/// SVFIR and ICFG
-		SVFIR* _svfir;
-		ICFG* _icfg;
-		AndersenWaveDiff* _ander;
+		SVFIR* svfir;
+		ICFG* icfg;
 
 		/// callstack
-		std::vector<const CallICFGNode*> _callSiteStack;
+		std::vector<const CallICFGNode*> callSiteStack;
 		/// Map a function to its corresponding WTO
-		Map<const SVFFunction*, ICFGWTO*> _funcToWTO;
+		Map<const SVFFunction*, ICFGWTO*> funcToWTO;
 		/// A set of functions which are involved in recursions
-		Set<const SVFFunction*> _recursiveFuns;
+		Set<const SVFFunction*> recursiveFuns;
 		/// Abstract trace immediately before an ICFGNode.
-		Map<const ICFGNode*, AbstractState> _preAbsTrace;
+		Map<const ICFGNode*, AEState> preAbsTrace;
 		/// Abstract trace immediately after an ICFGNode.
-		Map<const ICFGNode*, AbstractState> _postAbsTrace;
+		Map<const ICFGNode*, AEState> postAbsTrace;
 
 	 private:
-		AbstractExecutionHelper _bufOverflowHelper;
+		AbstractExecutionHelper bufOverflowHelper;
 
-		Set<const CallICFGNode*> _assert_points;
+		Set<const CallICFGNode*> assert_points;
 	};
-} // namespace SVF
 
-#endif
+} // namespace SVF
