@@ -34,6 +34,7 @@ namespace SVF {
 	class IntervalValue;
 	class ExeState;
 	class SVFIR2ItvExeState;
+	class AbstractExecutionMgr;
 
 	class AEState : public AbstractState {
 	 public:
@@ -61,58 +62,12 @@ namespace SVF {
 			return AEState(static_cast<const AEState&>(narrowed));
 		}
 
-		void printAbstractState() const {
-			SVFUtil::outs() << "-----------Var and Value-----------\n";
-			u32_t fieldWidth = 20;
-			SVFUtil::outs().flags(std::ios::left);
-			for (const auto &item: _varToAbsVal) {
-				SVFUtil::outs() << std::left << std::setw(fieldWidth) << ("Var" + std::to_string(item.first));
-				if (item.second.isInterval()) {
-					SVFUtil::outs() << " Value: " << item.second.getInterval().toString() << "\n";
-				} else if (item.second.isAddr()) {
-					SVFUtil::outs() << " Value: {";
-					u32_t i = 0;
-					for (const auto& addr: item.second.getAddrs()) {
-						++i;
-						if (i < item.second.getAddrs().size()) {
-							SVFUtil::outs() << "0x" << std::hex << addr << ", ";
-						} else {
-							SVFUtil::outs() << "0x" << std::hex << addr;
-						}
-					}
-					SVFUtil::outs() << "}\n";
-				} else {
-					SVFUtil::outs() << " Value: ⊥\n";
-				}
-			}
+		void printAbstractState() const;
 
-			for (const auto& item: _addrToAbsVal) {
-				std::ostringstream oss;
-				oss << "0x" << std::hex << AEState::getVirtualMemAddress(item.first);
-				SVFUtil::outs() << std::left << std::setw(fieldWidth) << oss.str();
-				if (item.second.isInterval()) {
-					SVFUtil::outs() << " Value: " << item.second.getInterval().toString() << "\n";
-				} else if (item.second.isAddr()) {
-					SVFUtil::outs() << " Value: {";
-					u32_t i = 0;
-					for (const auto& addr: item.second.getAddrs()) {
-						++i;
-						if (i < item.second.getAddrs().size()) {
-							SVFUtil::outs() << "0x" << std::hex << addr << ", ";
-						} else {
-							SVFUtil::outs() << "0x" << std::hex << addr;
-						}
-					}
-					SVFUtil::outs() << "}\n";
-				} else {
-					SVFUtil::outs() << " Value: ⊥\n";
-				}
-			}
-			SVFUtil::outs() << "-----------------------------------------\n";
-		}
 	};
 
 	class AbstractExecutionMgr {
+		friend AEState;
 	 public:
 		AbstractExecutionMgr() = default;
 		~AbstractExecutionMgr() = default;
@@ -127,7 +82,7 @@ namespace SVF {
 		AEState test8();
 
 		void reset() {
-			currentExprIdx = 0;
+			currentExprIdx = 1;
 			_strToID.clear();
 		};
 
@@ -135,22 +90,21 @@ namespace SVF {
 			return AddressValue::getInternalID(addr);
 		}
 
+		static AbstractExecutionMgr& getInstance() {
+			static AbstractExecutionMgr instance;
+			return instance;
+		}
+
+
 		NodeID getNodeID(std::string name) {
 			auto it = _strToID.find(name);
 			if (it != _strToID.end())
 				return it->second;
 			else {
-				_strToID[name] = ++currentExprIdx;
-				return currentExprIdx;
+				_strToID[name] = currentExprIdx;
+				_idToStr[currentExprIdx] = name;
+				return currentExprIdx++;
 			}
-		}
-
-		void removeNodeID(std::string name) {
-			auto it = _strToID.find(name);
-			if (it != _strToID.end())
-				_strToID.erase(it);
-			else
-				assert(false && "removeNodeID: name not found");
 		}
 
 		NodeID getNodeID(std::string name, u32_t size) {
@@ -158,7 +112,9 @@ namespace SVF {
 			if (it != _strToID.end())
 				return it->second;
 			else {
-				_strToID[name] = ++currentExprIdx;
+				_strToID[name] = currentExprIdx;
+				_idToStr[currentExprIdx] = name;
+				++currentExprIdx;
 				currentExprIdx += (size - 1);
 				return _strToID[name];
 			}
@@ -211,9 +167,63 @@ namespace SVF {
 			}
 		}
 
-		u32_t currentExprIdx{0};
+		u32_t currentExprIdx{1};
 
 	 private:
 		Map<std::string, NodeID> _strToID;
+		Map<NodeID, std::string> _idToStr;
 	};
+
+	inline void AEState::printAbstractState() const {
+		AbstractExecutionMgr& mgr = AbstractExecutionMgr::getInstance();
+		SVFUtil::outs() << "-----------Var and Value-----------\n";
+		u32_t fieldWidth = 20;
+		SVFUtil::outs().flags(std::ios::left);
+		for (const auto &item: _varToAbsVal) {
+			std::ostringstream oss;
+			oss << "Var" << item.first << " (" << mgr._idToStr[item.first] << ")";
+			SVFUtil::outs() << std::left << std::setw(fieldWidth) << oss.str() << ": ";
+			if (item.second.isInterval()) {
+				SVFUtil::outs() << " Value: " << item.second.getInterval().toString() << "\n";
+			} else if (item.second.isAddr()) {
+				SVFUtil::outs() << " Value: {";
+				u32_t i = 0;
+				for (const auto& addr: item.second.getAddrs()) {
+					++i;
+					if (i < item.second.getAddrs().size()) {
+						SVFUtil::outs() << "0x" << std::hex << addr << ", ";
+					} else {
+						SVFUtil::outs() << "0x" << std::hex << addr;
+					}
+				}
+				SVFUtil::outs() << "}\n";
+			} else {
+				SVFUtil::outs() << " Value: ⊥\n";
+			}
+		}
+
+		for (const auto& item: _addrToAbsVal) {
+			std::ostringstream ossAddress;
+			ossAddress << "0x" << std::hex << AEState::getVirtualMemAddress(item.first);
+			SVFUtil::outs() << std::left << std::setw(fieldWidth) << ossAddress.str() << ": ";
+			if (item.second.isInterval()) {
+				SVFUtil::outs() << " Value: " << item.second.getInterval().toString() << "\n";
+			} else if (item.second.isAddr()) {
+				SVFUtil::outs() << " Value: {";
+				u32_t i = 0;
+				for (const auto& addr: item.second.getAddrs()) {
+					++i;
+					if (i < item.second.getAddrs().size()) {
+						SVFUtil::outs() << "0x" << std::hex << addr << ", ";
+					} else {
+						SVFUtil::outs() << "0x" << std::hex << addr;
+					}
+				}
+				SVFUtil::outs() << "}\n";
+			} else {
+				SVFUtil::outs() << " Value: ⊥\n";
+			}
+		}
+		SVFUtil::outs() << "-----------------------------------------\n";
+	}
 } // namespace SVF

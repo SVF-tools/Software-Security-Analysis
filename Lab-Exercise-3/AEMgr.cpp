@@ -70,6 +70,7 @@ namespace SVF {
 
 		// x = *p;
 		as[x] = as.loadValue(p);
+		as.printAbstractState();
 		return as;
 	}
 
