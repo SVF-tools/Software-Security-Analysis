@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	AbstractExecutionMgr mgr;
+	AbstractExecutionMgr& mgr = AbstractExecutionMgr::getInstance();
 
 	std::string test_name = argv[1];
 	if (test_name == "test0") {
