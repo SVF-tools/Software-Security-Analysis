@@ -83,7 +83,7 @@ void AbstractExecution::handleCycleWTO(const ICFGCycleWTO* cycle) {
 	if (!is_feasible) {
 		return;
 	} else {
-		AbstractState pre_as = preAbsTrace[cycle->head()->node()];
+		AEState pre_as = preAbsTrace[cycle->head()->node()];
 		// set -widen-delay
 		s32_t widen_delay = Options::WidenDelay();
 		bool increasing = true;
