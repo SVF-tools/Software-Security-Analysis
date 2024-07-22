@@ -32,7 +32,7 @@
 using namespace SVF;
 using namespace SVFUtil;
 
-/// TODO : Implement the state updates for Copy, Binary, Store, Load, Gep
+/// TODO : Implement the state updates for Copy, Binary, Store, Load, Gep, Phi
 void AbstractExecution::updateStateOnCopy(const CopyStmt* copy) {
 	/// TODO: your code starts from here
 
@@ -54,6 +54,11 @@ void AbstractExecution::updateStateOnLoad(const LoadStmt* load) {
 }
 
 void AbstractExecution::updateStateOnGep(const GepStmt* gep) {
+	/// TODO: your code starts from here
+
+}
+
+void AbstractExecution::updateStateOnPhi(const PhiStmt* phi) {
 	/// TODO: your code starts from here
 
 }
@@ -256,19 +261,6 @@ void AbstractExecution::updateStateOnRet(const RetPE* retPE) {
 	NodeID lhs = retPE->getLHSVarID();
 	NodeID rhs = retPE->getRHSVarID();
 	as[lhs] = as[rhs];
-}
-
-/// Abstract state updates on an PhiStmt
-void AbstractExecution::updateStateOnPhi(const PhiStmt* phi) {
-	const ICFGNode* node = phi->getICFGNode();
-	AEState& as = getAbsStateFromTrace(node);
-	u32_t res = phi->getResID();
-	AbstractValue rhs;
-	for (u32_t i = 0; i < phi->getOpVarNum(); i++) {
-		NodeID curId = phi->getOpVarID(i);
-		rhs.join_with(as[curId]);
-	}
-	as[res] = rhs;
 }
 
 /// Abstract state updates on an SelectStmt

@@ -142,33 +142,8 @@ namespace SVF {
 				return postAbsTrace[repNode];
 		}
 
-		void updateGepObjOffsetFromBase(AddressValue gepAddrs, AddressValue objAddrs, IntervalValue offset) {
-			for (const auto& objAddr : objAddrs) {
-				NodeID objId = AEState::getInternalID(objAddr);
-				auto obj = svfir->getGNode(objId);
-				if (SVFUtil::isa<FIObjVar>(obj)) {
-					for (const auto& gepAddr : gepAddrs) {
-						NodeID gepObj = AEState::getInternalID(gepAddr);
-						const GepObjVar* gepObjVar = SVFUtil::cast<GepObjVar>(svfir->getGNode(gepObj));
-						bufOverflowHelper.addToGepObjOffsetFromBase(gepObjVar, offset);
-					}
-				}
-				else if (SVFUtil::isa<GepObjVar>(obj)) {
-					const GepObjVar* objVar = SVFUtil::cast<GepObjVar>(obj);
-					for (const auto& gepAddr : gepAddrs) {
-						NodeID gepObj = AEState::getInternalID(gepAddr);
-						const GepObjVar* gepObjVar = SVFUtil::cast<GepObjVar>(svfir->getGNode(gepObj));
-						if (bufOverflowHelper.hasGepObjOffsetFromBase(objVar)) {
-							IntervalValue objOffsetFromBase = bufOverflowHelper.getGepObjOffsetFromBase(objVar);
-							bufOverflowHelper.addToGepObjOffsetFromBase(gepObjVar, objOffsetFromBase + offset);
-						}
-						else {
-							assert(false && "gepRhsObjVar has no gepObjOffsetFromBase");
-						}
-					}
-				}
-			}
-		}
+		/// Update the offset of a GEP (GetElementPtr) object from its base address
+		void updateGepObjOffsetFromBase(AddressValue gepAddrs, AddressValue objAddrs, IntervalValue offset);
 
 		/// Return the accessing offset of an object at a GepStmt
 		IntervalValue getAccessOffset(NodeID objId, const GepStmt* gep);
