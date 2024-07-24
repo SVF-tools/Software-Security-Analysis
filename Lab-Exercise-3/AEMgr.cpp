@@ -254,12 +254,39 @@ namespace SVF {
 	//    return 0;
 	// }
 	AEState AbstractExecutionMgr::test8() {
-		AEState as;
+
+
+
+		//+---------+
+		//| entry   |
+		//| int x;  |
+		//| x = 20  |
+		//+---+-----+
+		//    |
+		//    v
+		//+-----------+
+		//|   head    | <-------+
+		//|   x>0?    |         |
+		//+---+------++         |
+		//    |      |          |
+		//  (x<=0)  (x>0)       |
+		//    v      v          |
+		//+-------+  +------+   |
+		//| exit  |  | body |---|
+		//|       |  |  x-- |
+		//+---+---+  +------+
+
+
+
+		AEState entry_as;
+		AEState cur_head_as;
+		AEState body_as;
+		AEState exit_as;
+		u32_t widen_delay = 3;
 		NodeID x = getNodeID("x");
 		/// TODO: your code starts from here
 
-
-		return as;
+		return exit_as;
 	}
 
 } // namespace SVF
