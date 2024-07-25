@@ -12,7 +12,7 @@
       // |  Lab-Exercise-3  | "${workspaceFolder}/bin/lab3"      | "test1" |
       // |  Assignment-1    | "${workspaceFolder}/bin/ass1"      | "-icfg", "Assignment-1/Tests/testcases/icfg/test1.ll" |
       // |  Assignment-2    | "${workspaceFolder}/bin/ass2"      | "Assignment-2/Tests/testcases/sse/test1.ll" |
-      // |  Assignment-3    | "${workspaceFolder}/bin/ass3"      | "Assignment-3/Tests/testcases/ae/test1.ll" |
+      // |  Assignment-3    | "${workspaceFolder}/bin/ass3"      | "Assignment-3/Tests/ae/test1.ll" |
       "program": "${workspaceFolder}/bin/hello",
       "args": [], // may input the test llvm bc file or other options and flags the program may use
       "cwd": "${workspaceFolder}",
