@@ -487,7 +487,6 @@ void AbstractExecution::handleStubFunctions(const SVF::CallICFGNode* callnode) {
 			assert(false);
 		}
 		else {
-			as[arg0].getInterval().meet_with(IntervalValue(1, 1));
 			if (as[arg0].getInterval().equals(IntervalValue(1, 1))) {
 				std::stringstream ss;
 				ss << "The assertion (" << callnode->toString() << ")"
