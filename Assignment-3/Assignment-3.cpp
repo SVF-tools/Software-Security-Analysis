@@ -299,6 +299,11 @@ void AbstractExecution::analyse() {
 
 	// Process the main function if it exists
 	if (const SVFFunction* fun = svfir->getModule()->getSVFFunction("main")) {
+		// arguments of main are initialised as \top to represent all possible inputs
+		for (u32_t i = 0; i < fun->arg_size(); ++i) {
+			AEState& as = getAbsStateFromTrace(icfg->getGlobalICFGNode());
+			as[svfir->getValueNode(fun->getArg(i))] = IntervalValue::top();
+		}
 		ICFGWTO* wto = funcToWTO[fun];
 		handleWTOComponents(wto->getWTOComponents());
 	}
