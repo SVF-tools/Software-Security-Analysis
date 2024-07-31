@@ -425,7 +425,9 @@ void AbstractExecution::updateGepObjOffsetFromBase(SVF::AddressValue gepAddrs, S
 				const GepObjVar* gepObjVar = SVFUtil::cast<GepObjVar>(svfir->getGNode(gepObj));
 				if (bufOverflowHelper.hasGepObjOffsetFromBase(objVar)) {
 					IntervalValue objOffsetFromBase = bufOverflowHelper.getGepObjOffsetFromBase(objVar);
-					bufOverflowHelper.addToGepObjOffsetFromBase(gepObjVar, objOffsetFromBase + offset);
+					/// make sure gepObjVar has not been written before
+					if (!bufOverflowHelper.hasGepObjOffsetFromBase(gepObjVar))
+						bufOverflowHelper.addToGepObjOffsetFromBase(gepObjVar, objOffsetFromBase + offset);
 				}
 				else {
 					assert(false && "gepRhsObjVar has no gepObjOffsetFromBase");
