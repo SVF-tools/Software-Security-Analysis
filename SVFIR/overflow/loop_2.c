@@ -15,8 +15,7 @@ int main() {
 	    "abcdefghij",
 	    "ABCDEFGHIJ",
 	    "0987654321",
-	    "ZYXWVUTSRQ"
-	};
+	    "ZYXWVUTSRQ" };
 	process_input(input);
 	return 0;
 }

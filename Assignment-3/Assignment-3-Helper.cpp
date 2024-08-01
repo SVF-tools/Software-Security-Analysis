@@ -451,7 +451,7 @@ void AbstractExecution::updateGepObjOffsetFromBase(SVF::AddressValue gepAddrs, S
  */
 bool AbstractExecution::mergeStatesFromPredecessors(const ICFGNode* block, AEState& as) {
 	u32_t inEdgeNum = 0; // Initialize the number of incoming edges with feasible states
-
+	as = AEState(); // Reset the AEState
 	// Iterate over all incoming edges of the given block
 	for (auto& edge : block->getInEdges()) {
 		// Check if the source node of the edge has a post-execution state recorded

@@ -1,6 +1,5 @@
 #include <stdio.h>
 #define BUF_LEN 20
-
 void handle_buffer(char *input) {
 	char buffer[BUF_LEN];
 	int i = 0;
@@ -11,7 +10,6 @@ void handle_buffer(char *input) {
 	buffer[BUF_LEN-1] = '\0';
 	printf("Buffer content: %s\n", buffer);
 }
-
 int main() {
 	char input[30] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123";
 	handle_buffer(input);

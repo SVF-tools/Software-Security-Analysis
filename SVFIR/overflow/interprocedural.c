@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #define BUFFER_SIZE 10
-
 void handle_client_request(char *input,
                            int index) {
 	int buffer[BUFFER_SIZE] = { 0 };
