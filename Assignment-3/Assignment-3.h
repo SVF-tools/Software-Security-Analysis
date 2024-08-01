@@ -136,10 +136,7 @@ namespace SVF {
 		/// Return its abstract state given an ICFGNode
 		AEState& getAbsStateFromTrace(const ICFGNode* node) {
 			const ICFGNode* repNode = icfg->getRepNode(node);
-			if (postAbsTrace.count(repNode) == 0)
-				assert(0 && "No preAbsTrace for this node");
-			else
-				return postAbsTrace[repNode];
+			return postAbsTrace[repNode];
 		}
 
 		/// Update the offset of a GEP (GetElementPtr) object from its base address
