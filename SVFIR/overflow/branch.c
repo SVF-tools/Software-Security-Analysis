@@ -2,7 +2,7 @@
 #include <stdlib.h>
 int main(int argc) {
 	int buf[10];
-	int *loc = (int*)malloc(4);
+	int *loc = malloc(sizeof(int));
 	int i = argc % 10;
 	if (argc > 0) {
 		*loc = i;
