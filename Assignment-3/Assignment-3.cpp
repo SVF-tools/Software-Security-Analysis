@@ -87,11 +87,11 @@ void AbstractExecution::bufOverflowDetection(const SVF::SVFStmt* stmt) {
 /// TODO : Implement the handleCycleWTO function
 void AbstractExecution::handleCycleWTO(const ICFGCycleWTO* cycle) {
 	// Get execution states from in edges
-	bool is_feasible = mergeStatesFromPredecessors(cycle->head()->node(), preAbsTrace[cycle->head()->node()]);
+	bool is_feasible = mergeStatesFromPredecessors(cycle->head()->getICFGNode(), preAbsTrace[cycle->head()->getICFGNode()]);
 	if (!is_feasible) {
 		return;
 	} else {
-		AEState pre_as = preAbsTrace[cycle->head()->node()];
+		AEState pre_as = preAbsTrace[cycle->head()->getICFGNode()];
 		// set -widen-delay
 		s32_t widen_delay = Options::WidenDelay();
 		bool increasing = true;
@@ -339,7 +339,7 @@ void AbstractExecution::handleWTOComponents(const std::list<const ICFGWTOComp*>&
  * @param node The WTO node to be processed
  */
 void AbstractExecution::handleSingletonWTO(const ICFGSingletonWTO* singletonWTO) {
-	const ICFGNode* node = singletonWTO->node();
+	const ICFGNode* node = singletonWTO->getICFGNode();
 	// Propagate the states from predecessors to the current node and return true if the control-flow is feasible
 	bool is_feasible = mergeStatesFromPredecessors(node, preAbsTrace[node]);
 	if (is_feasible) {
