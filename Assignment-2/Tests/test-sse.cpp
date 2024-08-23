@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
 	SVFIRBuilder builder(svfModule);
 	SVFIR* svfir = builder.build();
 
-	PTACallGraph* callgraph = AndersenWaveDiff::createAndersenWaveDiff(svfir)->getPTACallGraph();
+	CallGraph* callgraph = AndersenWaveDiff::createAndersenWaveDiff(svfir)->getCallGraph();
 	builder.updateCallGraph(callgraph);
 
 	/// ICFG
