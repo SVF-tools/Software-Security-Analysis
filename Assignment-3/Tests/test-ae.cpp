@@ -1,5 +1,4 @@
 #include "../Assignment-3.h"
-#include "AE/Svfexe/ICFGSimplification.h"
 #include "SVF-LLVM/SVFIRBuilder.h"
 #include "Util/CommandLine.h"
 #include "Util/Options.h"
