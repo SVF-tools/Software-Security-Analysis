@@ -480,15 +480,12 @@ void AbstractExecution::handleStubFunctions(const SVF::CallICFGNode* callnode) {
 	if (SVFUtil::getCallee(callnode->getCallSite())->getName() == "svf_assert") {
 		assert_points.insert(callnode);
 		// If the condition is false, the program is infeasible
-		CallSite cs = callnode->getCallSite();
-		const CallICFGNode* callNode =
-		    SVFUtil::dyn_cast<CallICFGNode>(svfir->getICFG()->getICFGNode(cs.getInstruction()));
-		u32_t arg0 = svfir->getValueNode(cs.getArgument(0));
-		AEState& as = getAbsStateFromTrace(callNode);
+		u32_t arg0 = svfir->getValueNode(callnode->getArgument(0));
+		AEState& as = getAbsStateFromTrace(callnode);
 
 		// Check if the interval for the argument is infinite
 		if (as[arg0].getInterval().is_infinite()) {
-			SVFUtil::errs() << "svf_assert Fail. " << cs.getInstruction()->toString() << "\n";
+			SVFUtil::errs() << "svf_assert Fail. " << callnode->toString() << "\n";
 			assert(false);
 		}
 		else {
@@ -512,11 +509,8 @@ void AbstractExecution::handleStubFunctions(const SVF::CallICFGNode* callnode) {
 	else if (SVFUtil::getCallee(callnode->getCallSite())->getName() == "OVERFLOW") {
 		// If the condition is false, the program is infeasible
 		assert_points.insert(callnode);
-		CallSite cs = callnode->getCallSite();
-		const CallICFGNode* callNode =
-		    SVFUtil::dyn_cast<CallICFGNode>(svfir->getICFG()->getICFGNode(cs.getInstruction()));
-		u32_t arg0 = svfir->getValueNode(cs.getArgument(0));
-		u32_t arg1 = svfir->getValueNode(cs.getArgument(1));
+		u32_t arg0 = svfir->getValueNode(callnode->getArgument(0));
+		u32_t arg1 = svfir->getValueNode(callnode->getArgument(1));
 
 		AEState& as = getAbsStateFromTrace(callnode);
 		AbstractValue gepRhsVal = as[arg0];
@@ -542,13 +536,13 @@ void AbstractExecution::handleStubFunctions(const SVF::CallICFGNode* callnode) {
 			}
 			else {
 				SVFUtil::errs() << "Your implementation failed to detect the buffer overflow!"
-				                << cs.getInstruction()->toString() << "\n";
+				                << callnode->toString() << "\n";
 				assert(false);
 			}
 		}
 		else {
 			SVFUtil::errs() << "Your implementation failed to detect the buffer overflow!"
-			                << cs.getInstruction()->toString() << "\n";
+			                << callnode->toString() << "\n";
 			assert(false);
 		}
 	}
