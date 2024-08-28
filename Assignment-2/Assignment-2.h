@@ -59,7 +59,7 @@ namespace SVF {
 		/// Identify the sink nodes which are assertion ICFGNodes
 		std::set<const ICFGNode*>& identifySinks() {
 			for (const CallICFGNode* cs : svfir->getCallSiteSet()) {
-				const SVFFunction* fun = SVFUtil::getCallee(cs->getCallSite());
+				const SVFFunction* fun = cs->getCalledFunction();
 				if (isAssertFun(fun))
 					sinks.insert(cs);
 			}
@@ -111,7 +111,7 @@ namespace SVF {
 		bool assertchecking(const ICFGNode* inode) {
 			assert_checked++;
 			const CallICFGNode* callnode = SVFUtil::cast<CallICFGNode>(inode);
-			assert(callnode && isAssertFun(SVFUtil::getCallee(callnode->getCallSite()))
+			assert(callnode && isAssertFun(callnode->getCalledFunction())
 			       && "last node is not an assert call?");
 			DBOP(std::cout << "\n## Analyzing " << callnode->toString() << "\n");
 			z3::expr arg0 = getZ3Expr(callnode->getActualParms().at(0)->getId());

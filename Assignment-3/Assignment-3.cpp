@@ -360,7 +360,7 @@ void AbstractExecution::handleSingletonWTO(const ICFGSingletonWTO* singletonWTO)
 	// Handle call nodes by inlining the callee function
 	if (const CallICFGNode* callnode = SVFUtil::dyn_cast<CallICFGNode>(node)) {
 		// Get the name of the callee function
-		std::string funName = SVFUtil::getCallee(callnode->getCallSite())->getName();
+		std::string funName = callnode->getCalledFunction()->getName();
 		if (funName == "OVERFLOW" || funName == "svf_assert") {
 			handleStubFunctions(callnode); // Handle specific stub functions
 		}
@@ -447,7 +447,7 @@ void AbstractExecution::handleCallSite(const CallICFGNode* callNode) {
 	AEState& as = getAbsStateFromTrace(callNode);
 
 	// Get the callee function associated with the call site
-	const SVFFunction* callee = SVFUtil::getCallee(callNode->getCallSite());
+	const SVFFunction* callee = callNode->getCalledFunction();
 
 	if (recursiveFuns.find(callee) != recursiveFuns.end()) {
 		// skip recursive functions
@@ -477,7 +477,7 @@ void AbstractExecution::handleCallSite(const CallICFGNode* callNode) {
 
 void AbstractExecution::handleStubFunctions(const SVF::CallICFGNode* callnode) {
 	// Handle the 'svf_assert' stub function
-	if (SVFUtil::getCallee(callnode->getCallSite())->getName() == "svf_assert") {
+	if (callnode->getCalledFunction()->getName() == "svf_assert") {
 		assert_points.insert(callnode);
 		// If the condition is false, the program is infeasible
 		u32_t arg0 = svfir->getValueNode(callnode->getArgument(0));
@@ -506,7 +506,7 @@ void AbstractExecution::handleStubFunctions(const SVF::CallICFGNode* callnode) {
 		return;
 	}
 	// Handle the 'OVERFLOW' stub function
-	else if (SVFUtil::getCallee(callnode->getCallSite())->getName() == "OVERFLOW") {
+	else if (callnode->getCalledFunction()->getName() == "OVERFLOW") {
 		// If the condition is false, the program is infeasible
 		assert_points.insert(callnode);
 		u32_t arg0 = svfir->getValueNode(callnode->getArgument(0));

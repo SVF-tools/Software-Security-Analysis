@@ -740,7 +740,7 @@ void AbstractExecution::ensureAllAssertsValidated() {
 	for (auto it = svfir->getICFG()->begin(); it != svfir->getICFG()->end(); ++it) {
 		const ICFGNode* node = it->second;
 		if (const CallICFGNode* call = SVFUtil::dyn_cast<CallICFGNode>(node)) {
-			if (const SVFFunction* fun = SVFUtil::getCallee(call->getCallSite())) {
+			if (const SVFFunction* fun = call->getCalledFunction()) {
 				if (fun->getName() == "svf_assert" || fun->getName() == "OVERFLOW") {
 					if (assert_points.find(call) == assert_points.end()) {
 						std::stringstream ss;
