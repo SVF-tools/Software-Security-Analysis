@@ -47,71 +47,22 @@ Map<s32_t, s32_t> _switch_lhsrhs_predicate = {
     {CmpStmt::Predicate::ICMP_SGE, CmpStmt::Predicate::ICMP_SLE}, // >= -> <=
 };
 
-void AEState::printAbstractState() const {
-	SVFUtil::outs() << "-----------Var and Value-----------\n";
-	u32_t fieldWidth = 20;
-	SVFUtil::outs().flags(std::ios::left);
-	for (const auto &item: _varToAbsVal) {
-		SVFUtil::outs() << std::left << std::setw(fieldWidth) << ("Var" + std::to_string(item.first));
-		if (item.second.isInterval()) {
-			SVFUtil::outs() << " Value: " << item.second.getInterval().toString() << "\n";
-		} else if (item.second.isAddr()) {
-			SVFUtil::outs() << " Value: {";
-			u32_t i = 0;
-			for (const auto& addr: item.second.getAddrs()) {
-				++i;
-				if (i < item.second.getAddrs().size()) {
-					SVFUtil::outs() << "0x" << std::hex << addr << ", ";
-				} else {
-					SVFUtil::outs() << "0x" << std::hex << addr;
-				}
-			}
-			SVFUtil::outs() << "}\n";
-		} else {
-			SVFUtil::outs() << " Value: ⊥\n";
-		}
-	}
-
-	for (const auto& item: _addrToAbsVal) {
-		std::ostringstream oss;
-		oss << "0x" << std::hex << AEState::getVirtualMemAddress(item.first);
-		SVFUtil::outs() << std::left << std::setw(fieldWidth) << oss.str();
-		if (item.second.isInterval()) {
-			SVFUtil::outs() << " Value: " << item.second.getInterval().toString() << "\n";
-		} else if (item.second.isAddr()) {
-			SVFUtil::outs() << " Value: {";
-			u32_t i = 0;
-			for (const auto& addr: item.second.getAddrs()) {
-				++i;
-				if (i < item.second.getAddrs().size()) {
-					SVFUtil::outs() << "0x" << std::hex << addr << ", ";
-				} else {
-					SVFUtil::outs() << "0x" << std::hex << addr;
-				}
-			}
-			SVFUtil::outs() << "}\n";
-		} else {
-			SVFUtil::outs() << " Value: ⊥\n";
-		}
-	}
-	SVFUtil::outs() << "-----------------------------------------\n";
-}
 
 IntervalValue AbstractExecution::getAccessOffset(NodeID objId, const GepStmt* gep) {
 	auto obj = svfir->getGNode(objId);
- 	AEState& as = getAbsStateFromTrace(gep->getICFGNode());
- 	// Field-insensitive base object
- 	if (SVFUtil::isa<FIObjVar>(obj)) {
-  		// get base size
-  		IntervalValue accessOffset = as.getByteOffset(gep);
-  		return accessOffset;
- 	}
- 	// A sub object of an aggregate object
- 	else if (SVFUtil::isa<GepObjVar>(obj)) {
-  		IntervalValue accessOffset =
-      	bufOverflowHelper.getGepObjOffsetFromBase(SVFUtil::cast<GepObjVar>(obj)) + as.getByteOffset(gep);
-  		return accessOffset;
- 	}
+	AbstractState& as = getAbsStateFromTrace(gep->getICFGNode());
+	// Field-insensitive base object
+	if (SVFUtil::isa<FIObjVar>(obj)) {
+		// get base size
+		IntervalValue accessOffset = as.getByteOffset(gep);
+		return accessOffset;
+	}
+	// A sub object of an aggregate object
+	else if (SVFUtil::isa<GepObjVar>(obj)) {
+		IntervalValue accessOffset =
+		    bufOverflowHelper.getGepObjOffsetFromBase(SVFUtil::cast<GepObjVar>(obj)) + as.getByteOffset(gep);
+		return accessOffset;
+	}
 	else{
 		assert(SVFUtil::isa<DummyObjVar>(obj) && "What other types of object?");
 		return IntervalValue::top();
@@ -126,59 +77,9 @@ void AbstractExecution::reportBufOverflow(const ICFGNode* node) {
 	bufOverflowHelper.addBugToReporter(bug, node);
 }
 
-/**
- * @brief Initialize an object variable in the abstract state
- *
- * This function initializes an object variable in the given abstract state. It sets the initial value
- * based on the characteristics of the memory object associated with the variable. It handles constant data,
- * constant arrays, constant structures, and other types appropriately.
- *
- * @param objVar The object variable to be initialized
- */
-void AEState::initObjVar(ObjVar* objVar) {
-	NodeID varId = objVar->getId();
-
-	// Check if the object variable has an associated value
-	if (objVar->hasValue()) {
-		const MemObj* obj = objVar->getMemObj();
-
-		// Handle constant data, arrays, and structures
-		if (obj->isConstDataOrConstGlobal() || obj->isConstantArray() || obj->isConstantStruct()) {
-			if (const SVFConstantInt* consInt = SVFUtil::dyn_cast<SVFConstantInt>(obj->getValue())) {
-				s64_t numeral = consInt->getSExtValue();
-				(*this)[varId] = IntervalValue(numeral, numeral);
-			}
-			else if (const SVFConstantFP* consFP = SVFUtil::dyn_cast<SVFConstantFP>(obj->getValue())) {
-				(*this)[varId] = IntervalValue(consFP->getFPValue(), consFP->getFPValue());
-			}
-			else if (SVFUtil::isa<SVFConstantNullPtr>(obj->getValue())) {
-				(*this)[varId] = IntervalValue(0, 0);
-			}
-			else if (SVFUtil::isa<SVFGlobalValue>(obj->getValue())) {
-				(*this)[varId] = AddressValue(AEState::getVirtualMemAddress(varId));
-			}
-			else if (obj->isConstantArray() || obj->isConstantStruct()) {
-				(*this)[varId] = IntervalValue::top();
-			}
-			else {
-				(*this)[varId] = IntervalValue::top();
-			}
-		}
-		// Handle non-constant memory objects
-		else {
-			(*this)[varId] = AddressValue(AEState::getVirtualMemAddress(varId));
-		}
-	}
-	// If the object variable does not have an associated value, set it to a virtual memory address
-	else {
-		(*this)[varId] = AddressValue(AEState::getVirtualMemAddress(varId));
-	}
-	return;
-}
 
 void AbstractExecution::runOnModule(SVF::ICFG* _icfg) {
 	svfir = PAG::getPAG();
-
 	icfg = _icfg;
 	analyse();
 	bufOverflowHelper.printReport();
@@ -214,187 +115,6 @@ void AbstractExecution::initWTO() {
 }
 
 /**
- * @brief Get the address values for a range of offsets for a GEP (GetElementPtr) object
- *
- * This function calculates the address values for a GEP object given the abstract state,
- * a pointer, and a range of offsets. It processes the addresses associated with the
- * base pointer and applies each offset within the specified interval to calculate
- * the resulting address values.
- *
- * @param pointer The pointer to the base address
- * @param offset The interval of offsets to be applied to the base address
- * @return AddressValue The set of calculated address values for the GEP object within the specified interval
- */
-AddressValue AEState::getGepObjAddrs(u32_t pointer, IntervalValue offset) {
-	AddressValue gepAddrs;
-	APOffset lb = offset.lb().getIntNumeral() < Options::MaxFieldLimit() ? offset.lb().getIntNumeral()
-	                                                                     : Options::MaxFieldLimit();
-	APOffset ub = offset.ub().getIntNumeral() < Options::MaxFieldLimit() ? offset.ub().getIntNumeral()
-	                                                                     : Options::MaxFieldLimit();
-	for (APOffset i = lb; i <= ub; i++) {
-		AbstractValue addrs = (*this)[pointer];
-		for (const auto& addr : addrs.getAddrs()) {
-			s64_t baseObj = AEState::getInternalID(addr);
-			assert(SVFUtil::isa<ObjVar>(PAG::getPAG()->getGNode(baseObj)) && "Fail to get the base object address!");
-			NodeID gepObj = PAG::getPAG()->getGepObjVar(baseObj, i);
-			(*this)[gepObj] = AddressValue(AEState::getVirtualMemAddress(gepObj));
-			gepAddrs.insert(AEState::getVirtualMemAddress(gepObj));
-		}
-	}
-
-	return gepAddrs;
-}
-
-/**
- * @brief Get the byte offset interval for a given abstract state and GEP statement
- *
- * This function calculates the byte offset interval for a given abstract state
- * and a GEP (GetElementPtr) statement. If the GEP statement has a constant byte offset,
- * it directly returns the interval value of that constant byte offset. Otherwise, it
- * computes the byte offset interval based on the list of offset variable and type pairs.
- * e.g. int arr[20]; int idx = 10; arr[idx] => arr[idx] is a GEP statement, idx is an offset variable,
- * call getByteOffset(as, gep) to get the byte offset interval for arr[idx] (10*4 = 40 Bytes, [40,40])
- *
- * @param gep The GEP statement for which the byte offset is to be calculated
- * @return IntervalValue The interval value of the byte offset
- */
-IntervalValue AEState::getByteOffset(const GepStmt* gep) {
-	// If the GEP statement has a constant byte offset, return it directly as the interval value
-	if (gep->isConstantOffset())
-		return IntervalValue((s64_t)gep->accumulateConstantByteOffset());
-
-	IntervalValue res(0); // Initialize the result interval 'res' to 0.
-
-	// Loop through the offsetVarAndGepTypePairVec in reverse order.
-	for (int i = gep->getOffsetVarAndGepTypePairVec().size() - 1; i >= 0; i--) {
-		const SVFVar* idxOperandVar = gep->getOffsetVarAndGepTypePairVec()[i].first;
-		const SVFType* idxOperandType = gep->getOffsetVarAndGepTypePairVec()[i].second;
-
-		// Calculate the byte offset for array or pointer types
-		if (SVFUtil::isa<SVFArrayType>(idxOperandType) || SVFUtil::isa<SVFPointerType>(idxOperandType)) {
-			u32_t elemByteSize = 1;
-			if (const SVFArrayType* arrOperandType = SVFUtil::dyn_cast<SVFArrayType>(idxOperandType))
-				elemByteSize = arrOperandType->getTypeOfElement()->getByteSize();
-			else if (SVFUtil::isa<SVFPointerType>(idxOperandType))
-				elemByteSize = gep->getAccessPath().gepSrcPointeeType()->getByteSize();
-			else
-				assert(false && "idxOperandType must be ArrType or PtrType");
-
-			if (const SVFConstantInt* op = SVFUtil::dyn_cast<SVFConstantInt>(idxOperandVar->getValue())) {
-				// Calculate the lower bound (lb) of the interval value
-				s64_t lb = (double)Options::MaxFieldLimit() / elemByteSize >= op->getSExtValue()
-				               ? op->getSExtValue() * elemByteSize
-				               : Options::MaxFieldLimit();
-				res = res + IntervalValue(lb, lb);
-			}
-			else {
-				u32_t idx = PAG::getPAG()->getValueNode(idxOperandVar->getValue());
-				IntervalValue idxVal = (*this)[idx].getInterval();
-
-				if (idxVal.isBottom())
-					res = res + IntervalValue(0, 0);
-				else {
-					// Ensure the bounds are non-negative and within the field limit
-					s64_t ub = (idxVal.ub().getIntNumeral() < 0) ? 0
-					           : (double)Options::MaxFieldLimit() / elemByteSize >= idxVal.ub().getIntNumeral()
-					               ? elemByteSize * idxVal.ub().getIntNumeral()
-					               : Options::MaxFieldLimit();
-					s64_t lb = (idxVal.lb().getIntNumeral() < 0) ? 0
-					           : (double)Options::MaxFieldLimit() / elemByteSize >= idxVal.lb().getIntNumeral()
-					               ? elemByteSize * idxVal.lb().getIntNumeral()
-					               : Options::MaxFieldLimit();
-					res = res + IntervalValue(lb, ub);
-				}
-			}
-		}
-		// Process struct subtypes by calculating the byte offset from the beginning to the field of the struct
-		else if (const SVFStructType* structOperandType = SVFUtil::dyn_cast<SVFStructType>(idxOperandType)) {
-			res = res + IntervalValue(gep->getAccessPath().getStructFieldOffset(idxOperandVar, structOperandType));
-		}
-		else {
-			assert(false && "gep type pair only support arr/ptr/struct");
-		}
-	}
-	return res; // Return the resulting byte offset as an IntervalValue.
-}
-
-/**
- * @brief Get the interval value of an element index for a given abstract state and GEP statement
- *
- * This function calculates the interval value of the element index for a given abstract state
- * and a GEP (GetElementPtr) statement. If the GEP statement has a constant offset, it directly
- * returns the interval value of that constant offset. Otherwise, it computes the interval value
- * based on the list of offset variable and type pairs.
- * e.g. int arr[20]; int idx = 10; arr[idx] => arr[idx] is a GEP statement, idx is an offset variable,
- * call this function with the abstract state and GEP statement, the function will return the interval of idx ([10,10]);
- *
- * @param gep The GEP statement for which the element index is to be calculated
- * @return IntervalValue The interval value of the element index
- */
-IntervalValue AEState::getElementIndex(const GepStmt* gep) {
-	// If the GEP statement has a constant offset, return it directly as the interval value
-	if (gep->isConstantOffset())
-		return IntervalValue((s64_t)gep->accumulateConstantOffset());
-
-	IntervalValue res(0);
-	// Iterate over the list of offset variable and type pairs in reverse order
-	for (int i = gep->getOffsetVarAndGepTypePairVec().size() - 1; i >= 0; i--) {
-		AccessPath::IdxOperandPair IdxVarAndType = gep->getOffsetVarAndGepTypePairVec()[i];
-		const SVFValue* value = gep->getOffsetVarAndGepTypePairVec()[i].first->getValue();
-		const SVFType* type = IdxVarAndType.second;
-
-		// Variables to store the lower and upper bounds of the index value
-		s64_t idxLb;
-		s64_t idxUb;
-
-		// Determine the lower and upper bounds based on whether the value is a constant
-		if (const SVFConstantInt* constInt = SVFUtil::dyn_cast<SVFConstantInt>(value))
-			idxLb = idxUb = constInt->getSExtValue();
-		else {
-			IntervalValue idxItv = (*this)[PAG::getPAG()->getValueNode(value)].getInterval();
-			if (idxItv.isBottom())
-				idxLb = idxUb = 0;
-			else {
-				idxLb = idxItv.lb().getIntNumeral();
-				idxUb = idxItv.ub().getIntNumeral();
-			}
-		}
-
-		// Adjust the bounds if the type is a pointer
-		if (SVFUtil::isa<SVFPointerType>(type)) {
-			u32_t elemNum = gep->getAccessPath().getElementNum(gep->getAccessPath().gepSrcPointeeType());
-			idxLb = (double)Options::MaxFieldLimit() / elemNum < idxLb ? Options::MaxFieldLimit() : idxLb * elemNum;
-			idxUb = (double)Options::MaxFieldLimit() / elemNum < idxUb ? Options::MaxFieldLimit() : idxUb * elemNum;
-		}
-		// Adjust the bounds for array or struct types using the symbol table info
-		else {
-			if (Options::ModelArrays()) {
-				const std::vector<u32_t>& so = SymbolTableInfo::SymbolInfo()->getTypeInfo(type)->getFlattenedElemIdxVec();
-				if (so.empty() || idxUb >= (APOffset)so.size() || idxLb < 0) {
-					idxLb = idxUb = 0;
-				}
-				else {
-					idxLb = SymbolTableInfo::SymbolInfo()->getFlattenedElemIdx(type, idxLb);
-					idxUb = SymbolTableInfo::SymbolInfo()->getFlattenedElemIdx(type, idxUb);
-				}
-			}
-			else
-				idxLb = idxUb = 0;
-		}
-
-		// Add the calculated interval to the result
-		res = res + IntervalValue(idxLb, idxUb);
-	}
-
-	// Ensure the result is within the bounds of [0, MaxFieldLimit]
-	res.meet_with(IntervalValue((s64_t)0, (s64_t)Options::MaxFieldLimit()));
-	if (res.isBottom()) {
-		res = IntervalValue(0);
-	}
-	return res;
-}
-
-/**
  * @brief Update the offset of a GEP (GetElementPtr) object from its base address
  *
  * This function updates the offset of a GEP object from its base address in the abstract state.
@@ -409,11 +129,11 @@ void AbstractExecution::updateGepObjOffsetFromBase(SVF::AddressValue gepAddrs, S
                                                    SVF::IntervalValue offset)
 {
 	for (const auto& objAddr : objAddrs) {
-		NodeID objId = AEState::getInternalID(objAddr);
+		NodeID objId = AbstractState::getInternalID(objAddr);
 		auto obj = svfir->getGNode(objId);
 		if (SVFUtil::isa<FIObjVar>(obj)) {
 			for (const auto& gepAddr : gepAddrs) {
-				NodeID gepObj = AEState::getInternalID(gepAddr);
+				NodeID gepObj = AbstractState::getInternalID(gepAddr);
 				const GepObjVar* gepObjVar = SVFUtil::cast<GepObjVar>(svfir->getGNode(gepObj));
 				bufOverflowHelper.addToGepObjOffsetFromBase(gepObjVar, offset);
 			}
@@ -421,7 +141,7 @@ void AbstractExecution::updateGepObjOffsetFromBase(SVF::AddressValue gepAddrs, S
 		else if (SVFUtil::isa<GepObjVar>(obj)) {
 			const GepObjVar* objVar = SVFUtil::cast<GepObjVar>(obj);
 			for (const auto& gepAddr : gepAddrs) {
-				NodeID gepObj = AEState::getInternalID(gepAddr);
+				NodeID gepObj = AbstractState::getInternalID(gepAddr);
 				const GepObjVar* gepObjVar = SVFUtil::cast<GepObjVar>(svfir->getGNode(gepObj));
 				if (bufOverflowHelper.hasGepObjOffsetFromBase(objVar)) {
 					IntervalValue objOffsetFromBase = bufOverflowHelper.getGepObjOffsetFromBase(objVar);
@@ -449,9 +169,9 @@ void AbstractExecution::updateGepObjOffsetFromBase(SVF::AddressValue gepAddrs, S
  * @param block The ICFG node (block) for which the state propagation is attempted
  * @return bool True if the state propagation is feasible and successful, false otherwise
  */
-bool AbstractExecution::mergeStatesFromPredecessors(const ICFGNode* block, AEState& as) {
+bool AbstractExecution::mergeStatesFromPredecessors(const ICFGNode* block, AbstractState& as) {
 	u32_t inEdgeNum = 0; // Initialize the number of incoming edges with feasible states
-	as = AEState(); // Reset the AEState
+	as = AbstractState();
 	// Iterate over all incoming edges of the given block
 	for (auto& edge : block->getInEdges()) {
 		// Check if the source node of the edge has a post-execution state recorded
@@ -460,7 +180,7 @@ bool AbstractExecution::mergeStatesFromPredecessors(const ICFGNode* block, AESta
 
 			// If the edge is an intra-block edge and has a condition
 			if (intraCfgEdge && intraCfgEdge->getCondition()) {
-				AEState tmpEs = postAbsTrace[edge->getSrcNode()];
+				AbstractState tmpEs = postAbsTrace[edge->getSrcNode()];
 				// Check if the branch condition is feasible
 				if (isBranchFeasible(intraCfgEdge, tmpEs)) {
 					as.joinWith(tmpEs); // Merge the state with the current state
@@ -487,8 +207,8 @@ bool AbstractExecution::mergeStatesFromPredecessors(const ICFGNode* block, AESta
 	assert(false && "implement this part"); // This part should not be reached
 }
 
-bool AbstractExecution::isCmpBranchFeasible(const CmpStmt* cmpStmt, s64_t succ, AEState& as) {
-	AEState new_es = as;
+bool AbstractExecution::isCmpBranchFeasible(const CmpStmt* cmpStmt, s64_t succ, AbstractState& as) {
+	AbstractState new_es = as;
 	// get cmp stmt's op0, op1, and predicate
 	NodeID op0 = cmpStmt->getOpVarID(0);
 	NodeID op1 = cmpStmt->getOpVarID(1);
@@ -615,7 +335,7 @@ bool AbstractExecution::isCmpBranchFeasible(const CmpStmt* cmpStmt, s64_t succ, 
 	}
 
 	for (const auto& addr : addrs) {
-		NodeID objId = SVF::AEState::getInternalID(addr);
+		NodeID objId = SVF::AbstractState::getInternalID(addr);
 		if (new_es.inAddrToValTable(objId)) {
 			switch (predicate) {
 			case CmpStmt::Predicate::ICMP_EQ:
@@ -671,8 +391,8 @@ bool AbstractExecution::isCmpBranchFeasible(const CmpStmt* cmpStmt, s64_t succ, 
 	return true;
 }
 
-bool AbstractExecution::isSwitchBranchFeasible(const SVFVar* var, s64_t succ, AEState& as) {
-	AEState new_es = as;
+bool AbstractExecution::isSwitchBranchFeasible(const SVFVar* var, s64_t succ, AbstractState& as) {
+	AbstractState new_es = as;
 	IntervalValue& switch_cond = new_es[var->getId()].getInterval();
 	s64_t value = succ;
 	FIFOWorkList<const SVFStmt*> workList;
@@ -693,7 +413,7 @@ bool AbstractExecution::isSwitchBranchFeasible(const SVFVar* var, s64_t succ, AE
 			if (new_es.inVarToAddrsTable(load->getRHSVarID())) {
 				AddressValue& addrs = new_es[load->getRHSVarID()].getAddrs();
 				for (const auto& addr : addrs) {
-					NodeID objId = SVF::AEState::getInternalID(addr);
+					NodeID objId = SVF::AbstractState::getInternalID(addr);
 					if (new_es.inAddrToValTable(objId)) {
 						new_es.load(addr).meet_with(switch_cond);
 					}
@@ -705,7 +425,7 @@ bool AbstractExecution::isSwitchBranchFeasible(const SVFVar* var, s64_t succ, AE
 	return true;
 }
 
-bool AbstractExecution::isBranchFeasible(const IntraCFGEdge* intraEdge, AEState& as) {
+bool AbstractExecution::isBranchFeasible(const IntraCFGEdge* intraEdge, AbstractState& as) {
 	const SVFValue* cond = intraEdge->getCondition();
 	NodeID cmpID = svfir->getValueNode(cond);
 	SVFVar* cmpVar = svfir->getGNode(cmpID);
@@ -726,7 +446,7 @@ bool AbstractExecution::isBranchFeasible(const IntraCFGEdge* intraEdge, AEState&
 
 /// handle global node
 void AbstractExecution::handleGlobalNode() {
-	AEState as;
+	AbstractState as;
 	const ICFGNode* node = icfg->getGlobalICFGNode();
 	postAbsTrace[node] = preAbsTrace[node];
 	postAbsTrace[node][0] = AddressValue();
@@ -737,11 +457,19 @@ void AbstractExecution::handleGlobalNode() {
 }
 
 void AbstractExecution::ensureAllAssertsValidated() {
+	u32_t svf_assert_count = 0;
+	u32_t overflow_count = 0;
 	for (auto it = svfir->getICFG()->begin(); it != svfir->getICFG()->end(); ++it) {
 		const ICFGNode* node = it->second;
 		if (const CallICFGNode* call = SVFUtil::dyn_cast<CallICFGNode>(node)) {
 			if (const SVFFunction* fun = call->getCalledFunction()) {
 				if (fun->getName() == "svf_assert" || fun->getName() == "OVERFLOW") {
+					if (fun->getName() == "svf_assert") {
+						svf_assert_count++;
+					}
+					else {
+						overflow_count++;
+					}
 					if (assert_points.find(call) == assert_points.end()) {
 						std::stringstream ss;
 						ss << "The stub function calliste (svf_assert or OVERFLOW) has not been checked: "
@@ -753,4 +481,12 @@ void AbstractExecution::ensureAllAssertsValidated() {
 			}
 		}
 	}
+	if (overflow_count == 0) {
+		SVFBugReport& report = bufOverflowHelper.getBugReporter();
+		assert (report.getBugSet().size() == 0 && "There should be no overflow bugs");
+	} else {
+		assert(overflow_count == bufOverflowHelper.getBugReporter().getBugSet().size() &&
+		       "The number of overflow bugs should be equal to the number of stub functions called");
+	}
 }
+

@@ -1,27 +1,15 @@
+#pragma once
 #include "AE/Core/AbstractState.h"
+#include "AE/Svfexe/AEDetector.h"
 #include "AE/Core/ICFGWTO.h"
 #include "Util/SVFBugReport.h"
 namespace SVF {
-
-	/// Exception handling for bug detections
-	class AEException : public std::exception {
-	 public:
-		AEException(const std::string& message)
-		: msg_(message) {}
-
-		virtual const char* what() const throw() {
-			return msg_.c_str();
-		}
-
-	 private:
-		std::string msg_;
-	};
-
 	class AbstractExecutionHelper {
 	 public:
 		/// Add a detected bug to the bug reporter and print the report
 		///@{
 		void addBugToReporter(const AEException& e, const ICFGNode* node) {
+
 			GenericBug::EventStack eventStack;
 			SVFBugEvent sourceInstEvent(SVFBugEvent::EventType::SourceInst, node);
 			eventStack.push_back(sourceInstEvent); // Add the source instruction event to the event stack
@@ -70,6 +58,9 @@ namespace SVF {
 				return gepObjOffsetFromBase.at(obj);
 			else
 				assert(false && "GepObjVar not found in gepObjOffsetFromBase");
+		}
+		SVFBugReport& getBugReporter() {
+			return _recoder;
 		}
 
 	 private:

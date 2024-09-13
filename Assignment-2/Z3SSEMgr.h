@@ -39,7 +39,7 @@ namespace SVF {
 	class GepStmt;
 
 	class Z3SSEMgr : public Z3Mgr {
-		typedef std::vector<const SVFInstruction*> CallStack;
+		typedef std::vector<const ICFGNode*> CallStack;
 	 public:
 		/// Constructor
 		Z3SSEMgr(SVFIR* ir);

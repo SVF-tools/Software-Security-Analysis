@@ -35,7 +35,7 @@ using namespace z3;
 
 /// TODO: Implement your context-sensitive ICFG traversal here to traverse each program path (once for any loop) from
 /// You will need to collect each path from src node to snk node and then add the path to the `paths` set by
-/// calling the `collectAndTranslatePath` method, in which translatePath method is called. 
+/// calling the `collectAndTranslatePath` method which is then trigger the path translation.
 /// This implementation, slightly different from Assignment-1, requires ICFGNode* as the first argument.
 void SSE::reachability(const ICFGEdge* curEdge, const ICFGNode* snk) {
 	/// TODO: your code starts from here
@@ -52,21 +52,21 @@ void SSE::collectAndTranslatePath() {
 
 /// TODO: Implement handling of function calls
 /// Return true means a feasible path, false otherwise
-bool SSE::handleCall(const CallCFGEdge* calledge) {
+void SSE::handleCall(const CallCFGEdge* calledge) {
 	/// TODO: your code starts from here
-	return true;
+	return;
 }
 
 /// TODO: Implement handling of function returns
 /// Return true means a feasible path, false otherwise
-bool SSE::handleRet(const RetCFGEdge* retEdge) {
+void SSE::handleRet(const RetCFGEdge* retEdge) {
 	/// TODO: your code starts from here
-	return true;
+	return;
 }
 
 /// TODO: Implement handling of branch statements inside a function
 /// Return true if the path is feasible, false otherwise.
-/// A given if/else branch on the ICFG looks like the following:
+/// A given branch on the ICFG looks like the following:
 ///       	     ICFGNode1 (condition %cmp)
 ///       	     1	/    \  0
 ///       	  ICFGNode2   ICFGNode3
@@ -159,6 +159,10 @@ bool SSE::handleNonBranch(const IntraCFGEdge* edge) {
 				assert(false && "implement this part");
 			}
 		}
+		else if (const BranchStmt *br = SVFUtil::dyn_cast<BranchStmt>(stmt))
+		{
+			DBOP(std::cout << "\t skip handled when traversal Conditional IntraCFGEdge \n");
+		}
 		else if (const SelectStmt *select = SVFUtil::dyn_cast<SelectStmt>(stmt)) {
 			expr res = getZ3Expr(select->getResID());
 			expr tval = getZ3Expr(select->getTrueValue()->getId());
@@ -179,9 +183,6 @@ bool SSE::handleNonBranch(const IntraCFGEdge* edge) {
 				}
 			}
 			assert(opINodeFound && "predecessor ICFGNode of this PhiStmt not found?");
-		}
-		else {
-			DBOP(std::cout << "\t skip handling BranchStmt/Call/Ret as they have been processed \n");
 		}
 	}
 

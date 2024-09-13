@@ -36,7 +36,7 @@ namespace SVF {
 
 	class SSE {
 	 public:
-		typedef std::vector<const SVFInstruction*> CallStack;
+		typedef std::vector<const ICFGNode*> CallStack;
 		typedef std::pair<const ICFGEdge*, CallStack> ICFGEdgeStackPair;
 
 		/// Constructor
@@ -86,8 +86,8 @@ namespace SVF {
 
 		void analyse();
 
-		virtual bool handleCall(const CallCFGEdge* call);
-		virtual bool handleRet(const RetCFGEdge* ret);
+		virtual void handleCall(const CallCFGEdge* call);
+		virtual void handleRet(const RetCFGEdge* ret);
 		virtual bool handleIntra(const IntraCFGEdge* edge) {
 			if (edge->getCondition()) {
 				if (handleBranch(edge) == false)
@@ -138,7 +138,7 @@ namespace SVF {
 			return paths;
 		}
 
-		void pushCallingCtx(const SVFInstruction* c) {
+		void pushCallingCtx(const ICFGNode* c) {
 			callingCtx.push_back(c);
 		}
 

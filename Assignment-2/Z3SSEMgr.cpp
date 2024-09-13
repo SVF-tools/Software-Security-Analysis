@@ -67,8 +67,8 @@ z3::expr Z3SSEMgr::createExprForObjVar(const ObjVar* objVar) {
 			else if (obj->isConstantArray() || obj->isConstantStruct())
 				assert(false && "implement this part");
 			else {
-				/// For llvm's own intrinsics `memcpy` instruction which can introduces new objects. 
-				e = ctx.int_val(getVirtualMemAddress(objVar->getId()));
+				std::cerr << obj->getValue()->toString() << "\n";
+				assert(false && "what other types of values we have?");
 			}
 		}
 		/// locations (address-taken variables)
@@ -88,9 +88,8 @@ std::string Z3SSEMgr::callingCtxToStr(const CallStack& callingCtx) {
 	std::string str;
 	std::stringstream rawstr(str);
 	rawstr << "ctx:[ ";
-	for (const auto &inst : callingCtx) {
-
-		rawstr << svfir->getICFG()->getICFGNode(inst)->getId() << " ";
+	for (const auto &node : callingCtx) {
+		rawstr << node->getId() << " ";
 	}
 	rawstr << "] ";
 	return rawstr.str();

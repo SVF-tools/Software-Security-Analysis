@@ -73,7 +73,7 @@ void AbstractExecution::updateStateOnPhi(const PhiStmt* phi) {
 void AbstractExecution::bufOverflowDetection(const SVF::SVFStmt* stmt) {
 	if (!SVFUtil::isa<CallICFGNode>(stmt->getICFGNode())) {
 		if (const GepStmt* gep = SVFUtil::dyn_cast<GepStmt>(stmt)) {
-			AEState& as = getAbsStateFromTrace(gep->getICFGNode());
+			AbstractState& as = getAbsStateFromTrace(gep->getICFGNode());
 			NodeID lhs = gep->getLHSVarID();
 			NodeID rhs = gep->getRHSVarID();
 			updateGepObjOffsetFromBase(as[lhs].getAddrs(), as[rhs].getAddrs(), as.getByteOffset(gep));
@@ -91,7 +91,7 @@ void AbstractExecution::handleCycleWTO(const ICFGCycleWTO* cycle) {
 	if (!is_feasible) {
 		return;
 	} else {
-		AEState pre_as = preAbsTrace[cycle->head()->getICFGNode()];
+		AbstractState pre_as = preAbsTrace[cycle->head()->getICFGNode()];
 		// set -widen-delay
 		s32_t widen_delay = Options::WidenDelay();
 		bool increasing = true;
@@ -105,7 +105,7 @@ void AbstractExecution::handleCycleWTO(const ICFGCycleWTO* cycle) {
 /// Abstract state updates on an AddrStmt
 void AbstractExecution::updateStateOnAddr(const AddrStmt* addr) {
 	const ICFGNode* node = addr->getICFGNode();
-	AEState& as = getAbsStateFromTrace(node);
+	AbstractState& as = getAbsStateFromTrace(node);
 	as.initObjVar(SVFUtil::cast<ObjVar>(addr->getRHSVar()));
 	as[addr->getLHSVarID()] = as[addr->getRHSVarID()];
 }
@@ -113,7 +113,7 @@ void AbstractExecution::updateStateOnAddr(const AddrStmt* addr) {
 /// Abstract state updates on an CmpStmt
 void AbstractExecution::updateStateOnCmp(const CmpStmt* cmp) {
 	const ICFGNode* node = cmp->getICFGNode();
-	AEState& as = getAbsStateFromTrace(node);
+	AbstractState& as = getAbsStateFromTrace(node);
 	u32_t op0 = cmp->getOpVarID(0);
 	u32_t op1 = cmp->getOpVarID(1);
 	u32_t res = cmp->getResID();
@@ -251,7 +251,7 @@ void AbstractExecution::updateStateOnCmp(const CmpStmt* cmp) {
 /// Abstract state updates on an CallPE
 void AbstractExecution::updateStateOnCall(const CallPE* call) {
 	const ICFGNode* node = call->getICFGNode();
-	AEState& as = getAbsStateFromTrace(node);
+	AbstractState& as = getAbsStateFromTrace(node);
 	NodeID lhs = call->getLHSVarID();
 	NodeID rhs = call->getRHSVarID();
 	as[lhs] = as[rhs];
@@ -260,7 +260,7 @@ void AbstractExecution::updateStateOnCall(const CallPE* call) {
 /// Abstract state updates on an RetPE
 void AbstractExecution::updateStateOnRet(const RetPE* retPE) {
 	const ICFGNode* node = retPE->getICFGNode();
-	AEState& as = getAbsStateFromTrace(node);
+	AbstractState& as = getAbsStateFromTrace(node);
 	NodeID lhs = retPE->getLHSVarID();
 	NodeID rhs = retPE->getRHSVarID();
 	as[lhs] = as[rhs];
@@ -269,7 +269,7 @@ void AbstractExecution::updateStateOnRet(const RetPE* retPE) {
 /// Abstract state updates on an SelectStmt
 void AbstractExecution::updateStateOnSelect(const SelectStmt* select) {
 	const ICFGNode* node = select->getICFGNode();
-	AEState& as = getAbsStateFromTrace(node);
+	AbstractState& as = getAbsStateFromTrace(node);
 	u32_t res = select->getResID();
 	u32_t tval = select->getTrueValue()->getId();
 	u32_t fval = select->getFalseValue()->getId();
@@ -293,6 +293,7 @@ void AbstractExecution::updateStateOnSelect(const SelectStmt* select) {
 void AbstractExecution::analyse() {
 	// Init WTOs for all functions, and handle Global ICFGNode of SVFModule
 	initWTO();
+	utils = new AbsExtAPI(postAbsTrace);
 
 	// Handle the global node
 	handleGlobalNode();
@@ -301,12 +302,13 @@ void AbstractExecution::analyse() {
 	if (const SVFFunction* fun = svfir->getModule()->getSVFFunction("main")) {
 		// arguments of main are initialised as \top to represent all possible inputs
 		for (u32_t i = 0; i < fun->arg_size(); ++i) {
-			AEState& as = getAbsStateFromTrace(icfg->getGlobalICFGNode());
+			AbstractState& as = getAbsStateFromTrace(icfg->getGlobalICFGNode());
 			as[svfir->getValueNode(fun->getArg(i))] = IntervalValue::top();
 		}
 		ICFGWTO* wto = funcToWTO[fun];
 		handleWTOComponents(wto->getWTOComponents());
 	}
+	return;
 }
 
 /**
@@ -361,7 +363,7 @@ void AbstractExecution::handleSingletonWTO(const ICFGSingletonWTO* singletonWTO)
 	if (const CallICFGNode* callnode = SVFUtil::dyn_cast<CallICFGNode>(node)) {
 		// Get the name of the callee function
 		std::string funName = callnode->getCalledFunction()->getName();
-		if (funName == "OVERFLOW" || funName == "svf_assert") {
+		if (funName == "OVERFLOW" || funName == "svf_assert" || funName == "svf_assert_eq") {
 			handleStubFunctions(callnode); // Handle specific stub functions
 		}
 		else {
@@ -443,13 +445,13 @@ void AbstractExecution::updateAbsState(const SVFStmt* stmt) {
  * @param node The call site node to be handled
  */
 void AbstractExecution::handleCallSite(const CallICFGNode* callNode) {
-	// Get the abstract state associated with the call node
-	AEState& as = getAbsStateFromTrace(callNode);
-
 	// Get the callee function associated with the call site
 	const SVFFunction* callee = callNode->getCalledFunction();
-
-	if (recursiveFuns.find(callee) != recursiveFuns.end()) {
+	if (SVFUtil::isExtCall(callee)) {
+		// handle external API calls
+		utils->handleExtAPI(callNode);
+	}
+	else if (recursiveFuns.find(callee) != recursiveFuns.end()) {
 		// skip recursive functions
 		return;
 	}
@@ -475,29 +477,29 @@ void AbstractExecution::handleCallSite(const CallICFGNode* callNode) {
  * @param callnode The call node representing the stub function to be handled
  */
 
-void AbstractExecution::handleStubFunctions(const SVF::CallICFGNode* callnode) {
+void AbstractExecution::handleStubFunctions(const SVF::CallICFGNode* callNode) {
 	// Handle the 'svf_assert' stub function
-	if (callnode->getCalledFunction()->getName() == "svf_assert") {
-		assert_points.insert(callnode);
+	if (callNode->getCalledFunction()->getName() == "svf_assert") {
+		assert_points.insert(callNode);
 		// If the condition is false, the program is infeasible
-		u32_t arg0 = svfir->getValueNode(callnode->getArgument(0));
-		AEState& as = getAbsStateFromTrace(callnode);
+		u32_t arg0 = svfir->getValueNode(callNode->getArgument(0));
+		AbstractState& as = getAbsStateFromTrace(callNode);
 
 		// Check if the interval for the argument is infinite
 		if (as[arg0].getInterval().is_infinite()) {
-			SVFUtil::errs() << "svf_assert Fail. " << callnode->toString() << "\n";
+			SVFUtil::errs() << "svf_assert Fail. " << callNode->toString() << "\n";
 			assert(false);
 		}
 		else {
 			if (as[arg0].getInterval().equals(IntervalValue(1, 1))) {
 				std::stringstream ss;
-				ss << "The assertion (" << callnode->toString() << ")"
+				ss << "The assertion (" << callNode->toString() << ")"
 				   << " is successfully verified!!\n";
 				SVFUtil::outs() << ss.str() << std::endl;
 			}
 			else {
 				std::stringstream ss;
-				ss << "The assertion (" << callnode->toString() << ")"
+				ss << "The assertion (" << callNode->toString() << ")"
 				   << " is unsatisfiable!!\n";
 				SVFUtil::outs() << ss.str() << std::endl;
 				assert(false);
@@ -505,14 +507,29 @@ void AbstractExecution::handleStubFunctions(const SVF::CallICFGNode* callnode) {
 		}
 		return;
 	}
+	else if (callNode->getCalledFunction()->getName() == "svf_assert_eq")  {
+		u32_t arg0 = svfir->getValueNode(callNode->getArgument(0));
+		u32_t arg1 = svfir->getValueNode(callNode->getArgument(1));
+		AbstractState&as = getAbsStateFromTrace(callNode);
+		if (as[arg0].getInterval().equals(as[arg1].getInterval()))
+		{
+			SVFUtil::errs() << SVFUtil::sucMsg("The assertion is successfully verified!!\n");
+		}
+		else
+		{
+			SVFUtil::errs() <<"svf_assert_eq Fail. " << callNode->toString() << "\n";
+			assert(false);
+		}
+		return;
+	}
 	// Handle the 'OVERFLOW' stub function
-	else if (callnode->getCalledFunction()->getName() == "OVERFLOW") {
+	else if (callNode->getCalledFunction()->getName() == "OVERFLOW") {
 		// If the condition is false, the program is infeasible
-		assert_points.insert(callnode);
-		u32_t arg0 = svfir->getValueNode(callnode->getArgument(0));
-		u32_t arg1 = svfir->getValueNode(callnode->getArgument(1));
+		assert_points.insert(callNode);
+		u32_t arg0 = svfir->getValueNode(callNode->getArgument(0));
+		u32_t arg1 = svfir->getValueNode(callNode->getArgument(1));
 
-		AEState& as = getAbsStateFromTrace(callnode);
+		AbstractState& as = getAbsStateFromTrace(callNode);
 		AbstractValue gepRhsVal = as[arg0];
 
 		// Check if the RHS value is an address
@@ -520,7 +537,7 @@ void AbstractExecution::handleStubFunctions(const SVF::CallICFGNode* callnode) {
 			bool overflow = false;
 			for (const auto& addr : gepRhsVal.getAddrs()) {
 				u64_t access_offset = as[arg1].getInterval().getIntNumeral();
-				NodeID objId = AEState::getInternalID(addr);
+				NodeID objId = AbstractState::getInternalID(addr);
 				const GepObjVar* gepLhsObjVar = SVFUtil::cast<GepObjVar>(svfir->getGNode(objId));
 				auto size = svfir->getBaseObj(objId)->getByteSizeOfObj();
 				if (bufOverflowHelper.hasGepObjOffsetFromBase(gepLhsObjVar)) {
@@ -536,13 +553,13 @@ void AbstractExecution::handleStubFunctions(const SVF::CallICFGNode* callnode) {
 			}
 			else {
 				SVFUtil::errs() << "Your implementation failed to detect the buffer overflow!"
-				                << callnode->toString() << "\n";
+				                << callNode->toString() << "\n";
 				assert(false);
 			}
 		}
 		else {
 			SVFUtil::errs() << "Your implementation failed to detect the buffer overflow!"
-			                << callnode->toString() << "\n";
+			                << callNode->toString() << "\n";
 			assert(false);
 		}
 	}
