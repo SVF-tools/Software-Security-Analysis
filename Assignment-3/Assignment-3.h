@@ -78,6 +78,7 @@ namespace SVF {
 		void updateStateOnPhi(const PhiStmt* phi);
 		void updateStateOnBinary(const BinaryOPStmt* binary);
 		void updateStateOnSelect(const SelectStmt* select);
+		void updateStateOnExtCall(const SVF::CallICFGNode* extCallNode);
 		///@}
 
 		/// Handle stub functions for verifying abstract interpretation results
