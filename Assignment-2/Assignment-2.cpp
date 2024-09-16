@@ -35,7 +35,7 @@ using namespace z3;
 
 /// TODO: Implement your context-sensitive ICFG traversal here to traverse each program path (once for any loop) from
 /// You will need to collect each path from src node to snk node and then add the path to the `paths` set by
-/// calling the `collectAndTranslatePath` method which is then trigger the path translation.
+/// calling the `collectAndTranslatePath` method, in which translatePath method is called.
 /// This implementation, slightly different from Assignment-1, requires ICFGNode* as the first argument.
 void SSE::reachability(const ICFGEdge* curEdge, const ICFGNode* snk) {
 	/// TODO: your code starts from here
@@ -66,7 +66,7 @@ void SSE::handleRet(const RetCFGEdge* retEdge) {
 
 /// TODO: Implement handling of branch statements inside a function
 /// Return true if the path is feasible, false otherwise.
-/// A given branch on the ICFG looks like the following:
+/// A given if/else branch on the ICFG looks like the following:
 ///       	     ICFGNode1 (condition %cmp)
 ///       	     1	/    \  0
 ///       	  ICFGNode2   ICFGNode3
