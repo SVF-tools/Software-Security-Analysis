@@ -1,27 +1,41 @@
+//===- Assignment-3-Helper.h -- Abstract Interpretation Helper funcs --//
+//
+//                     SVF: Static Value-Flow Analysis
+//
+// Copyright (C) <2013-2022>  <Yulei Sui>
+//
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+//===----------------------------------------------------------------------===//
+/*
+ * Abstract Interpretation Helper Functions
+ *
+ * Created on: Feb 19, 2024
+ */
+
 #include "AE/Core/AbstractState.h"
+#include "AE/Svfexe/AEDetector.h"
 #include "AE/Core/ICFGWTO.h"
 #include "Util/SVFBugReport.h"
 namespace SVF {
-
-	/// Exception handling for bug detections
-	class AEException : public std::exception {
-	 public:
-		AEException(const std::string& message)
-		: msg_(message) {}
-
-		virtual const char* what() const throw() {
-			return msg_.c_str();
-		}
-
-	 private:
-		std::string msg_;
-	};
-
 	class AbstractExecutionHelper {
 	 public:
 		/// Add a detected bug to the bug reporter and print the report
 		///@{
 		void addBugToReporter(const AEException& e, const ICFGNode* node) {
+
 			GenericBug::EventStack eventStack;
 			SVFBugEvent sourceInstEvent(SVFBugEvent::EventType::SourceInst, node);
 			eventStack.push_back(sourceInstEvent); // Add the source instruction event to the event stack
@@ -70,6 +84,9 @@ namespace SVF {
 				return gepObjOffsetFromBase.at(obj);
 			else
 				assert(false && "GepObjVar not found in gepObjOffsetFromBase");
+		}
+		SVFBugReport& getBugReporter() {
+			return _recoder;
 		}
 
 	 private:

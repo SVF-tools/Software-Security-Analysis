@@ -24,59 +24,25 @@
  *
  * Created on: Feb 19, 2024
  */
-
 #include "Assignment-3-Helper.h"
+#include "AE/Svfexe/AbsExtAPI.h"
 #include "SVFIR/SVFIR.h"
 
 namespace SVF {
-	class AEState : public AbstractState {
-	 public:
-		AbstractValue loadValue(NodeID varId) {
-			AbstractValue res;
-			for (auto addr : (*this)[varId].getAddrs()) {
-				res.join_with(load(addr)); // q = *p
-			}
-			return res;
-		}
-
-		void storeValue(NodeID varId, AbstractValue val) {
-			for (auto addr : (*this)[varId].getAddrs()) {
-				store(addr, val); // *p = q
-			}
-		}
-
-		AEState widening(const AEState& other) {
-			AbstractState widened = AbstractState::widening(other);
-			return AEState(static_cast<const AEState&>(widened));
-		}
-
-		AEState narrowing(const AEState& other) {
-			AbstractState narrowed = AbstractState::narrowing(other);
-			return AEState(static_cast<const AEState&>(narrowed));
-		}
-
-		void printAbstractState() const;
-
-		/// Get the byte offset interval for a given abstract state and GEP statement
-		IntervalValue getByteOffset(const GepStmt* gep);
-
-		/// Get the interval value of an element index for a given abstract state and GEP statement
-		IntervalValue getElementIndex(const GepStmt* gep);
-
-		/// Initialize an object variable in the abstract state
-		void initObjVar(ObjVar* objVar);
-
-		/// Get the address values for a range of offsets for a GEP (GetElementPtr) object
-		AddressValue getGepObjAddrs(NodeID rhs, IntervalValue offset);
-	};
-
 	/// Abstract Execution class
 	class AbstractExecution {
 	 public:
 		/// Constructor
-		AbstractExecution() {}
+		AbstractExecution() {
+		}
 
 		virtual void runOnModule(ICFG* icfg);
+
+		static AbstractExecution& getAEInstance()
+		{
+			static AbstractExecution instance;
+			return instance;
+		}
 
 		/// Handle a Singleton Weak Topological Order (WTO) node in the control flow graph
 		void handleSingletonWTO(const ICFGSingletonWTO* node);
@@ -111,6 +77,7 @@ namespace SVF {
 		void updateStateOnPhi(const PhiStmt* phi);
 		void updateStateOnBinary(const BinaryOPStmt* binary);
 		void updateStateOnSelect(const SelectStmt* select);
+		void updateStateOnExtCall(const SVF::CallICFGNode* extCallNode);
 		///@}
 
 		/// Handle stub functions for verifying abstract interpretation results
@@ -123,18 +90,19 @@ namespace SVF {
 
 		/// Path feasiblity handling
 		///@{
-		bool mergeStatesFromPredecessors(const ICFGNode* curNode, AEState& as);
+		bool mergeStatesFromPredecessors(const ICFGNode* curNode, AbstractState& as);
 
-		bool isCmpBranchFeasible(const CmpStmt* cmpStmt, s64_t succ, AEState& as);
-		bool isSwitchBranchFeasible(const SVFVar* var, s64_t succ, AEState& as);
-		bool isBranchFeasible(const IntraCFGEdge* intraEdge, AEState& as);
+		bool isCmpBranchFeasible(const CmpStmt* cmpStmt, s64_t succ, AbstractState& as);
+		bool isSwitchBranchFeasible(const SVFVar* var, s64_t succ, AbstractState& as);
+		bool isBranchFeasible(const IntraCFGEdge* intraEdge, AbstractState& as);
 		///@}
 
 		/// Handle a call site in the control flow graph
 		void handleCallSite(const CallICFGNode* callnode);
+		bool isExternalCallForAssignment(const SVF::SVFFunction* func);
 
-		/// Return its abstract state given an ICFGNode
-		AEState& getAbsStateFromTrace(const ICFGNode* node) {
+		    /// Return its abstract state given an ICFGNode
+		AbstractState& getAbsStateFromTrace(const ICFGNode* node) {
 			const ICFGNode* repNode = icfg->getRepNode(node);
 			return postAbsTrace[repNode];
 		}
@@ -144,11 +112,12 @@ namespace SVF {
 
 		/// Return the accessing offset of an object at a GepStmt
 		IntervalValue getAccessOffset(NodeID objId, const GepStmt* gep);
-		
+
 		void ensureAllAssertsValidated();
 
 		/// Destructor
-		virtual ~AbstractExecution() {}
+		virtual ~AbstractExecution() {
+		}
 
 	 protected:
 		/// SVFIR and ICFG
@@ -162,14 +131,16 @@ namespace SVF {
 		/// A set of functions which are involved in recursions
 		Set<const SVFFunction*> recursiveFuns;
 		/// Abstract trace immediately before an ICFGNode.
-		Map<const ICFGNode*, AEState> preAbsTrace;
+		Map<const ICFGNode*, AbstractState> preAbsTrace;
 		/// Abstract trace immediately after an ICFGNode.
-		Map<const ICFGNode*, AEState> postAbsTrace;
+		Map<const ICFGNode*, AbstractState> postAbsTrace;
 
 	 private:
 		AbstractExecutionHelper bufOverflowHelper;
 
 		Set<const CallICFGNode*> assert_points;
+
+		AbsExtAPI* utils;
 	};
 
 } // namespace SVF
