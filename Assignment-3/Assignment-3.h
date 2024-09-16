@@ -24,7 +24,6 @@
  *
  * Created on: Feb 19, 2024
  */
-#pragma once
 #include "Assignment-3-Helper.h"
 #include "AE/Svfexe/AbsExtAPI.h"
 #include "SVFIR/SVFIR.h"
