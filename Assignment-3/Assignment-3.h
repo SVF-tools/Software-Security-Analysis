@@ -100,8 +100,9 @@ namespace SVF {
 
 		/// Handle a call site in the control flow graph
 		void handleCallSite(const CallICFGNode* callnode);
+		bool isExternalCallForAssignment(const SVF::SVFFunction* func);
 
-		/// Return its abstract state given an ICFGNode
+		    /// Return its abstract state given an ICFGNode
 		AbstractState& getAbsStateFromTrace(const ICFGNode* node) {
 			const ICFGNode* repNode = icfg->getRepNode(node);
 			return postAbsTrace[repNode];
