@@ -78,7 +78,7 @@ void AbstractExecution::reportBufOverflow(const ICFGNode* node) {
 }
 
 bool AbstractExecution::isExternalCallForAssignment(const SVF::SVFFunction* func) {
-	Set<std::string> extFuncs = {"mem_insert_unchecked", "str_insert_unchecked"};
+	Set<std::string> extFuncs = {"mem_insert", "str_insert"};
 	if (extFuncs.find(func->getName()) != extFuncs.end()) {
 		return true;
 	} else {

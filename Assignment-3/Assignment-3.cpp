@@ -286,14 +286,14 @@ void AbstractExecution::updateStateOnSelect(const SelectStmt* select) {
 void AbstractExecution::updateStateOnExtCall(const SVF::CallICFGNode* extCallNode) {
 	std::string funcName = extCallNode->getCalledFunction()->getName();
 	//TODO: handle external calls
-	// void mem_insert_unchecked(void *buffer, const void *data, size_t data_size, size_t position);
-	if (funcName == "mem_insert_unchecked") {
+	// void mem_insert(void *buffer, const void *data, size_t data_size, size_t position);
+	if (funcName == "mem_insert") {
 		// check sizeof(buffer) > position + data_size
 		/// TODO: your code starts from here
 
 	}
-	// void str_insert_unchecked(void *buffer, const void *data, size_t position);
-	else if (funcName == "str_insert_unchecked") {
+	// void str_insert(void *buffer, const void *data, size_t position);
+	else if (funcName == "str_insert") {
 		// check sizeof(buffer) > position + strlen(data)
 		/// TODO: your code starts from here
 

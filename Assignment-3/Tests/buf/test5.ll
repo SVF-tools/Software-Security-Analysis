@@ -12,7 +12,7 @@ entry:
   call void @llvm.dbg.declare(metadata ptr %buffer, metadata !21, metadata !DIExpression()), !dbg !25
   call void @llvm.memset.p0.i64(ptr align 1 %buffer, i8 0, i64 10, i1 false), !dbg !25
   %arraydecay = getelementptr inbounds [10 x i8], ptr %buffer, i64 0, i64 0, !dbg !26
-  call void @str_insert_unchecked(ptr noundef %arraydecay, ptr noundef @.str, i32 noundef 5), !dbg !27
+  call void @str_insert(ptr noundef %arraydecay, ptr noundef @.str, i32 noundef 5), !dbg !27
   %arraydecay1 = getelementptr inbounds [10 x i8], ptr %buffer, i64 0, i64 0, !dbg !28
   call void @OVERFLOW(ptr noundef %arraydecay1, i32 noundef 11), !dbg !29
   ret i32 0, !dbg !30
@@ -24,7 +24,7 @@ declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
 ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: write)
 declare void @llvm.memset.p0.i64(ptr nocapture writeonly, i8, i64, i1 immarg) #2
 
-declare void @str_insert_unchecked(ptr noundef, ptr noundef, i32 noundef) #3
+declare void @str_insert(ptr noundef, ptr noundef, i32 noundef) #3
 
 declare void @OVERFLOW(ptr noundef, i32 noundef) #3
 
