@@ -42,6 +42,7 @@ int main() {
     q = 5;
     *p = q;
     x = *p;
+    assert(x==5);
 }
 */
 
@@ -82,6 +83,7 @@ void Z3Examples::test0() {
         int b;
         a = 0;
         b = a + 1;
+        assert(b > 0);
     }
 */
 void Z3Examples::test1() {
@@ -105,6 +107,7 @@ void Z3Examples::test1() {
         q = *p;
         *p = 3;
         b = *p + 1;
+        assert(b > 3);
     }
 */
 void Z3Examples::test2(){
@@ -135,6 +138,7 @@ void Z3Examples::test2(){
         *q = 10;
         r = *p;
         x = *r;
+        assert(x==10);
     }
 */
 void Z3Examples::test3(){
@@ -172,6 +176,7 @@ void Z3Examples::test3(){
         *y = 11;
         a = *x;
         b = *y;
+        assert((a + b)>20);
     }
 */
 void Z3Examples::test4(){
@@ -207,6 +212,7 @@ int main(int argv) {
     if(a > 10)
         b = a;
     b1 = b;
+    assert(b1 >= 5);
 }
 */
 void Z3Examples::test5(){
@@ -239,6 +245,7 @@ int main() {
    } else {
        p = b;
    }
+   assert(*p == 5);
 }
 */
 void Z3Examples::test6() {
@@ -250,16 +257,19 @@ void Z3Examples::test6() {
 
 }
 
-// int main() {
-//	int a = 1, b = 2, c = 3;
-//	int d;
-//  if (a > 0) {
-//  	d = b + c;
-//  }
-//  else {
-//  	d = b - c;
-//  }
-// }
+/*
+ int main() {
+	int a = 1, b = 2, c = 3;
+	int d;
+  if (a > 0) {
+  	d = b + c;
+  }
+  else {
+  	d = b - c;
+  }
+  assert(d == 5);
+ }
+ */
 void Z3Examples::test7() {
 	//  int a = 1, b = 2, c = 3;
 	expr a = getZ3Expr("a");
@@ -271,18 +281,20 @@ void Z3Examples::test7() {
 
 }
 
-
-// int main() {
-//    int arr[2] = {0, 1};
-//    int a = 10;
-//	  int *p;
-//    if (a > 5) {
-//        p = &arr[0];
-//    }
-//    else {
-//        p = &arr[1];
-//    }
-// }
+/*
+ int main() {
+    int arr[2] = {0, 1};
+    int a = 10;
+    int *p;
+    if (a > 5) {
+        p = &arr[0];
+    }
+    else {
+        p = &arr[1];
+    }
+    assert(*p == 0);
+ }
+ */
 void Z3Examples::test8() {
 	//  int arr[2];
 	expr arr = getZ3Expr("arr");
@@ -314,6 +326,7 @@ void Z3Examples::test8() {
        *r = x;
        y = *r;
        z = *q + *y;
+       assert(z == 15);
     }
 */
 void Z3Examples::test9(){
@@ -349,6 +362,7 @@ int main() {
   int y;
   y = foo(2);
   x = foo(3);
+  assert(x == 3 && y == 2);
 }
 */
 void Z3Examples::test10(){

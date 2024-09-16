@@ -75,7 +75,7 @@ int main(int argc, char** argv) {
 	}
 	else if (test_name == "test5") {
 		z3Mgr->test5();
-		// assert(b >= 5);
+		// assert(b1 >= 5);
 		// You are suggested to write your own results checking here
 		result = false;
 	}
