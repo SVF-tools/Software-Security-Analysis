@@ -29,6 +29,51 @@
 using namespace z3;
 using namespace SVF;
 
+
+/* A simple example
+
+int main() {
+    int* p;
+    int q;
+    int* r;
+    int x;
+
+    p = malloc();
+    q = 5;
+    *p = q;
+    x = *p;
+}
+*/
+
+void Z3Examples::test0() {
+
+	//  int* p;
+	expr p = getZ3Expr("p");
+
+	//  int q;
+	expr q = getZ3Expr("q");
+
+	//  int* r;
+	expr r = getZ3Expr("r");
+
+	//  int x;
+	expr x = getZ3Expr("x");
+
+	//  p = malloc();
+	addToSolver(p == getMemObjAddress("malloc"));
+
+	//  q = 5;
+	addToSolver(q == 5);
+
+	//  *p = q;
+	storeValue(p, q);
+
+	//  x = *p;
+	addToSolver(x == loadValue(p));
+
+}
+
+
 /*
 // Simple integers
 
@@ -37,16 +82,17 @@ using namespace SVF;
         int b;
         a = 0;
         b = a + 1;
-        assert(b > 0);
     }
 */
 void Z3Examples::test1() {
+	// int a;
+	expr a = getZ3Expr("a");
+	// int b;
+	expr b = getZ3Expr("b");
 	/// TODO: your code starts from here
 
+
 }
-
-
-
 /*
   // One-level pointers
 
@@ -59,15 +105,20 @@ void Z3Examples::test1() {
         q = *p;
         *p = 3;
         b = *p + 1;
-        assert(b>3);
     }
 */
-void Z3Examples::test2() {
+void Z3Examples::test2(){
+
+	// int *p;
+	expr p = getZ3Expr("p");
+	// int q;
+	expr q = getZ3Expr("q");
+	// int b;
+	expr b = getZ3Expr("b");
 	/// TODO: your code starts from here
 
+
 }
-
-
 
 /*
     // Mutiple-level pointers
@@ -84,15 +135,26 @@ void Z3Examples::test2() {
         *q = 10;
         r = *p;
         x = *r;
-        assert(x==10);
     }
 */
-void Z3Examples::test3() {
+void Z3Examples::test3(){
+
+	//  int** p;
+	expr p = getZ3Expr("p");
+
+	//  int* q;
+	expr q = getZ3Expr("q");
+
+	//  int* r;
+	expr r = getZ3Expr("r");
+
+	//  int x;
+	expr x = getZ3Expr("x");
+
 	/// TODO: your code starts from here
 
+
 }
-
-
 
 /*
    // Array and pointers
@@ -110,15 +172,28 @@ void Z3Examples::test3() {
         *y = 11;
         a = *x;
         b = *y;
-        assert((a + b)>20);
     }
 */
 void Z3Examples::test4(){
+
+	//  int* p;
+	expr p = getZ3Expr("p");
+
+	//  int* x;
+	expr x = getZ3Expr("x");
+
+	//  int* y;
+	expr y = getZ3Expr("y");
+
+	//  int a;
+	expr a = getZ3Expr("a");
+
+	//  int b;
+	expr b = getZ3Expr("b");
+
 	/// TODO: your code starts from here
 
 }
-
-
 
 /*
     // Branches
@@ -132,15 +207,24 @@ int main(int argv) {
     if(a > 10)
         b = a;
     b1 = b;
-    assert(b1 >= 5);
 }
 */
 void Z3Examples::test5(){
+
+	// int argv
+	expr argv = getZ3Expr("argv");
+
+	//  int a;
+	expr a = getZ3Expr("a");
+
+	//  int b;
+	expr b = getZ3Expr("b");
+
+	//  int b1;
+	expr b1 = getZ3Expr("b1");
 	/// TODO: your code starts from here
 
 }
-
-
 
 /*
 // Compare and pointers
@@ -152,15 +236,16 @@ int main() {
    int *p;
    if (*a < *b) {
        p = a;
-
    } else {
        p = b;
    }
-   assert(*p == 5);
-   return 0;
 }
 */
 void Z3Examples::test6() {
+	//  int *a;
+	expr a = getZ3Expr("a");
+	//  int *b;
+	expr b = getZ3Expr("b");
 	/// TODO: your code starts from here
 
 }
@@ -174,9 +259,14 @@ void Z3Examples::test6() {
 //  else {
 //  	d = b - c;
 //  }
-//assert(*p == 5);
 // }
 void Z3Examples::test7() {
+	//  int a = 1, b = 2, c = 3;
+	expr a = getZ3Expr("a");
+	expr b = getZ3Expr("b");
+	expr c = getZ3Expr("c");
+	//  int d;
+	expr d = getZ3Expr("d");
 	/// TODO: your code starts from here
 
 }
@@ -192,14 +282,16 @@ void Z3Examples::test7() {
 //    else {
 //        p = &arr[1];
 //    }
-//    assert(*p == 0);
 // }
 void Z3Examples::test8() {
+	//  int arr[2];
+	expr arr = getZ3Expr("arr");
+	//  int *p
+	expr p = getZ3Expr("p");
 	/// TODO: your code starts from here
 
+
 }
-
-
 
 /*
     // Struct and pointers
@@ -222,15 +314,30 @@ void Z3Examples::test8() {
        *r = x;
        y = *r;
        z = *q + *y;
-       assert(z == 15);
     }
 */
 void Z3Examples::test9(){
+
+	// struct A* p;
+	expr p = getZ3Expr("p");
+
+	// int* x;
+	expr x = getZ3Expr("x");
+
+	// int* q;
+	expr q = getZ3Expr("q");
+
+	// int** r;
+	expr r = getZ3Expr("r");
+
+	// int* y;
+	expr y = getZ3Expr("y");
+
+	// int z;
+	expr z = getZ3Expr("z");
 	/// TODO: your code starts from here
 
 }
-
-
 
 /*
 int foo(int z) {
@@ -242,10 +349,20 @@ int main() {
   int y;
   y = foo(2);
   x = foo(3);
-  assert(x == 3 && y == 2);
 }
 */
 void Z3Examples::test10(){
+	// int x;
+	expr x = getZ3Expr("x");
+
+	// int y;
+	expr y = getZ3Expr("y");
+
+	// int z;
+	expr z = getZ3Expr("z");
+
+	// int k;
+	expr k = getZ3Expr("k");
 	/// TODO: your code starts from here
 
 }

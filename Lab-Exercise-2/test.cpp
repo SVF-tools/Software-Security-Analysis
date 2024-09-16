@@ -44,51 +44,68 @@ int main(int argc, char** argv) {
 	Z3Examples* z3Mgr = new Z3Examples(1000);
 	bool result;
 	std::string test_name = argv[1];
-	if (test_name == "test1") {
+	if (test_name == "test0") {
+		z3Mgr->test0();
+		//  assert(x==5);
+		result = z3Mgr->hasZ3Expr("x") && z3Mgr->z3Expr2NumValue(z3Mgr->getZ3Expr("x")) == 5;
+	}
+	else if (test_name == "test1") {
 		z3Mgr->test1();
-		result = z3Mgr->hasZ3Expr("b") && z3Mgr->getEvalExpr(z3Mgr->getZ3Expr("b") == z3Mgr->getZ3Expr(1)).is_true();
+		// assert(b > 0);
+		// You are suggested to write your own results checking here
+		result = false;
 	}
 	else if (test_name == "test2") {
 		z3Mgr->test2();
-		result = z3Mgr->hasZ3Expr("b") && z3Mgr->getEvalExpr(z3Mgr->getZ3Expr("b") == z3Mgr->getZ3Expr(4)).is_true();
+		// assert(b > 3);
+		// You are suggested to write your own results checking here
+		result = false;
 	}
 	else if (test_name == "test3") {
 		z3Mgr->test3();
-		result = z3Mgr->hasZ3Expr("q")
-		         && z3Mgr->getEvalExpr(z3Mgr->loadValue(z3Mgr->getZ3Expr("q")) == z3Mgr->getZ3Expr(10)).is_true();
+		// assert(x==10);
+		// You are suggested to write your own results checking here
+		result = false;
 	}
 	else if (test_name == "test4") {
 		z3Mgr->test4();
+		// assert((a + b)>20);
 		// You are suggested to write your own results checking here
 		result = false;
 	}
 	else if (test_name == "test5") {
 		z3Mgr->test5();
+		// assert(b >= 5);
 		// You are suggested to write your own results checking here
 		result = false;
 	}
 	else if (test_name == "test6") {
 		z3Mgr->test6();
+		// assert(*p == 5);
 		// You are suggested to write your own results checking here
 		result = false;
 	}
 	else if (test_name == "test7") {
 		z3Mgr->test7();
+		// assert(d == 5);
 		// You are suggested to write your own results checking here
 		result = false;
 	}
 	else if (test_name == "test8") {
 		z3Mgr->test8();
+		// assert(*p == 0);
 		// You are suggested to write your own results checking here
 		result = false;
 	}
 	else if (test_name == "test9") {
 		z3Mgr->test9();
+		//assert(z == 15);
 		// You are suggested to write your own results checking here
 		result = false;
 	}
 	else if (test_name == "test10") {
 		z3Mgr->test10();
+		// assert(x == 3 && y == 2);
 		// You are suggested to write your own results checking here
 		result = false;
 	}
