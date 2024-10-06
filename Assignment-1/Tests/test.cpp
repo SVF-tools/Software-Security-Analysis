@@ -26,12 +26,12 @@ void TestICFG(std::vector<std::string>& moduleNameVec) {
 	}
 	std::string moduleName = moduleNameVec[0].substr(moduleNameVec[0].find_last_of('/') + 1);
 	if (moduleName == "test1.ll") {
-		std::set<std::string> expected = {"START->5->6->7->8->11->1->2->3->12->15->END",
-		                                  "START->5->6->7->8->9->1->2->3->10->13->END"};
+		std::set<std::string> expected = {"START->6->7->8->9->10->1->5->2->11->14->END",
+		                                  "START->6->7->8->9->12->1->5->2->13->16->END"};
 		assert(gt->getPaths() == expected && " \n wrong paths generated - test1 failed !");
 	}
 	else if (moduleName == "test2.ll") {
-		std::set<std::string> expected = {"START->16->1->2->END"};
+		std::set<std::string> expected = {"START->17->1->7->END"};
 		assert(gt->getPaths().size() == expected.size() && " \n wrong paths generated - test2 failed !");
 		for (auto path : gt->getPaths()) {
 			assert(expected.find(path) != expected.end() && " \n wrong paths generated - test2 failed !");
@@ -106,12 +106,12 @@ void TestTaint(std::vector<std::string>& moduleNameVec) {
 	}
 	std::string moduleName = moduleNameVec[0].substr(moduleNameVec[0].find_last_of('/') + 1);
 	if (moduleName == "test1.ll") {
-		set<string> expected = {"START->5->1->2->3->6->7->8->9->END"};
+		set<string> expected = {"START->6->1->5->2->7->8->9->10->END"};
 		assert(taint->getPaths() == expected && " \n Wrong paths generated - Test1 failed !");
 		cout << "\n Test1 passed !" << endl;
 	}
 	else if (moduleName == "test2.ll") {
-		set<string> expected = {"START->5->1->2->3->6->7->8->9->10->12->14->END"};
+		set<string> expected = {"START->6->1->5->2->7->8->9->10->11->13->14->END"};
 		assert(taint->getPaths() == expected && " \n Wrong paths generated - Test4 failed !");
 		cout << "\n Test2 passed !" << endl;
 	}
