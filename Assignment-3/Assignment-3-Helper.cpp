@@ -481,7 +481,7 @@ void AbstractExecution::ensureAllAssertsValidated() {
 					if (assert_points.find(call) == assert_points.end()) {
 						std::stringstream ss;
 						ss << "The stub function calliste (svf_assert or OVERFLOW) has not been checked: "
-						   << call->getCallSite()->toString();
+						   << call->toString();
 						std::cerr << ss.str() << std::endl;
 						assert(false);
 					}
@@ -703,7 +703,7 @@ void AbstractExecution::handleStubFunctions(const SVF::CallICFGNode* callNode) {
 	if (callNode->getCalledFunction()->getName() == "svf_assert") {
 		assert_points.insert(callNode);
 		// If the condition is false, the program is infeasible
-		u32_t arg0 = svfir->getValueNode(callNode->getArgument(0));
+		u32_t arg0 = callNode->getArgument(0)->getId();
 		AbstractState& as = getAbsStateFromTrace(callNode);
 
 		// Check if the interval for the argument is infinite
@@ -729,8 +729,8 @@ void AbstractExecution::handleStubFunctions(const SVF::CallICFGNode* callNode) {
 		return;
 	}
 	else if (callNode->getCalledFunction()->getName() == "svf_assert_eq")  {
-		u32_t arg0 = svfir->getValueNode(callNode->getArgument(0));
-		u32_t arg1 = svfir->getValueNode(callNode->getArgument(1));
+		u32_t arg0 = callNode->getArgument(0)->getId();
+		u32_t arg1 = callNode->getArgument(1)->getId();
 		AbstractState& as = getAbsStateFromTrace(callNode);
 		if (as[arg0].getInterval().equals(as[arg1].getInterval()))
 		{
@@ -747,8 +747,8 @@ void AbstractExecution::handleStubFunctions(const SVF::CallICFGNode* callNode) {
 	else if (callNode->getCalledFunction()->getName() == "OVERFLOW") {
 		// If the condition is false, the program is infeasible
 		assert_points.insert(callNode);
-		u32_t arg0 = svfir->getValueNode(callNode->getArgument(0));
-		u32_t arg1 = svfir->getValueNode(callNode->getArgument(1));
+		u32_t arg0 = callNode->getArgument(0)->getId();
+		u32_t arg1 = callNode->getArgument(1)->getId();
 
 		AbstractState& as = getAbsStateFromTrace(callNode);
 		AbstractValue gepRhsVal = as[arg0];
