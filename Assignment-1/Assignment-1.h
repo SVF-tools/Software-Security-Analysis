@@ -70,7 +70,7 @@ class AndersenPTA : public SVF::AndersenBase {
 
 class ICFGTraversal {
  public:
-	typedef std::vector<const SVFInstruction*> CallStack;
+	typedef std::vector<const ICFGNode*> CallStack;
 	typedef std::pair<const ICFGNode*, CallStack> ICFGNodeCallStackPair;
 
  public:
