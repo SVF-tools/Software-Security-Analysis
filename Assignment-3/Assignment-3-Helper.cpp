@@ -436,9 +436,7 @@ bool AbstractExecution::isSwitchBranchFeasible(const SVFVar* var, s64_t succ, Ab
 }
 
 bool AbstractExecution::isBranchFeasible(const IntraCFGEdge* intraEdge, AbstractState& as) {
-	const SVFValue* cond = intraEdge->getCondition();
-	NodeID cmpID = svfir->getValueNode(cond);
-	SVFVar* cmpVar = svfir->getGNode(cmpID);
+	const SVFVar* cmpVar = intraEdge->getCondition();
 	if (cmpVar->getInEdges().empty()) {
 		return isSwitchBranchFeasible(cmpVar, intraEdge->getSuccessorCondValue(), as);
 	}
