@@ -1,6 +1,6 @@
 #include "Assignment-1.h"
 
-#include "Graphs/CallGraph.h"
+#include "Graphs/PTACallGraph.h"
 #include "SVF-LLVM/LLVMUtil.h"
 #include "SVF-LLVM/SVFIRBuilder.h"
 #include "Util/CommandLine.h"
