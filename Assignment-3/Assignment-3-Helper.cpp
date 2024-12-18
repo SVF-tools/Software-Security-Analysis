@@ -52,7 +52,7 @@ IntervalValue AbstractExecution::getAccessOffset(NodeID objId, const GepStmt* ge
 	auto obj = svfir->getGNode(objId);
 	AbstractState& as = getAbsStateFromTrace(gep->getICFGNode());
 	// Field-insensitive base object
-	if (SVFUtil::isa<FIObjVar>(obj)) {
+	if (SVFUtil::isa<BaseObjVar>(obj)) {
 		// get base size
 		IntervalValue accessOffset = as.getByteOffset(gep);
 		return accessOffset;
@@ -141,7 +141,7 @@ void AbstractExecution::updateGepObjOffsetFromBase(SVF::AddressValue gepAddrs, S
 	for (const auto& objAddr : objAddrs) {
 		NodeID objId = AbstractState::getInternalID(objAddr);
 		auto obj = svfir->getGNode(objId);
-		if (SVFUtil::isa<FIObjVar>(obj)) {
+		if (SVFUtil::isa<BaseObjVar>(obj)) {
 			for (const auto& gepAddr : gepAddrs) {
 				NodeID gepObj = AbstractState::getInternalID(gepAddr);
 				const GepObjVar* gepObjVar = SVFUtil::cast<GepObjVar>(svfir->getGNode(gepObj));
