@@ -77,7 +77,7 @@ z3::expr Z3SSEMgr::createExprForObjVar(const ObjVar* objVar) {
 		}
 	}
 	else {
-		assert(SVFUtil::isa<DummyObjVar>(objVar)
+		assert((SVFUtil::isa<DummyObjVar>(objVar) || SVFUtil::isa<HeapObjVar>(objVar) || SVFUtil::isa<StackObjVar>(objVar) || SVFUtil::isa<FunObjVar>(objVar))
 		       && "it should either be a blackhole or constant dummy if this obj has no value?");
 		e = ctx.int_val(getVirtualMemAddress(objVar->getId()));
 	}
@@ -85,44 +85,44 @@ z3::expr Z3SSEMgr::createExprForObjVar(const ObjVar* objVar) {
 }
 
 std::string Z3SSEMgr::callingCtxToStr(const CallStack& callingCtx) {
-	std::string str;
-	std::stringstream rawstr(str);
-	rawstr << "ctx:[ ";
-	for (const auto &node : callingCtx) {
-		rawstr << node->getId() << " ";
-	}
-	rawstr << "] ";
-	return rawstr.str();
+    std::string str;
+    std::stringstream rawstr(str);
+    rawstr << "ctx:[ ";
+    for (const auto &node : callingCtx) {
+        rawstr << node->getId() << " ";
+    }
+    rawstr << "] ";
+    return rawstr.str();
 }
 
 z3::expr Z3SSEMgr::getZ3Expr(SVF::u32_t idx, const CallStack& callingCtx) {
-	u32_t varId = getInternalID(idx);
-	assert(varId == idx && "SVFVar idx overflow > 0x7f000000?");
-	std::string str;
-	std::stringstream rawstr(str);
-	const SVFVar *svfVar = svfir->getGNode(varId);
-	if (const ObjVar* objVar = SVFUtil::dyn_cast<ObjVar>(svfVar)) {
-		return createExprForObjVar(objVar);
-	} else {
+    u32_t varId = getInternalID(idx);
+    assert(varId == idx && "SVFVar idx overflow > 0x7f000000?");
+    std::string str;
+    std::stringstream rawstr(str);
+    const SVFVar *svfVar = svfir->getGNode(varId);
+    if (const ObjVar* objVar = SVFUtil::dyn_cast<ObjVar>(svfVar)) {
+        return createExprForObjVar(objVar);
+    } else {
 
-		// Check if svfVar does not have a value or it has a constant value
-		if (svfVar->hasValue() && !SVFUtil::isa<SVFConstant>(svfVar->getValue())) {
-			// If there is a non-constant value, add callingCtx to z3 expr
-			rawstr << callingCtxToStr(callingCtx);
-		} else {
-			// If there's no value or it's a constant, we do not add the callingCtx to z3 expr
-		}
-		rawstr << "ValVar" << varId;
-		std::string name = rawstr.str();
-		return ctx.int_const(name.c_str());
-	}
+        // Check if svfVar does not have a value or it has a constant value
+        if (svfVar->hasValue() && !SVFUtil::isa<SVFConstant>(svfVar->getValue())) {
+            // If there is a non-constant value, add callingCtx to z3 expr
+            rawstr << callingCtxToStr(callingCtx);
+        } else {
+            // If there's no value or it's a constant, we do not add the callingCtx to z3 expr
+        }
+        rawstr << "ValVar" << varId;
+        std::string name = rawstr.str();
+        return ctx.int_const(name.c_str());
+    }
 }
 
 /// Return the address expr of a ObjVar
 z3::expr Z3SSEMgr::getMemObjAddress(u32_t idx) {
 	NodeID objIdx = getInternalID(idx);
 	assert(SVFUtil::isa<ObjVar>(svfir->getGNode(objIdx)) && "Fail to get the MemObj!");
-	return createExprForObjVar(SVFUtil::cast<ObjVar>(svfir->getGNode(objIdx)));
+   	return createExprForObjVar(SVFUtil::cast<ObjVar>(svfir->getGNode(objIdx)));
 }
 
 z3::expr Z3SSEMgr::getGepObjAddress(z3::expr pointer, u32_t offset) {
