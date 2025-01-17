@@ -51,23 +51,22 @@ z3::expr Z3SSEMgr::createExprForObjVar(const ObjVar* objVar) {
 	std::string str;
 	raw_string_ostream rawstr(str);
 	expr e(ctx);
-	const MemObj* obj = objVar->getMemObj();
+	const BaseObjVar* obj = svfir->getBaseObject(objVar->getId());
 	/// constant data
 	if (obj->isConstDataOrAggData() || obj->isConstantArray() || obj->isConstantStruct()) {
-		if (const ConstantIntObjVar* consInt = SVFUtil::dyn_cast<ConstantIntObjVar>(objVar)) {
+		if (const SVFConstantInt* consInt = SVFUtil::dyn_cast<SVFConstantInt>(obj->getValue())) {
 			e = ctx.int_val((s32_t)consInt->getSExtValue());
 		}
-		else if (const ConstantFPObjVar* consFp = SVFUtil::dyn_cast<ConstantFPObjVar>(objVar)) {
-			e = ctx.int_val(static_cast<u32_t>(consFp->getFPValue()));
-		}
-		else if (SVFUtil::isa<GlobalObjVar>(objVar)) {
+		else if (const SVFConstantFP* consFP = SVFUtil::dyn_cast<SVFConstantFP>(obj->getValue()))
+			e = ctx.int_val(static_cast<u32_t>(consFP->getFPValue()));
+		else if (SVFUtil::isa<SVFConstantNullPtr>(obj->getValue()))
+			e = ctx.int_val(0);
+		else if (SVFUtil::isa<SVFGlobalValue>(obj->getValue()))
 			e = ctx.int_val(getVirtualMemAddress(objVar->getId()));
-		}
-		else if (obj->isConstantArray() || obj->isConstantStruct()) {
+		else if (obj->isConstantArray() || obj->isConstantStruct())
 			assert(false && "implement this part");
-		}
 		else {
-			std::cerr << obj->toString() << "\n";
+			std::cerr << obj->getValue()->toString() << "\n";
 			assert(false && "what other types of values we have?");
 		}
 	}

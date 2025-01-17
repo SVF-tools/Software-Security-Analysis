@@ -760,7 +760,7 @@ void AbstractExecution::handleStubFunctions(const SVF::CallICFGNode* callNode) {
 				u64_t access_offset = as[arg1].getInterval().getIntNumeral();
 				NodeID objId = AbstractState::getInternalID(addr);
 				const GepObjVar* gepLhsObjVar = SVFUtil::cast<GepObjVar>(svfir->getGNode(objId));
-				auto size = svfir->getBaseObj(objId)->getByteSizeOfObj();
+				auto size = svfir->getBaseObject(objId)->getByteSizeOfObj();
 				if (bufOverflowHelper.hasGepObjOffsetFromBase(gepLhsObjVar)) {
 					overflow = (bufOverflowHelper.getGepObjOffsetFromBase(gepLhsObjVar).ub().getIntNumeral() + access_offset
 					            >= size);
