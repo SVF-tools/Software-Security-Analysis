@@ -54,10 +54,10 @@ z3::expr Z3SSEMgr::createExprForObjVar(const ObjVar* objVar) {
 	const BaseObjVar* obj = svfir->getBaseObject(objVar->getId());
 	/// constant data
 	if (obj->isConstDataOrAggData() || obj->isConstantArray() || obj->isConstantStruct()) {
-		if (const ConstantIntObjVar* consInt = SVFUtil::dyn_cast<ConstantIntObjVar>(objVar)) {
+		if (const ConstIntObjVar* consInt = SVFUtil::dyn_cast<ConstIntObjVar>(objVar)) {
 			e = ctx.int_val((s32_t)consInt->getSExtValue());
 		}
-		else if (const ConstantFPObjVar* consFp = SVFUtil::dyn_cast<ConstantFPObjVar>(objVar)) {
+		else if (const ConstFPObjVar* consFp = SVFUtil::dyn_cast<ConstFPObjVar>(objVar)) {
 			e = ctx.int_val(static_cast<u32_t>(consFp->getFPValue()));
 		}
 		else if (SVFUtil::isa<GlobalObjVar>(objVar)) {
@@ -100,7 +100,7 @@ z3::expr Z3SSEMgr::getZ3Expr(SVF::u32_t idx, const CallStack& callingCtx) {
 	} else {
 
 		// Check if svfVar does not have a value or it has a constant value
-		if (!SVFUtil::isa<ConstantDataValVar, ConstantDataObjVar>(svfVar)) {
+		if (!SVFUtil::isa<ConstDataValVar, ConstDataObjVar>(svfVar)) {
 			// If there is a non-constant value, add callingCtx to z3 expr
 			rawstr << callingCtxToStr(callingCtx);
 		} else {
@@ -139,7 +139,7 @@ s32_t Z3SSEMgr::getGepOffset(const GepStmt* gep, const CallStack& callingCtx) {
 		const SVFVar* var = gep->getOffsetVarAndGepTypePairVec()[i].first;
 		const SVFType* type = gep->getOffsetVarAndGepTypePairVec()[i].second;
 		s32_t offset = 0;
-		if (const ConstantIntValVar* constInt = SVFUtil::dyn_cast<ConstantIntValVar>(var)) {
+		if (const ConstIntValVar* constInt = SVFUtil::dyn_cast<ConstIntValVar>(var)) {
 			offset = constInt->getSExtValue();
 		} else {
 			offset = z3Expr2NumValue(getZ3Expr(var->getId(), callingCtx));
