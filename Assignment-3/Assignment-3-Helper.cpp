@@ -519,7 +519,7 @@ void AbstractExecution::analyse() {
 		// arguments of main are initialised as \top to represent all possible inputs
 		for (u32_t i = 0; i < fun->arg_size(); ++i) {
 			AbstractState& as = getAbsStateFromTrace(icfg->getGlobalICFGNode());
-			as[svfir->getValueNode(fun->getArg(i))] = IntervalValue::top();
+			as[fun->getArg(i)->getId()] = IntervalValue::top();
 		}
 		ICFGWTO* wto = funcToWTO[fun];
 		handleWTOComponents(wto->getWTOComponents());
