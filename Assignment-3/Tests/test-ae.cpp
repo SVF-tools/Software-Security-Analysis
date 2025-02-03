@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
 	SVFIRBuilder builder(svfModule);
 	SVFIR* pag = builder.build();
 	AndersenWaveDiff* ander = AndersenWaveDiff::createAndersenWaveDiff(pag);
-	PTACallGraph* callgraph = ander->getCallGraph();
+	CallGraph* callgraph = ander->getCallGraph();
 	builder.updateCallGraph(callgraph);
 	pag->getICFG()->updateCallGraph(callgraph);
 	AbstractExecution* ae = new AbstractExecution();
