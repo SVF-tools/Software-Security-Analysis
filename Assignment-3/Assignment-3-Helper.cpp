@@ -77,7 +77,7 @@ void AbstractExecution::reportBufOverflow(const ICFGNode* node) {
 	bufOverflowHelper.addBugToReporter(bug, node);
 }
 
-bool AbstractExecution::isExternalCallForAssignment(const SVF::SVFFunction* func) {
+bool AbstractExecution::isExternalCallForAssignment(const SVF::FunObjVar* func) {
 	Set<std::string> extFuncs = {"mem_insert", "str_insert"};
 	if (extFuncs.find(func->getName()) != extFuncs.end()) {
 		return true;
@@ -115,7 +115,8 @@ void AbstractExecution::initWTO() {
 	}
 
 	// Initialize WTO for each function in the module
-	for (const SVFFunction* fun : svfir->getModule()->getFunctionSet()) {
+	for (const auto& item : *callGraph) {
+		const FunObjVar* fun = item.second->getFunction();
 		if(fun->isDeclaration())
 			continue;
 		auto* wto = new ICFGWTO(icfg, icfg->getFunEntryICFGNode(fun));
@@ -470,7 +471,7 @@ void AbstractExecution::ensureAllAssertsValidated() {
 	for (auto it = svfir->getICFG()->begin(); it != svfir->getICFG()->end(); ++it) {
 		const ICFGNode* node = it->second;
 		if (const CallICFGNode* call = SVFUtil::dyn_cast<CallICFGNode>(node)) {
-			if (const SVFFunction* fun = call->getCalledFunction()) {
+			if (const FunObjVar* fun = call->getCalledFunction()) {
 				if (fun->getName() == "svf_assert" || fun->getName() == "OVERFLOW") {
 					if (fun->getName() == "svf_assert") {
 						svf_assert_count++;
@@ -515,7 +516,7 @@ void AbstractExecution::analyse() {
 	handleGlobalNode();
 
 	// Process the main function if it exists
-	if (const SVFFunction* fun = svfir->getModule()->getSVFFunction("main")) {
+	if (const FunObjVar* fun = svfir->getFunObjVar("main")) {
 		// arguments of main are initialised as \top to represent all possible inputs
 		for (u32_t i = 0; i < fun->arg_size(); ++i) {
 			AbstractState& as = getAbsStateFromTrace(icfg->getGlobalICFGNode());
@@ -662,7 +663,7 @@ void AbstractExecution::updateAbsState(const SVFStmt* stmt) {
  */
 void AbstractExecution::handleCallSite(const CallICFGNode* callNode) {
 	// Get the callee function associated with the call site
-	const SVFFunction* callee = callNode->getCalledFunction();
+	const FunObjVar* callee = callNode->getCalledFunction();
 
 	if (isExternalCallForAssignment(callee)) {
 		// implement external calls for the assignment

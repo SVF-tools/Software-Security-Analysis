@@ -99,7 +99,7 @@ namespace SVF {
 
 		/// Handle a call site in the control flow graph
 		void handleCallSite(const CallICFGNode* callnode);
-		bool isExternalCallForAssignment(const SVF::SVFFunction* func);
+		bool isExternalCallForAssignment(const SVF::FunObjVar* func);
 
 		    /// Return its abstract state given an ICFGNode
 		AbstractState& getAbsStateFromTrace(const ICFGNode* node) {
@@ -127,9 +127,9 @@ namespace SVF {
 		/// callstack
 		std::vector<const CallICFGNode*> callSiteStack;
 		/// Map a function to its corresponding WTO
-		Map<const SVFFunction*, ICFGWTO*> funcToWTO;
+		Map<const FunObjVar*, ICFGWTO*> funcToWTO;
 		/// A set of functions which are involved in recursions
-		Set<const SVFFunction*> recursiveFuns;
+		Set<const FunObjVar*> recursiveFuns;
 		/// Abstract trace immediately before an ICFGNode.
 		Map<const ICFGNode*, AbstractState> preAbsTrace;
 		/// Abstract trace immediately after an ICFGNode.

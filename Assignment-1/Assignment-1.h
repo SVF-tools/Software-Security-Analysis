@@ -92,7 +92,7 @@ class ICFGTraversal {
 	// Identify source nodes on ICFG (i.e., call instruction with its callee function named 'src')
 	virtual std::set<const CallICFGNode*>& identifySources() {
 		for (const CallICFGNode* cs : pag->getCallSiteSet()) {
-			const SVFFunction* fun = cs->getCalledFunction();
+			const FunObjVar* fun = cs->getCalledFunction();
 			if (checker_source_api.find(fun->getName()) != checker_source_api.end()) {
 				sources.insert(cs);
 			}
@@ -103,7 +103,7 @@ class ICFGTraversal {
 	// Identify sink nodes on ICFG (i.e., call instruction with its callee function named 'sink')
 	virtual std::set<const CallICFGNode*>& identifySinks() {
 		for (const CallICFGNode* cs : pag->getCallSiteSet()) {
-			const SVFFunction* fun = cs->getCalledFunction();
+			const FunObjVar* fun = cs->getCalledFunction();
 			if (checker_sink_api.find(fun->getName()) != checker_sink_api.end()) {
 				sinks.insert(cs);
 			}

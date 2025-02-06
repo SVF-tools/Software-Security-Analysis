@@ -59,7 +59,7 @@ namespace SVF {
 		/// Identify the sink nodes which are assertion ICFGNodes
 		std::set<const ICFGNode*>& identifySinks() {
 			for (const CallICFGNode* cs : svfir->getCallSiteSet()) {
-				const SVFFunction* fun = cs->getCalledFunction();
+				const FunObjVar* fun = cs->getCalledFunction();
 				if (isAssertFun(fun))
 					sinks.insert(cs);
 			}
@@ -67,7 +67,7 @@ namespace SVF {
 		}
 
 		/// Return true if this function is an assert function
-		inline bool isAssertFun(const SVFFunction* fun) const {
+		inline bool isAssertFun(const FunObjVar* fun) const {
 			return (fun != NULL
 			        && (fun->getName() == "assert" || fun->getName() == "svf_assert" || fun->getName() == "sink"));
 		}
