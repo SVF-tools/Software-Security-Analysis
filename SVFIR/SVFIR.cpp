@@ -59,14 +59,14 @@ int main(int argc, char** argv) {
 	SVFIRBuilder builder(svfModule);
 	SVFIR* pag = builder.build();
 	// Dump pag
-	pag->dump(svfModule->getModuleIdentifier() + ".pag");
+	pag->dump(pag->getModuleIdentifier() + ".pag");
 	/// ICFG
 	ICFG* icfg = pag->getICFG();
 	/// Dump icfg
-	icfg->dump(svfModule->getModuleIdentifier() + ".icfg");
+	icfg->dump(pag->getModuleIdentifier() + ".icfg");
 	/// Create and dump ConstraintGraph
 	ConstraintGraph* consCG = new ConstraintGraph(pag);
-	consCG->dump(svfModule->getModuleIdentifier() + ".consG");
+	consCG->dump(pag->getModuleIdentifier() + ".consG");
 
 	std::cout << "\n\nPrinting code graphs...\n\n";
 
