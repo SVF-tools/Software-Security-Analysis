@@ -9,10 +9,10 @@
 using namespace std;
 
 void TestICFG(std::vector<std::string>& moduleNameVec) {
-	SVFModule* svfModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
+	LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
 
 	/// Build Program Assignment Graph (SVFIR)
-	SVFIRBuilder builder(svfModule);
+	SVFIRBuilder builder;
 	SVFIR* pag = builder.build();
 	ICFG* icfg = pag->getICFG();
 	// If you want to test your own case, please change the dump name
@@ -46,8 +46,8 @@ void TestICFG(std::vector<std::string>& moduleNameVec) {
 }
 
 void TestPTA(std::vector<std::string>& moduleNameVec) {
-	SVFModule* svfModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
-	SVF::SVFIRBuilder builder(svfModule);
+	LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
+	SVF::SVFIRBuilder builder;
 	SVF::SVFIR* pag = builder.build();
 	AndersenPTA* andersenPTA = new AndersenPTA(pag);
 	andersenPTA->analyze();
@@ -57,9 +57,9 @@ void TestPTA(std::vector<std::string>& moduleNameVec) {
 }
 
 void TestTaint(std::vector<std::string>& moduleNameVec) {
-	SVFModule* svfModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
+	LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
 	/// Build Program Assignment Graph (SVFIR)
-	SVF::SVFIRBuilder builder(svfModule);
+	SVF::SVFIRBuilder builder;
 	SVF::SVFIR* pag = builder.build();
 
 	ICFGTraversal* taint = new ICFGTraversal(pag);

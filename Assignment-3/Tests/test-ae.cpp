@@ -28,8 +28,8 @@ int main(int argc, char** argv) {
 	    OptionBase::parseOptions(arg_num, arg_value, "Static Symbolic Execution", "[options] <input-bitcode...>");
 	delete[] arg_value;
 
-	SVFModule* svfModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
-	SVFIRBuilder builder(svfModule);
+	LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
+	SVFIRBuilder builder;
 	SVFIR* pag = builder.build();
 	AndersenWaveDiff* ander = AndersenWaveDiff::createAndersenWaveDiff(pag);
 	CallGraph* callgraph = ander->getCallGraph();

@@ -53,10 +53,10 @@ int main(int argc, char** argv) {
 
 	moduleNameVec = OptionBase::parseOptions(arg_num, arg_value, "SVF IR", "[options] <input-bitcode...>");
 
-	SVFModule* svfModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
+	LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
 
 	/// Build Program Assignment Graph (SVFIR or PAG)
-	SVFIRBuilder builder(svfModule);
+	SVFIRBuilder builder;
 	SVFIR* pag = builder.build();
 	// Dump pag
 	pag->dump(pag->getModuleIdentifier() + ".pag");

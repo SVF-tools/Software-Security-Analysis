@@ -35,10 +35,10 @@ int main(int argc, char** argv) {
 	                                         "Software-Verification-Teaching Assignment 4",
 	                                         "[options] <input-bitcode...>");
 
-	SVFModule* svfModule = LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
+	LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
 	LLVMModuleSet::getLLVMModuleSet()->dumpModulesToFile(".svf");
 
-	SVFIRBuilder builder(svfModule);
+	SVFIRBuilder builder;
 	SVFIR* svfir = builder.build();
 
 	CallGraph* callgraph = AndersenWaveDiff::createAndersenWaveDiff(svfir)->getCallGraph();
