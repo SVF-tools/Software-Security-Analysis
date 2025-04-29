@@ -21,6 +21,13 @@ class Assignment3(AbstractExecution):
     def update_state_on_store(self, store: pysvf.StoreStmt):
         pass
 
+    #TODO: your code starts from here
+    # Find the comparison predicates in "class BinaryOPStmt:OpCode" under SVF/svf/include/SVFIR/SVFStatements.h
+    # You are required to handle predicates (The program is assumed to have signed ints and also interger-overflow-free),
+    # including Add, FAdd, Sub, FSub, Mul, FMul, SDiv, FDiv, UDiv, SRem, FRem, URem, Xor, And, Or, AShr, Shl, LShr
+    def update_state_on_binary(self, store: pysvf.BinaryOpStmt):
+        pass
+
 
     #TODO: your code starts from here
     def update_state_on_load(self, load: pysvf.LoadStmt):

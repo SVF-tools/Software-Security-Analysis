@@ -198,5 +198,9 @@ set(GTRAV_DIR ${CMAKE_SOURCE_DIR}/Lab-Exercise-1)
 set(Z3MGR_DIR ${CMAKE_SOURCE_DIR}/Lab-Exercise-2)
 
 add_subdirectory(Assignment-1/CPP)
+add_subdirectory(Assignment-1/Python)
 add_subdirectory(Assignment-2/CPP)
+add_subdirectory(Assignment-2/Python)
 add_subdirectory(Assignment-3/CPP)
+add_subdirectory(Assignment-3/Python)
+

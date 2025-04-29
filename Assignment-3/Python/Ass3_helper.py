@@ -467,8 +467,6 @@ class AbstractExecution:
         self.flippedAddressMask = (self.addressMask^0xffffffff)
 
 
-
-    #==============Don't modify the code below==============
     """
     Initialize the WTO (Weak topological order) for each function.
     """
@@ -796,6 +794,7 @@ class AbstractExecution:
 
             wto = self.func_to_wto[main_fun]
             self.handle_wto_components(wto.components)
+        self.ensure_all_asserts_validated()
 
 
     """
@@ -996,55 +995,6 @@ class AbstractExecution:
         node = ret.get_icfg_node()
         abstract_state = self.post_abs_trace[node]
         abstract_state[ret.get_lhs_id()] = abstract_state[ret.get_rhs_id()]
-
-
-
-
-    """
-    Find the comparison predicates in "class BinaryOPStmt:OpCode" under SVF/svf/include/SVFIR/SVFStatements.h
-    You are required to handle predicates (The program is assumed to have signed ints and also interger-overflow-free),
-    including Add, FAdd, Sub, FSub, Mul, FMul, SDiv, FDiv, UDiv, SRem, FRem, URem, Xor, And, Or, AShr, Shl, LShr
-    """
-    def update_state_on_binary(self, binary: pysvf.BinaryOPStmt):
-        node = binary.get_icfg_node()
-        abstract_state = self.post_abs_trace[node]
-        lhs = binary.get_res_id()
-        op1 = binary.get_op_var(0)
-        op2 = binary.get_op_var(1)
-        assert abstract_state.is_interval(op1.get_id()) and abstract_state.is_interval(op2.get_id())
-        result = IntervalValue(0)
-        val1 = abstract_state[op1.get_id()].get_interval()
-        val2 = abstract_state[op2.get_id()].get_interval()
-        assert(isinstance(val1, IntervalValue) and isinstance(val2, IntervalValue))
-        if binary.get_op() == OpCode.Add or binary.get_op() == OpCode.FAdd:
-            result = val1 + val2
-        elif binary.get_op() == OpCode.Sub or binary.get_op() == OpCode.FSub:
-            result = val1 - val2
-        elif binary.get_op() == OpCode.Mul or binary.get_op() == OpCode.FMul:
-            result = val1 * val2
-        elif binary.get_op() == OpCode.UDiv or binary.get_op() == OpCode.SDiv or binary.get_op() == OpCode.FDiv:
-            if int(val2.ub())>=0 and int(val2.lb()) <= 0:
-                result = IntervalValue.top()
-            else:
-                result = val1 / val2
-        elif binary.get_op() == OpCode.SRem or binary.get_op() == OpCode.FRem or binary.get_op() == OpCode.URem:
-            if int(val2.ub())>=0 and int(val2.lb()) <= 0:
-                result = IntervalValue.top()
-            else:
-                result = val1 % val2
-        elif binary.get_op() == OpCode.Xor:
-            result = val1 ^ val2
-        elif binary.get_op() == OpCode.Or:
-            result = val1 | val2
-        elif binary.get_op() == OpCode.And:
-            result = val1 & val2
-        elif binary.get_op() == OpCode.Shl:
-            result = val1 << val2
-        elif binary.get_op() == OpCode.LShr or binary.get_op() == OpCode.AShr:
-            result = val1 >> val2
-        else:
-            result = IntervalValue.top()
-        abstract_state[lhs] = AbstractValue(result)
 
 
 
