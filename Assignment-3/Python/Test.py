@@ -11,7 +11,8 @@ def run_tests(Failed_test_cases: list = []):
 
     # Define test case types and their corresponding subdirectories and flags
     test_types = {
-        "sse": {"subdir": "../Tests/testcases/sse", "flag": ""},
+        "ae": {"subdir": "../Tests/ae", "flag": ""},
+        "buf": {"subdir": "../Tests/buf", "flag": ""},
     }
 
     # Iterate over each test type

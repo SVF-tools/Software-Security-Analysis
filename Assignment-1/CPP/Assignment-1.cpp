@@ -81,7 +81,7 @@ bool ICFGTraversal::aliasCheck(const CallICFGNode* src, const CallICFGNode* snk)
 // There is a tainted flow from p@source to q@sink
 // if (1) alias(p,q)==true and (2) source reaches sink on ICFG.
 void ICFGTraversal::taintChecking() {
-	const fs::path& config = CUR_DIR() / "SrcSnk.txt";
+	const fs::path& config = CUR_DIR() / "../Tests/SrcSnk.txt";
 	// configure sources and sinks for taint analysis
 	readSrcSnkFromFile(config);
 

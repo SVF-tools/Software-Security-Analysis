@@ -24,7 +24,7 @@ foreach(filename ${ass2files})
     message(STATUS "Adding test for ${filename}")
     add_test(
             NAME ass2/${filename}
-            COMMAND ass2 ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
+            COMMAND ass2 ${CMAKE_CURRENT_SOURCE_DIR}/../Tests/${filename}
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )
 endforeach()
