@@ -1,4 +1,4 @@
-#include "../Assignment-3.h"
+#include "Assignment-3.h"
 #include "SVF-LLVM/SVFIRBuilder.h"
 #include "Util/CommandLine.h"
 #include "Util/Options.h"
