@@ -25,7 +25,7 @@ class Ass1_Andersen(AndersenPTA):
 
 class Ass1_ICFGTraversal(ICFGTraversal):
     def __init__(self, pag):
-        super().__init__(pag)
+        super().__init__(pag, Ass1_Andersen(pag))
 
     '''
     /// TODO: Implement your code to parse the two lines to identify sources and sinks from `SrcSnk.txt` for your
