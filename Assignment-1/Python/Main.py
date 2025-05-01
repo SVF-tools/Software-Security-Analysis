@@ -20,53 +20,18 @@ def test_icfg(module_name_vec):
 
     module_name = os.path.basename(module_name_vec)
     if module_name == "test1.ll":
-        expected = {"START->3->4->5->END"}
+        expected = {
+            "START->6->7->8->9->10->1->5->2->11->14->END",
+            "START->6->7->8->9->12->1->5->2->13->16->END"
+        }
         check_icfg_case(module_name, gt.get_paths(), expected)
+
     elif module_name == "test2.ll":
-        expected = {
-            "START->3->4->5->6->7->8->9->END",
-            "START->3->4->5->6->7->END",
-            "START->5->6->7->8->9->END",
-            "START->5->6->7->END"
-        }
-        check_icfg_case(module_name, gt.get_paths(), expected)
-    elif module_name == "test3.ll":
-        expected = {"START->6->7->8->1->5->2->9->10->END"}
-        check_icfg_case(module_name, gt.get_paths(), expected)
-    elif module_name == "test4.ll":
-        expected = {"START->12->13->14->3->8->9->1->7->2->10->11->4->15->16->END"}
-        check_icfg_case(module_name, gt.get_paths(), expected)
-    # Add further test cases as needed...
-    elif module_name == "test5.ll":
-        expected = {
-            "START->6->7->8->9->10->1->5->2->11->14->END",
-            "START->6->7->8->9->12->1->5->2->13->16->END",
-        }
-        check_icfg_case(module_name, gt.get_paths(), expected)
-    elif module_name == "test6.ll":
-        expected = {
-            "START->12->13->14->15->16->3->8->9->1->7->2->10->11->4->17->20->END",
-            "START->12->13->14->15->18->3->8->9->1->7->2->10->11->4->19->22->END",
-        }
-        check_icfg_case(module_name, gt.get_paths(), expected)
-    elif  module_name == "test7.ll":
         expected = {"START->17->1->7->END"}
-        check_icfg_case(module_name, gt.get_paths(), expected)
-    elif module_name == "test8.ll":
-        expected = {
-            "START->6->7->8->9->10->1->5->2->11->14->END",
-            "START->6->7->8->9->12->1->5->2->13->16->END",
-        }
-        check_icfg_case(module_name, gt.get_paths(), expected)
-    elif module_name == "test9.ll":
-        expected = {"START->7->8->9->10->11->14->END"}
-        check_icfg_case(module_name, gt.get_paths(), expected)
-    elif module_name == "test10.ll":
-        expected = {
-            "START->3->4->5->6->7->9->11->END",
-            "START->3->4->5->6->8->10->14->17->END",
-        }
-        check_icfg_case(module_name, gt.get_paths(), expected)
+        actual_paths = gt.get_paths()
+        assert len(actual_paths) == len(expected), " \n wrong paths generated - test2 failed !"
+        for path in actual_paths:
+            assert path in expected, " \n wrong paths generated - test2 failed !"
 
     else:
         print(f"Test case {module_name} not found!")
@@ -91,14 +56,14 @@ def test_taint(module_name_vec):
         expected = {"START->6->1->5->2->7->8->9->10->END"}
         assert taint.get_paths() == expected, " \n wrong paths generated - test1 failed !"
         print("\n test1 passed !")
-    elif module_name_vec == "test4.ll":
+    elif module_name_vec == "test2.ll":
         expected = {"START->6->1->5->2->7->8->9->10->11->13->14->END"}
-        assert taint.get_paths() == expected, " \n wrong paths generated - test4 failed !"
+        assert taint.get_paths() == expected, " \n wrong paths generated - test2 failed !"
         print("\n test2 passed !")
     elif module_name_vec == "test2.ll" or module_name_vec == "test3.ll":
         expected = set()
-        assert taint.get_paths() == expected, " \n wrong paths generated - test2 or test3 failed !"
-        print("\n test2 or test3 passed !")
+        assert taint.get_paths() == expected, " \n wrong paths generated - test3 or test4 failed !"
+        print("\n test3 or test4 passed !")
 
 
     print(f"###################### Tainted Information Flow ({len(taint.get_paths())} found) ######################")

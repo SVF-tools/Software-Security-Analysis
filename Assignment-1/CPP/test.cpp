@@ -17,7 +17,7 @@ void TestICFG(std::vector<std::string>& moduleNameVec) {
 	ICFG* icfg = pag->getICFG();
 	// If you want to test your own case, please change the dump name
 	ICFGTraversal* gt = new ICFGTraversal(pag);
-	const fs::path& config = CUR_DIR() / "../SrcSnk.txt";
+	const fs::path& config = CUR_DIR() / "../Tests/SrcSnk.txt";
 	gt->readSrcSnkFromFile(config);
 	for (const CallICFGNode* src : gt->identifySources()) {
 		for (const CallICFGNode* snk : gt->identifySinks()) {
@@ -112,7 +112,7 @@ void TestTaint(std::vector<std::string>& moduleNameVec) {
 	}
 	else if (moduleName == "test2.ll") {
 		set<string> expected = {"START->6->1->5->2->7->8->9->10->11->13->14->END"};
-		assert(taint->getPaths() == expected && " \n Wrong paths generated - Test4 failed !");
+		assert(taint->getPaths() == expected && " \n Wrong paths generated - Test2 failed !");
 		cout << "\n Test2 passed !" << endl;
 	}
 	SVF::SVFIR::releaseSVFIR();
