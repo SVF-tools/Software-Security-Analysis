@@ -651,6 +651,9 @@ class AbstractExecution:
         if callee.get_name() == 'mem_insert' or callee.get_name() == 'str_insert':
             self.update_state_on_ext_call(call_node)
             return
+        elif callee.get_name() == 'nd' or callee.get_name() == 'rand':
+            lhsId = call_node.get_ret_node().get_actual_ret().get_id()
+            self.post_abs_trace[call_node][lhsId] = AbstractValue(IntervalValue.top())
         else:
             self.call_site_stack.append(call_node)
 
