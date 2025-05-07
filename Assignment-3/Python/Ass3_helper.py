@@ -224,7 +224,7 @@ class AbstractExecutionHelper:
             print(f"Node: {node}, Bug Info: {msg}")
 
 
-    def update_gep_obj_offset_from_base(self, gep_addrs: pysvf.AddressValue, obj_addrs: pysvf.AddressValue, offset: pysvf.IntervalValue):
+    def update_gep_obj_offset_from_base(self, abstract_state: pysvf.AbstractState, gep_addrs: pysvf.AddressValue, obj_addrs: pysvf.AddressValue, offset: pysvf.IntervalValue):
         """
         Update the GEP object offset from the base address.
 
@@ -233,17 +233,17 @@ class AbstractExecutionHelper:
         :param offset: IntervalValue representing the offset.
         """
         for obj_addr in obj_addrs:
-            obj_id = pysvf.AddressValue.get_internal_id(obj_addr)
+            obj_id = abstract_state.get_id_from_addr(obj_addr)
             obj = self.svfir.get_gnode(obj_id)
             if isinstance(obj, pysvf.BaseObjVar):
                 for gep_addr in gep_addrs:
-                    gep_obj = pysvf.AddressValue.get_internal_id(gep_addr)
+                    gep_obj = abstract_state.get_id_from_addr(gep_addr)
                     gep_obj_var = self.svfir.get_gnode(gep_obj)
                     self.add_to_gep_obj_offset_from_base(gep_obj_var, offset)
             elif isinstance(obj, pysvf.GepObjVar):
                 obj_var = obj
                 for gep_addr in gep_addrs:
-                    gep_obj = pysvf.AddressValue.get_internal_id(gep_addr)
+                    gep_obj = abstract_state.get_id_from_addr(gep_addr)
                     gep_obj_var = self.svfir.get_gnode(gep_obj)
                     if self.has_gep_obj_offset_from_base(obj_var):
                         obj_offset_from_base = self.get_gep_obj_offset_from_base(obj_var)
@@ -268,7 +268,7 @@ class AbstractExecutionHelper:
 
         # Determine the size of the destination object
         for addr in abstract_state[value_id].get_addrs():
-            obj_id = pysvf.AddressValue.get_internal_id(addr)
+            obj_id = pabstract_state.get_id_from_addr(addr)
 
             try:
                 base_object = self.svfir.get_base_object(obj_id)
@@ -370,7 +370,7 @@ class AbstractExecutionHelper:
 
         # Determine the size of the destination object
         for addr in abstract_state[value_id].get_addrs():
-            obj_id = pysvf.AddressValue.get_internal_id(addr)
+            obj_id = abstract_state.get_id_from_addr(addr)
             base_object = self.svfir.get_base_object(obj_id)
 
             if base_object.is_constant_byte_size():
@@ -597,7 +597,7 @@ class AbstractExecution:
                 overflow = False
                 for addr in gep_rhs_val.get_addrs():
                     access_offset = abstract_state[arg1].get_interval().get_int_numeral()
-                    obj_id = pysvf.AddressValue.get_internal_id(addr)
+                    obj_id = abstract_state.get_id_from_addr(addr)
                     gep_lhs_obj_var = self.svfir.get_gnode(obj_id).as_gep_obj_var()
                     size = self.svfir.get_base_object(obj_id).get_byte_size_of_obj()
 

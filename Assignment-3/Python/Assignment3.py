@@ -60,7 +60,7 @@ class Assignment3(AbstractExecution):
                 rhs = stmt.get_rhs_id()
 
                 # Update GEP object offset from base
-                self.buf_overflow_helper.update_gep_obj_offset_from_base(
+                self.buf_overflow_helper.update_gep_obj_offset_from_base(abstract_state,
                     abstract_state[lhs].get_addrs(),  abstract_state[rhs].get_addrs(),
                     abstract_state.get_byte_offset(stmt)
                 )

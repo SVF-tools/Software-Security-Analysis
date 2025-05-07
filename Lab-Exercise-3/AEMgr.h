@@ -29,6 +29,8 @@
 #include "Util/SVFBugReport.h"
 #include "WPA/Andersen.h"
 
+
+#define FlippedAddressMask (AddressMask^0xffffffff)
 namespace SVF {
 	class IntervalExeState;
 	class IntervalValue;
@@ -86,8 +88,8 @@ namespace SVF {
 			_strToID.clear();
 		};
 
-		NodeID getInternalID(NodeID addr) {
-			return AddressValue::getInternalID(addr);
+		NodeID getIDFromAddr(NodeID addr) {
+			return (addr & FlippedAddressMask);
 		}
 
 		static AbstractExecutionMgr& getInstance() {

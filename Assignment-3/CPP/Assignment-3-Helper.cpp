@@ -132,19 +132,20 @@ void AbstractExecution::initWTO() {
  * It handles both field-insensitive base objects and sub-objects of aggregate objects.
  * The function calculates the new offset based on the provided GEP addresses and the offset interval.
  *
+ * @param as The abstract state in this context
  * @param gepAddrs The set of addresses for the GEP object
  * @param objAddrs The set of addresses for the object
  * @param offset The interval value representing the offset
  */
-void AbstractExecution::updateGepObjOffsetFromBase(SVF::AddressValue gepAddrs, SVF::AddressValue objAddrs,
+void AbstractExecution::updateGepObjOffsetFromBase(AbstractState& as, SVF::AddressValue gepAddrs, SVF::AddressValue objAddrs,
                                                    SVF::IntervalValue offset)
 {
 	for (const auto& objAddr : objAddrs) {
-		NodeID objId = AbstractState::getInternalID(objAddr);
+		NodeID objId = as.getIDFromAddr(objAddr);
 		auto obj = svfir->getGNode(objId);
 		if (SVFUtil::isa<BaseObjVar>(obj)) {
 			for (const auto& gepAddr : gepAddrs) {
-				NodeID gepObj = AbstractState::getInternalID(gepAddr);
+				NodeID gepObj = as.getIDFromAddr(gepAddr);
 				const GepObjVar* gepObjVar = SVFUtil::cast<GepObjVar>(svfir->getGNode(gepObj));
 				bufOverflowHelper.addToGepObjOffsetFromBase(gepObjVar, offset);
 			}
@@ -152,7 +153,7 @@ void AbstractExecution::updateGepObjOffsetFromBase(SVF::AddressValue gepAddrs, S
 		else if (SVFUtil::isa<GepObjVar>(obj)) {
 			const GepObjVar* objVar = SVFUtil::cast<GepObjVar>(obj);
 			for (const auto& gepAddr : gepAddrs) {
-				NodeID gepObj = AbstractState::getInternalID(gepAddr);
+				NodeID gepObj = as.getIDFromAddr(gepAddr);
 				const GepObjVar* gepObjVar = SVFUtil::cast<GepObjVar>(svfir->getGNode(gepObj));
 				if (bufOverflowHelper.hasGepObjOffsetFromBase(objVar)) {
 					IntervalValue objOffsetFromBase = bufOverflowHelper.getGepObjOffsetFromBase(objVar);
@@ -346,7 +347,7 @@ bool AbstractExecution::isCmpBranchFeasible(const CmpStmt* cmpStmt, s64_t succ, 
 	}
 
 	for (const auto& addr : addrs) {
-		NodeID objId = SVF::AbstractState::getInternalID(addr);
+		NodeID objId = as.getIDFromAddr(addr);
 		if (new_es.inAddrToValTable(objId)) {
 			switch (predicate) {
 			case CmpStmt::Predicate::ICMP_EQ:
@@ -424,7 +425,7 @@ bool AbstractExecution::isSwitchBranchFeasible(const SVFVar* var, s64_t succ, Ab
 			if (new_es.inVarToAddrsTable(load->getRHSVarID())) {
 				AddressValue& addrs = new_es[load->getRHSVarID()].getAddrs();
 				for (const auto& addr : addrs) {
-					NodeID objId = SVF::AbstractState::getInternalID(addr);
+					NodeID objId = as.getIDFromAddr(addr);
 					if (new_es.inAddrToValTable(objId)) {
 						new_es.load(addr).meet_with(switch_cond);
 					}
@@ -759,7 +760,7 @@ void AbstractExecution::handleStubFunctions(const SVF::CallICFGNode* callNode) {
 			bool overflow = false;
 			for (const auto& addr : gepRhsVal.getAddrs()) {
 				u64_t access_offset = as[arg1].getInterval().getIntNumeral();
-				NodeID objId = AbstractState::getInternalID(addr);
+				NodeID objId = as.getIDFromAddr(addr);
 				const GepObjVar* gepLhsObjVar = SVFUtil::cast<GepObjVar>(svfir->getGNode(objId));
 				auto size = svfir->getBaseObject(objId)->getByteSizeOfObj();
 				if (bufOverflowHelper.hasGepObjOffsetFromBase(gepLhsObjVar)) {

@@ -108,7 +108,7 @@ namespace SVF {
 		}
 
 		/// Update the offset of a GEP (GetElementPtr) object from its base address
-		void updateGepObjOffsetFromBase(AddressValue gepAddrs, AddressValue objAddrs, IntervalValue offset);
+		void updateGepObjOffsetFromBase(AbstractState& as, AddressValue gepAddrs, AddressValue objAddrs, IntervalValue offset);
 
 		/// Return the accessing offset of an object at a GepStmt
 		IntervalValue getAccessOffset(NodeID objId, const GepStmt* gep);

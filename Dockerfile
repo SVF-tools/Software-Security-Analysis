@@ -25,15 +25,10 @@ RUN apt-get install -y $build_deps $lib_deps
 RUN add-apt-repository ppa:deadsnakes/ppa
 RUN apt-get update
 RUN set -ex; \
-    if [ "$TARGETPLATFORM" = "linux/amd64" ]; then \
-        apt-get update && apt-get install -y python3.10-dev \
-        && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1; \
-    elif [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
-        apt-get update && apt-get install -y python3.8-dev \
-        && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1; \
-    else \
-        echo "Unsupported platform: $TARGETPLATFORM" && exit 1; \
-    fi
+    apt-get update && apt-get install -y python3.10-dev python3-pip \
+            && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1;
+RUN python3 -m pip install pysvf -i https://test.pypi.org/simple/
+RUN python3 -m pip install z3-solver
 
 # Fetch and build SVF source.
 RUN echo "Downloading LLVM and building SVF to " ${HOME}

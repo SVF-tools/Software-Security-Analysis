@@ -76,7 +76,7 @@ void AbstractExecution::bufOverflowDetection(const SVF::SVFStmt* stmt) {
 			AbstractState& as = getAbsStateFromTrace(gep->getICFGNode());
 			NodeID lhs = gep->getLHSVarID();
 			NodeID rhs = gep->getRHSVarID();
-			updateGepObjOffsetFromBase(as[lhs].getAddrs(), as[rhs].getAddrs(), as.getByteOffset(gep));
+			updateGepObjOffsetFromBase(as, as[lhs].getAddrs(), as[rhs].getAddrs(), as.getByteOffset(gep));
 
 			/// TODO: your code starts from here
 
