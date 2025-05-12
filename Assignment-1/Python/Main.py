@@ -86,7 +86,7 @@ def test_taint(module_name_vec):
 
 
         print(
-            f"{origin_path}\nSource: {src_node.to_string()}\nSink: {dst_node.to_string()}\n---------------------------------------------")
+            f"{origin_path}\nSource: {src_node.toString()}\nSink: {dst_node.toString()}\n---------------------------------------------")
 
     if not taint.getPaths():
         print("No tainted information flow found")
