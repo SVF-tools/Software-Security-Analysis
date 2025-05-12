@@ -18,7 +18,7 @@ class Ass1_Andersen(AndersenPTA):
     /// q <--GEP, fld-- p    =>  for each o ∈ pts(p) : pts(q) = pts(q) ∪ {o.fld}
     /// pts(q) denotes the points-to set of q
     '''
-    def solve_worklist(self):
+    def solveWorklist(self):
         pass
 
 
@@ -33,7 +33,7 @@ class Ass1_ICFGTraversal(ICFGTraversal):
     /// line 1 for sources  "{ api1 api2 api3 }"
     /// line 2 for sinks    "{ api1 api2 api3 }"
     '''
-    def read_srcsnk_from_file(self, filename):
+    def readSrcSnkFromFile(self, filename):
         pass
 
     '''
@@ -50,18 +50,14 @@ class Ass1_ICFGTraversal(ICFGTraversal):
         assert isinstance(sink, pysvf.ICFGNode), "sink is not a valid ICFGNode object, the type of sink is {}".format(type(sink))
         pass
 
+
     '''
     /// TODO: Checking aliases of the two variables at source and sink. For example:
     /// src instruction:  actualRet = source();
     /// snk instruction:  sink(actualParm,...);
     /// return true if actualRet is aliased with any parameter at the snk node (e.g., via ander->alias(..,..))
     '''
-    def alias_check(self, src, snk) -> bool:
+    def aliasCheck(self, src, snk) -> bool:
         assert isinstance(src, pysvf.CallICFGNode), "src is not a valid CallICFGNode object, the type of src is {}".format(type(src))
         assert isinstance(snk, pysvf.CallICFGNode), "snk is not a valid CallICFGNode object, the type of snk is {}".format(type(snk))
         pass
-
-
-
-
-

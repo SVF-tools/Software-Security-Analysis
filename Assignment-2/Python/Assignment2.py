@@ -84,6 +84,6 @@ if __name__ == "__main__":
         print("Usage: python3 Assignment2.py <path-to-bc-file>")
         sys.exit(1)
     bc_file = sys.argv[1]
-    pag = pysvf.get_pag(bc_file)
+    pag = pysvf.getPAG(bc_file)
     ass4 = Assignment2(pag)
     ass4.analyse()

@@ -9,36 +9,36 @@ class Assignment3(AbstractExecution):
     """
     TODO : Implement the handleCycleWTO function
     """
-    def handle_cycle_wto(self, cycle: ICFGWTOCycle):
+    def handleCycleWto(self, cycle: ICFGWTOCycle):
         pass
 
     #TODO : Implement the state updates for Copy, Binary, Store, Load, Gep, Phi
     # TODO: your code starts from here
-    def update_state_on_gep(self, gep: pysvf.GepStmt):
+    def updateStateOnGep(self, gep: pysvf.GepStmt):
         pass
 
     #TODO: your code starts from here
-    def update_state_on_store(self, store: pysvf.StoreStmt):
+    def updateStateOnStore(self, store: pysvf.StoreStmt):
         pass
 
     #TODO: your code starts from here
     # Find the comparison predicates in "class BinaryOPStmt:OpCode" under SVF/svf/include/SVFIR/SVFStatements.h
     # You are required to handle predicates (The program is assumed to have signed ints and also interger-overflow-free),
     # including Add, FAdd, Sub, FSub, Mul, FMul, SDiv, FDiv, UDiv, SRem, FRem, URem, Xor, And, Or, AShr, Shl, LShr
-    def update_state_on_binary(self, store: pysvf.BinaryOpStmt):
+    def updateStateOnBinary(self, binary: pysvf.BinaryOPStmt):
         pass
 
 
     #TODO: your code starts from here
-    def update_state_on_load(self, load: pysvf.LoadStmt):
+    def updateStateOnLoad(self, load: pysvf.LoadStmt):
         pass
 
     #TODO: your code starts from here
-    def update_state_on_copy(self, copy: pysvf.CopyStmt):
+    def updateStateOnCopy(self, copy: pysvf.CopyStmt):
         pass
 
     # TODO: your code starts from here
-    def update_state_on_phi(self, phi: pysvf.PhiStmt):
+    def updateStateOnPhi(self, phi: pysvf.PhiStmt):
         pass
 
     """
@@ -52,20 +52,21 @@ class Assignment3(AbstractExecution):
     :param stmt: The statement to analyze for buffer overflows.
     :type stmt: pysvf.SVFStmt
     """
-    def buf_overflow_detection(self, stmt: pysvf.SVFStmt):
-        if not isinstance(stmt.get_icfg_node(), pysvf.CallICFGNode):
+    def bufOverflowDetection(self, stmt: pysvf.SVFStmt):
+        if not isinstance(stmt.getICFGNode(), pysvf.CallICFGNode):
             if isinstance(stmt, pysvf.GepStmt):
-                abstract_state = self.post_abs_trace[stmt.get_icfg_node()]
-                lhs = stmt.get_lhs_id()
-                rhs = stmt.get_rhs_id()
+                abstract_state = self.post_abs_trace[stmt.getICFGNode()]
+                lhs = stmt.getLHSVarID()
+                rhs = stmt.getRHSVarID()
 
                 # Update GEP object offset from base
-                self.buf_overflow_helper.update_gep_obj_offset_from_base(abstract_state,
-                    abstract_state[lhs].get_addrs(),  abstract_state[rhs].get_addrs(),
-                    abstract_state.get_byte_offset(stmt)
+                self.buf_overflow_helper.updateGepObjOffsetFromBase(abstract_state,
+                    abstract_state[lhs].getAddrs(),  abstract_state[rhs].getAddrs(),
+                    abstract_state.getByteOffset(stmt)
                 )
 
                 # TODO: your code starts from here
+                # Check for buffer overflow
                 pass
 
     """
@@ -84,18 +85,19 @@ class Assignment3(AbstractExecution):
     :param ext_call_node: The call node representing the external function call.
     :type ext_call_node: pysvf.CallICFGNode
     """
-    def update_state_on_ext_call(self, ext_call_node: pysvf.CallICFGNode):
-        func_name = ext_call_node.get_called_function().get_name()
+    def updateStateOnExtCall(self, extCallNode: pysvf.CallICFGNode):
+        func_name = extCallNode.getCalledFunction().getName()
 
         # Handle external calls
         # TODO: handle external calls
         # void mem_insert(void *buffer, const void *data, size_t data_size, size_t position);
         if func_name == "mem_insert":
+            # void mem_insert(void *buffer, const void *data, size_t data_size, size_t position);
+            # Check sizeof(buffer) >= position + data_size
             pass
         # TODO: handle external calls
         # void str_insert(void *buffer, const void *data, size_t position);
         elif func_name == "str_insert":
+            # void str_insert(void *buffer, const void *data, size_t position);
+            # Check sizeof(buffer) >= position + strlen(data)
             pass
-
-
-

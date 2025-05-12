@@ -7,15 +7,15 @@ def check_icfg_case(module_name, result, expected):
 
 
 def test_icfg(module_name_vec):
-    pag = pysvf.get_pag(module_name_vec)  # Build Program Assignment Graph (SVFIR)
-    icfg = pag.get_icfg()  # Get ICFG
+    pag = pysvf.getPAG(module_name_vec)  # Build Program Assignment Graph (SVFIR)
+    icfg = pag.getICFG()  # Get ICFG
     gt = Ass1_ICFGTraversal(pag)  # Create ICFG Traversal object
 
     config_path = os.path.join(os.path.dirname(__file__), "../Tests/SrcSnk.txt")
-    gt.read_srcsnk_from_file(config_path)
+    gt.readSrcSnkFromFile(config_path)
 
-    for src in gt.identify_sources():
-        for snk in gt.identify_sinks():
+    for src in gt.identifySources():
+        for snk in gt.identifySinks():
             gt.reachability(src, snk)
 
     module_name = os.path.basename(module_name_vec)
@@ -24,11 +24,11 @@ def test_icfg(module_name_vec):
             "START->6->7->8->9->10->1->5->2->11->14->END",
             "START->6->7->8->9->12->1->5->2->13->16->END"
         }
-        check_icfg_case(module_name, gt.get_paths(), expected)
+        check_icfg_case(module_name, gt.getPaths(), expected)
 
     elif module_name == "test2.ll":
         expected = {"START->17->1->7->END"}
-        actual_paths = gt.get_paths()
+        actual_paths = gt.getPaths()
         assert len(actual_paths) == len(expected), " \n wrong paths generated - test2 failed !"
         for path in actual_paths:
             assert path in expected, " \n wrong paths generated - test2 failed !"
@@ -38,37 +38,37 @@ def test_icfg(module_name_vec):
 
 
 def test_pta(module_name_vec):
-    pag = pysvf.get_pag(module_name_vec)  # Build Program Assignment Graph (SVFIR)
+    pag = pysvf.getPAG(module_name_vec) # Build Program Assignment Graph (SVFIR)
     andersen_pta = Ass1_Andersen(pag)
     andersen_pta.analyze()  # Run Andersen pointer analysis
     del andersen_pta
 
 
 def test_taint(module_name_vec):
-    pag = pysvf.get_pag(module_name_vec)  # Build Program Assignment Graph (SVFIR)
+    pag = pysvf.getPAG(module_name_vec)  # Build Program Assignment Graph (SVFIR)
 
     taint = Ass1_ICFGTraversal(pag)
-    taint.taint_checking()  # Perform taint analysis
+    taint.taintChecking()  # Perform taint analysis
 
     module_name_vec = os.path.basename(module_name_vec)
-    print(taint.get_paths())
+    print(taint.getPaths())
     if module_name_vec == "test1.ll":
         expected = {"START->6->1->5->2->7->8->9->10->END"}
-        assert taint.get_paths() == expected, " \n wrong paths generated - test1 failed !"
+        assert taint.getPaths() == expected, " \n wrong paths generated - test1 failed !"
         print("\n test1 passed !")
     elif module_name_vec == "test2.ll":
         expected = {"START->6->1->5->2->7->8->9->10->11->13->14->END"}
-        assert taint.get_paths() == expected, " \n wrong paths generated - test2 failed !"
+        assert taint.getPaths() == expected, " \n wrong paths generated - test2 failed !"
         print("\n test2 passed !")
     elif module_name_vec == "test2.ll" or module_name_vec == "test3.ll":
         expected = set()
-        assert taint.get_paths() == expected, " \n wrong paths generated - test3 or test4 failed !"
+        assert taint.getPaths() == expected, " \n wrong paths generated - test3 or test4 failed !"
         print("\n test3 or test4 passed !")
 
 
-    print(f"###################### Tainted Information Flow ({len(taint.get_paths())} found) ######################")
+    print(f"###################### Tainted Information Flow ({len(taint.getPaths())} found) ######################")
     print("---------------------------------------------")
-    for path in taint.get_paths():
+    for path in taint.getPaths():
         origin_path = path
         prefix = "START->"
         suffix = "->END"
@@ -81,13 +81,14 @@ def test_taint(module_name_vec):
         tokens = path.split("->")
         src_id = int(tokens[0])
         dst_id = int(tokens[-1])
-        src_node = pag.get_icfg().get_gnode(src_id)
-        dst_node = pag.get_icfg().get_gnode(dst_id)
+        src_node = pag.getICFG().getGNode(src_id)
+        dst_node = pag.getICFG().getGNode(dst_id)
+
 
         print(
             f"{origin_path}\nSource: {src_node.to_string()}\nSink: {dst_node.to_string()}\n---------------------------------------------")
 
-    if not taint.get_paths():
+    if not taint.getPaths():
         print("No tainted information flow found")
 
 

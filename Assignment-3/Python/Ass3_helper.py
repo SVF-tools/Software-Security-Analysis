@@ -67,7 +67,7 @@ class ICFGWTOComp:
         self.node = node
 
 
-    def get_icfg_node(self) -> ICFGNode:
+    def getICFGNode(self) -> ICFGNode:
         return self.node
 
     @abstractmethod
@@ -100,7 +100,7 @@ class ICFGWTO:
             self.node_to_wto_cycle_depth = node_to_wto_cycle_depth
 
         def visit(self, cycle: ICFGWTOCycle):
-            head = cycle.head.get_icfg_node()
+            head = cycle.head.getICFGNode()
             previous_cycle_depth = self.wto_cycle_depth
             self.node_to_wto_cycle_depth[head] = self.wto_cycle_depth
             self.wto_cycle_depth = WTOCycleDepth()
@@ -110,7 +110,7 @@ class ICFGWTO:
             self.wto_cycle_depth = previous_cycle_depth
 
         def visitNode(self, node: ICFGWTONode):
-            self.node_to_wto_cycle_depth[node.get_icfg_node()] = self.wto_cycle_depth
+            self.node_to_wto_cycle_depth[node.getICFGNode()] = self.wto_cycle_depth
 
 
     def __init__(self, graph: ICFG, entry: ICFGNode):
@@ -176,9 +176,9 @@ class ICFGWTO:
 
     def get_successors(self, node: ICFGNode) -> List[ICFGNode]:
         if isinstance(node, pysvf.CallICFGNode):
-            return [node.get_ret_node()]
+            return [node.getRetICFGNode()]
         else:
-            return [edge.get_dst() for edge in node.get_out_edges()]
+            return [edge.getDstNode() for edge in node.getOutEdges()]
 
     def build_node_to_depth(self):
         builder = self.WTOCycleDepthBuilder(self.node_to_depth)
@@ -210,13 +210,13 @@ class AbstractExecutionHelper:
         self.node_to_bug_info = {}
         self.svfir = svfir
 
-    def report_buf_overflow(self, node, msg):
+    def reportBufOverflow(self, node, msg):
         """
         Record an overflow node and its associated exception.
         """
         self.node_to_bug_info[node] = msg
 
-    def print_bug_info(self):
+    def printBugInfo(self):
         """
         Print the bug information for each node.
         """
@@ -224,54 +224,54 @@ class AbstractExecutionHelper:
             print(f"Node: {node}, Bug Info: {msg}")
 
 
-    def update_gep_obj_offset_from_base(self, abstract_state: pysvf.AbstractState, gep_addrs: pysvf.AddressValue, obj_addrs: pysvf.AddressValue, offset: pysvf.IntervalValue):
+    def updateGepObjOffsetFromBase(self, abstractState: pysvf.AbstractState, gepAddrs: pysvf.AddressValue, objAddrs: pysvf.AddressValue, offset: pysvf.IntervalValue):
         """
         Update the GEP object offset from the base address.
 
-        :param gep_addrs: List of GEP address values.
-        :param obj_addrs: List of object address values.
+        :param gepAddrs: List of GEP address values.
+        :param objAddrs: List of object address values.
         :param offset: IntervalValue representing the offset.
         """
-        for obj_addr in obj_addrs:
-            obj_id = abstract_state.get_id_from_addr(obj_addr)
-            obj = self.svfir.get_gnode(obj_id)
+        for obj_addr in objAddrs:
+            obj_id = abstractState.getIDFromAddr(obj_addr)
+            obj = self.svfir.getGNode(obj_id)
             if isinstance(obj, pysvf.BaseObjVar):
-                for gep_addr in gep_addrs:
-                    gep_obj = abstract_state.get_id_from_addr(gep_addr)
-                    gep_obj_var = self.svfir.get_gnode(gep_obj)
-                    self.add_to_gep_obj_offset_from_base(gep_obj_var, offset)
+                for gep_addr in gepAddrs:
+                    gep_obj = abstractState.getIDFromAddr(gep_addr)
+                    gep_obj_var = self.svfir.getGNode(gep_obj)
+                    self.addToGepObjOffsetFromBase(gep_obj_var, offset)
             elif isinstance(obj, pysvf.GepObjVar):
                 obj_var = obj
-                for gep_addr in gep_addrs:
-                    gep_obj = abstract_state.get_id_from_addr(gep_addr)
-                    gep_obj_var = self.svfir.get_gnode(gep_obj)
-                    if self.has_gep_obj_offset_from_base(obj_var):
-                        obj_offset_from_base = self.get_gep_obj_offset_from_base(obj_var)
+                for gep_addr in gepAddrs:
+                    gep_obj = abstractState.getIDFromAddr(gep_addr)
+                    gep_obj_var = self.svfir.getGNode(gep_obj)
+                    if self.hasGepObjOffsetFromBase(obj_var):
+                        obj_offset_from_base = self.getGepObjOffsetFromBase(obj_var)
                         # Ensure gep_obj_var has not been written before
-                        if not self.has_gep_obj_offset_from_base(gep_obj_var):
-                            self.add_to_gep_obj_offset_from_base(gep_obj_var, obj_offset_from_base + offset)
+                        if not self.hasGepObjOffsetFromBase(gep_obj_var):
+                            self.addToGepObjOffsetFromBase(gep_obj_var, obj_offset_from_base + offset)
                     else:
                         raise AssertionError("gepRhsObjVar has no gepObjOffsetFromBase")
 
 
-    def get_strlen(self, abstract_state, str_value):
+    def getStrlen(self, abstractState, strValue):
         """
         Calculate the length of a string in the abstract state.
 
-        :param abstract_state: The abstract state containing variable information.
-        :param str_value: The SVF variable representing the string.
+        :param abstractState: The abstract state containing variable information.
+        :param strValue: The SVF variable representing the string.
         :return: An IntervalValue representing the string length.
         """
-        value_id = str_value.get_id()
+        value_id = strValue.getId()
         dst_size = 0
         max_limit = 10000  # Prevent infinite or corrupted symbolic memory
 
         # Determine the size of the destination object
-        for addr in abstract_state[value_id].get_addrs():
-            obj_id = pabstract_state.get_id_from_addr(addr)
+        for addr in abstractState[value_id].getAddrs():
+            obj_id = abstractState.getIDFromAddr(addr)
 
             try:
-                base_object = self.svfir.get_base_object(obj_id)
+                base_object = self.svfir.getBaseObject(obj_id)
             except Exception as e:
                 print(f"[warn] failed to get base object for obj_id {obj_id}: {e}")
                 continue
@@ -279,14 +279,14 @@ class AbstractExecutionHelper:
             if not base_object:
                 continue
 
-            if base_object.is_constant_byte_size():
-                dst_size = base_object.get_byte_size_of_obj()
+            if base_object.isConstantByteSize():
+                dst_size = base_object.getByteSizeOfObj()
             else:
-                icfg_node = base_object.get_icfg_node()
-                for stmt in icfg_node.get_svf_stmts():
+                icfg_node = base_object.getICFGNode()
+                for stmt in icfg_node.getSVFStmts():
                     if isinstance(stmt, pysvf.AddrStmt):
                         try:
-                            dst_size = abstract_state.get_alloca_inst_byte_size(stmt)
+                            dst_size = abstractState.getAllocaInstByteSize(stmt)
                             break
                         except Exception as e:
                             print(f"[warn] failed to get alloca size: {e}")
@@ -304,27 +304,27 @@ class AbstractExecutionHelper:
         elem_size = 1
 
         # Calculate string length
-        if abstract_state.is_addr(value_id):
+        if abstractState.isAddr(value_id):
             for index in range(dst_size):
                 try:
-                    expr0 = abstract_state.get_gep_obj_addrs(value_id, pysvf.IntervalValue(index))
+                    expr0 = abstractState.getGepObjAddrs(value_id, pysvf.IntervalValue(index))
                 except Exception as e:
-                    print(f"[warn] get_gep_obj_addrs failed at index {index}: {e}")
+                    print(f"[warn] getGepObjAddrs failed at index {index}: {e}")
                     break
 
                 val = pysvf.AbstractValue()
 
                 for addr in expr0:
                     try:
-                        val.join_with(abstract_state.load(addr))
+                        val.join_with(abstractState.load(addr))
                     except Exception as e:
                         print(f"[warn] load from addr {addr} failed: {e}")
                         continue
 
-                iv = val.get_interval()
-                if iv.is_numeral():
+                iv = val.getInterval()
+                if iv.isInterval():
                     try:
-                        if chr(iv.get_int_numeral()) == '\0':
+                        if chr(iv.getIntNumeral()) == '\0':
                             break
                     except:
                         break
@@ -332,16 +332,16 @@ class AbstractExecutionHelper:
 
             # Determine element size
             try:
-                ty = str_value.get_type()
-                if ty.is_array_ty():
-                    elem_size = ty.get_type_of_element().get_byte_size()
-                elif ty.is_pointer_ty():
-                    elem_type = abstract_state.get_pointee_element(value_id)
+                ty = strValue.getType()
+                if ty.isArrayTy():
+                    elem_size = ty.getTypeOfElement().getByteSize()
+                elif ty.isPointerTy():
+                    elem_type = abstractState.getPointeeElement(value_id)
                     if elem_type:
-                        if elem_type.is_array_ty():
-                            elem_size = elem_type.get_type_of_element().get_byte_size()
+                        if elem_type.isArrayTy():
+                            elem_size = elem_type.getTypeOfElement().getByteSize()
                         else:
-                            elem_size = elem_type.get_byte_size()
+                            elem_size = elem_type.getByteSize()
                     else:
                         elem_size = 1
                 else:
@@ -357,57 +357,57 @@ class AbstractExecutionHelper:
             return pysvf.IntervalValue(length * elem_size)
 
 
-    def get_strlen(self, abstract_state, str_value):
+    def getStrlen(self, abstractState, strValue):
         """
         Calculate the length of a string in the abstract state.
 
-        :param abstract_state: The abstract state containing variable information.
-        :param str_value: The SVF variable representing the string.
+        :param abstractState: The abstract state containing variable information.
+        :param strValue: The SVF variable representing the string.
         :return: An IntervalValue representing the string length.
         """
-        value_id = str_value.get_id()
+        value_id = strValue.getId()
         dst_size = 0
 
         # Determine the size of the destination object
-        for addr in abstract_state[value_id].get_addrs():
-            obj_id = abstract_state.get_id_from_addr(addr)
-            base_object = self.svfir.get_base_object(obj_id)
+        for addr in abstractState[value_id].getAddrs():
+            obj_id = abstractState.getIDFromAddr(addr)
+            base_object = self.svfir.getBaseObject(obj_id)
 
-            if base_object.is_constant_byte_size():
-                dst_size = base_object.get_byte_size_of_obj()
+            if base_object.isConstantByteSize():
+                dst_size = base_object.getByteSizeOfObj()
             else:
-                icfg_node = base_object.get_icfg_node()
-                for stmt in icfg_node.get_svf_stmts():
+                icfg_node = base_object.getICFGNode()
+                for stmt in icfg_node.getSVFStmts():
                     if isinstance(stmt, pysvf.AddrStmt):
-                        dst_size = abstract_state.get_alloca_inst_byte_size(stmt)
+                        dst_size = abstractState.getAllocaInstByteSize(stmt)
 
         length = 0
         elem_size = 1
 
         # Calculate the string length
-        if abstract_state.is_addr(value_id):
+        if abstractState.getVar(value_id).isAddr():
             for index in range(dst_size):
-                expr0 = abstract_state.get_gep_obj_addrs(value_id, pysvf.IntervalValue(index))
+                expr0 = abstractState.getGepObjAddrs(value_id, pysvf.IntervalValue(index))
                 val = pysvf.AbstractValue()
 
                 for addr in expr0:
-                    val.join_with(abstract_state.load(addr))
+                    val.join_with(abstractState.load(addr))
 
-                if val.get_interval().is_numeral() and chr(val.get_interval().get_int_numeral()) == '\0':
+                if val.isInterval() and chr(val.getInterval().getIntNumeral()) == '\0':
                     break
 
                 length += 1
 
             # Determine the size of each element in the string
-            if str_value.get_type().is_array_ty():
-                elem_size = str_value.get_type().get_type_of_element().get_byte_size()
-            elif str_value.get_type().is_pointer_ty():
-                elem_type = abstract_state.get_pointee_element_type(value_id)
+            if strValue.getType().isArrayTy():
+                elem_size = strValue.getType().getTypeOfElement().getByteSize()
+            elif strValue.getType().isPointerTy():
+                elem_type = abstractState.getPointeeElement(value_id)
                 if elem_type:
-                    if elem_type.is_array_ty():
-                        elem_size = elem_type.get_type_of_element().get_byte_size()
+                    if elem_type.isArrayTy():
+                        elem_size = elem_type.getTypeOfElement().getByteSize()
                     else:
-                        elem_size = elem_type.get_byte_size()
+                        elem_size = elem_type.getByteSize()
                 else:
                     elem_size = 1
             else:
@@ -419,7 +419,7 @@ class AbstractExecutionHelper:
         else:
             return pysvf.IntervalValue(length * elem_size)
 
-    def add_to_gep_obj_offset_from_base(self, obj, offset):
+    def addToGepObjOffsetFromBase(self, obj, offset):
         """
         Add a GEP object variable and its offset from the base address.
 
@@ -428,7 +428,7 @@ class AbstractExecutionHelper:
         """
         self.gep_obj_offset_from_base[obj] = offset
 
-    def has_gep_obj_offset_from_base(self, obj):
+    def hasGepObjOffsetFromBase(self, obj):
         """
         Check if a GEP object variable has an offset from the base address.
 
@@ -437,7 +437,7 @@ class AbstractExecutionHelper:
         """
         return obj in self.gep_obj_offset_from_base
 
-    def get_gep_obj_offset_from_base(self, obj):
+    def getGepObjOffsetFromBase(self, obj):
         """
         Get the offset of a GEP object variable from the base address.
 
@@ -454,7 +454,7 @@ class AbstractExecutionHelper:
 class AbstractExecution:
     def __init__(self, pag: pysvf.SVFIR):
         self.svfir = pag
-        self.icfg = pag.get_icfg()
+        self.icfg = pag.getICFG()
         self.call_site_stack = []
         self.func_to_wto = {}
         self.recursive_funs = set()
@@ -470,13 +470,13 @@ class AbstractExecution:
     """
     Initialize the WTO (Weak topological order) for each function.
     """
-    def init_wto(self):
-        for node in self.svfir.get_call_graph().get_nodes():
-            fun = node.get_function()
+    def initWto(self):
+        for node in self.svfir.getCallGraph().getNodes():
+            fun = node.getFunction()
             assert isinstance(fun, pysvf.FunObjVar)
-            if fun.is_declaration():
+            if fun.isDeclaration():
                 continue
-            wto = ICFGWTO(self.icfg, self.icfg.get_fun_entry_icfg_node(fun))
+            wto = ICFGWTO(self.icfg, self.icfg.getFunEntryICFGNode(fun))
             wto.init()
             self.func_to_wto[fun] = wto
 
@@ -484,7 +484,7 @@ class AbstractExecution:
     """
     Placeholder for additional documentation or functionality.
     """
-    def get_virtual_mem_address(self, idx: int) -> int:
+    def getVirtualMemAddress(self, idx: int) -> int:
         return self.addressMask + idx
 
 
@@ -496,49 +496,49 @@ class AbstractExecution:
     2. Sets the initial value of variable 0 to an address value of 0.
     3. Iterates through all statements in the global ICFG node and updates the abstract state accordingly.
     """
-    def handle_global_node(self):
-        self.post_abs_trace[self.icfg.get_global_icfg_node()] = AbstractState()
-        self.pre_abs_trace[self.icfg.get_global_icfg_node()] = self.post_abs_trace[self.icfg.get_global_icfg_node()]
-        self.post_abs_trace[self.icfg.get_global_icfg_node()][0]  = AbstractValue(AddressValue(set()))
-        for stmt in self.icfg.get_global_icfg_node().get_svf_stmts():
-            self.update_abs_state(stmt)
+    def handleGlobalNode(self):
+        self.post_abs_trace[self.icfg.getGlobalICFGNode()] = AbstractState()
+        self.pre_abs_trace[self.icfg.getGlobalICFGNode()] = self.post_abs_trace[self.icfg.getGlobalICFGNode()]
+        self.post_abs_trace[self.icfg.getGlobalICFGNode()][0]  = AbstractValue(AddressValue(set()))
+        for stmt in self.icfg.getGlobalICFGNode().getSVFStmts():
+            self.updateAbsState(stmt)
 
 
     """
     Handle the WTO (Weak Topological Order) components.
     This function iterates through the WTO components and handles them based on their type.
-    It calls the appropriate helper function for each component, such as handle_singleton_wto or handle_cycle_wto.
+    It calls the appropriate helper function for each component, such as handle_singleton_wto or handleCycleWto.
     """
-    def handle_wto_components(self, wto_comps):
-        for comp in wto_comps:
+    def handleWtoComponents(self, wtoComps):
+        for comp in wtoComps:
             if isinstance(comp, ICFGWTONode):
-                self.handle_singleton_wto(comp)
+                self.handleSingletonWto(comp)
             elif isinstance(comp, ICFGWTOCycle):
-                self.handle_cycle_wto(comp)
+                self.handleCycleWto(comp)
 
 
     """
     Handle a singleton WTO
     """
-    def handle_singleton_wto(self, singleWto: ICFGWTONode):
+    def handleSingletonWto(self, singleWto: ICFGWTONode):
         node = singleWto.node
-        is_feasible, self.pre_abs_trace[node] = self.merge_states_from_predecessors(node)
+        is_feasible, self.pre_abs_trace[node] = self.mergeStatesFromPredecessors(node)
         if is_feasible:
             self.post_abs_trace[node] = self.pre_abs_trace[node]
         else:
             return
 
-        for stmt in node.get_svf_stmts():
-            self.update_abs_state(stmt)
-            self.buf_overflow_detection(stmt)
+        for stmt in node.getSVFStmts():
+            self.updateAbsState(stmt)
+            self.bufOverflowDetection(stmt)
 
         if isinstance(node, pysvf.CallICFGNode):
-            fun_name = node.get_called_function().get_name()
+            fun_name = node.getCalledFunction().getName()
             if fun_name == 'OVERFLOW' or fun_name == 'svf_assert' or fun_name == 'svf_assert_eq':
                 pass
-                self.handle_stub_function(node)
+                self.handleStubFunction(node)
             else:
-                self.handle_call_site(node)
+                self.handleCallSite(node)
 
 
     """
@@ -563,47 +563,47 @@ class AbstractExecution:
     :param call_node: The call node representing the stub function in the CFG.
     :type call_node: pysvf.CallICFGNode
     """
-    def handle_stub_function(self, call_node: pysvf.CallICFGNode):
+    def handleStubFunction(self, callNode: pysvf.CallICFGNode):
         # Get the callee function associated with the call site
-        if call_node.get_called_function().get_name() == "svf_assert":
-            self.assert_points.add(call_node)
+        if callNode.getCalledFunction().getName() == "svf_assert":
+            self.assert_points.add(callNode)
             # If the condition is false, the program is infeasible
-            arg0 = call_node.get_arg(0).get_id()
-            abstract_state = self.post_abs_trace[call_node]
+            arg0 = callNode.getArgument(0).getId()
+            abstract_state = self.post_abs_trace[callNode]
 
             # Check if the interval for the argument is infinite
-            if abstract_state[arg0].get_interval().is_top():
-                print(f"svf_assert Fail. {call_node}")
+            if abstract_state[arg0].getInterval().isTop():
+                print(f"svf_assert Fail. {callNode}")
                 assert False
             else:
-                if (abstract_state[arg0].get_interval().equals(IntervalValue(1, 1)) or
-                        abstract_state[arg0].get_interval().equals(IntervalValue(-1, -1))):
-                    print(f"The assertion ({call_node}) is successfully verified!!")
+                if (abstract_state[arg0].getInterval().equals(IntervalValue(1, 1)) or
+                        abstract_state[arg0].getInterval().equals(IntervalValue(-1, -1))):
+                    print(f"The assertion ({callNode}) is successfully verified!!")
                 else:
-                    print(f"The assertion ({call_node}) is unsatisfiable!!")
+                    print(f"The assertion ({callNode}) is unsatisfiable!!")
                     assert False
 
-        elif call_node.get_called_function().get_name() == "OVERFLOW":
+        elif callNode.getCalledFunction().getName() == "OVERFLOW":
             # If the condition is false, the program is infeasible
-            self.assert_points.add(call_node)
-            arg0 = call_node.get_arg(0).get_id()
-            arg1 = call_node.get_arg(1).get_id()
+            self.assert_points.add(callNode)
+            arg0 = callNode.getArgument(0).getId()
+            arg1 = callNode.getArgument(1).getId()
 
-            abstract_state = self.post_abs_trace[call_node]
+            abstract_state = self.post_abs_trace[callNode]
             gep_rhs_val = abstract_state[arg0]
 
             # Check if the RHS value is an address
-            if gep_rhs_val.is_addr():
+            if gep_rhs_val.isAddr():
                 overflow = False
-                for addr in gep_rhs_val.get_addrs():
-                    access_offset = abstract_state[arg1].get_interval().get_int_numeral()
-                    obj_id = abstract_state.get_id_from_addr(addr)
-                    gep_lhs_obj_var = self.svfir.get_gnode(obj_id).as_gep_obj_var()
-                    size = self.svfir.get_base_object(obj_id).get_byte_size_of_obj()
+                for addr in gep_rhs_val.getAddrs():
+                    access_offset = abstract_state[arg1].getInterval().getIntNumeral()
+                    obj_id = abstract_state.getIDFromAddr(addr)
+                    gep_lhs_obj_var = self.svfir.getGNode(obj_id).asGepObjVar()
+                    size = self.svfir.getBaseObject(obj_id).getByteSizeOfObj()
 
-                    if self.buf_overflow_helper.has_gep_obj_offset_from_base(gep_lhs_obj_var):
+                    if self.buf_overflow_helper.hasGepObjOffsetFromBase(gep_lhs_obj_var):
                         overflow = (
-                                int(self.buf_overflow_helper.get_gep_obj_offset_from_base(gep_lhs_obj_var).ub())
+                                int(self.buf_overflow_helper.getGepObjOffsetFromBase(gep_lhs_obj_var).ub())
                                 + access_offset >= size
                         )
                         if overflow:
@@ -614,10 +614,10 @@ class AbstractExecution:
                 if overflow:
                     print("Your implementation successfully detected the buffer overflow")
                 else:
-                    print(f"Your implementation failed to detect the buffer overflow! {call_node}")
+                    print(f"Your implementation failed to detect the buffer overflow! {callNode}")
                     assert False
             else:
-                print(f"Your implementation failed to detect the buffer overflow! {call_node}")
+                print(f"Your implementation failed to detect the buffer overflow! {callNode}")
                 assert False
 
 
@@ -643,29 +643,29 @@ class AbstractExecution:
     :param call_node: The call node representing the function call in the ICFG.
     :type call_node: pysvf.CallICFGNode
     """
-    def handle_call_site(self, call_node: pysvf.CallICFGNode):
+    def handleCallSite(self, callNode: pysvf.CallICFGNode):
 
         # Get the callee function associated with the call site
-        callee = call_node.get_called_function()
+        callee = callNode.getCalledFunction()
 
-        if callee.get_name() == 'mem_insert' or callee.get_name() == 'str_insert':
-            self.update_state_on_ext_call(call_node)
+        if callee.getName() == 'mem_insert' or callee.getName() == 'str_insert':
+            self.updateStateOnExtCall(callNode)
             return
-        elif callee.get_name() == 'nd' or callee.get_name() == 'rand':
-            lhsId = call_node.get_ret_node().get_actual_ret().get_id()
-            self.post_abs_trace[call_node][lhsId] = AbstractValue(IntervalValue.top())
+        elif callee.getName() == 'nd' or callee.getName() == 'rand':
+            lhsId = callNode.getRetICFGNode().getActualRet().getId()
+            self.post_abs_trace[callNode][lhsId] = AbstractValue(IntervalValue.top())
         else:
-            self.call_site_stack.append(call_node)
+            self.call_site_stack.append(callNode)
 
             if callee in self.func_to_wto:
                 # Handle the callee function
                 wto = self.func_to_wto[callee]
-                self.handle_wto_components(wto.components)
+                self.handleWtoComponents(wto.components)
 
                 # Pop the call node from the call site stack
                 self.call_site_stack.pop()
             else:
-                res, self.post_abs_trace[call_node] = self.merge_states_from_predecessors(call_node)
+                res, self.post_abs_trace[callNode] = self.mergeStatesFromPredecessors(callNode)
                 pass
 
 
@@ -694,58 +694,58 @@ class AbstractExecution:
              - is_feasible (bool): True if at least one predecessor exists, False otherwise.
              - merged_state (AbstractState): The resulting merged abstract state.
     """
-    def merge_states_from_predecessors(self, block: pysvf.ICFGNode):
+    def mergeStatesFromPredecessors(self, block: pysvf.ICFGNode):
         in_edge_num = 0
         abstract_state = pysvf.AbstractState()
-        for edge in block.get_in_edges():
-            if edge.get_src() in self.post_abs_trace:
+        for edge in block.getInEdges():
+            if edge.getSrcNode() in self.post_abs_trace:
                 if isinstance(edge, pysvf.IntraCFGEdge):
-                    if edge.get_condition():
-                        tmp_es = self.post_abs_trace[edge.get_src()].clone()
-                        if self.is_branch_feasible(edge, tmp_es):
-                            abstract_state.join_with(tmp_es)
+                    if edge.getCondition():
+                        tmp_es = self.post_abs_trace[edge.getSrcNode()].clone()
+                        if self.isBranchFeasible(edge, tmp_es):
+                            abstract_state.joinWith(tmp_es)
                             in_edge_num += 1
                         else:
                             pass
                     else:
-                        abstract_state.join_with(self.post_abs_trace[edge.get_src()])
+                        abstract_state.joinWith(self.post_abs_trace[edge.getSrcNode()])
                         in_edge_num += 1
                 else:
-                    abstract_state.join_with(self.post_abs_trace[edge.get_src()])
+                    abstract_state.joinWith(self.post_abs_trace[edge.getSrcNode()])
                     in_edge_num += 1
             else:
                 pass
         if in_edge_num == 0:
-            print(f"Error: No predecessors for block {block.get_id()}")
+            print(f"Error: No predecessors for block {block.getId()}")
             return (False, None)
         return (True, abstract_state)
 
 
-    def is_branch_feasible(self, intra_edge: pysvf.IntraCFGEdge, abstract_state:  pysvf.AbstractState) -> bool :
-        cmp_var = intra_edge.get_condition()
-        cmp_in_edges = cmp_var.get_in_edges()
+    def isBranchFeasible(self, intraEdge: pysvf.IntraCFGEdge, abstractState:  pysvf.AbstractState) -> bool :
+        cmp_var = intraEdge.getCondition()
+        cmp_in_edges = cmp_var.getInEdges()
         if len(cmp_in_edges) == 0:
-            return pysvf.AbstractState.is_switch_branch_feasible(self.svfir, cmp_var, intra_edge.get_successor_cond_value(), abstract_state)
+            return pysvf.AbstractState.isSwitchBranchFeasible(self.svfir, cmp_var, intraEdge.getSuccessorCondValue(), abstractState)
         else:
             cmp = cmp_in_edges[0]
             if isinstance(cmp, pysvf.CmpStmt):
-                return pysvf.AbstractState.is_cmp_branch_feasible(self.svfir, cmp, intra_edge.get_successor_cond_value(), abstract_state)
+                return pysvf.AbstractState.isCmpBranchFeasible(self.svfir, cmp, intraEdge.getSuccessorCondValue(), abstractState)
             else:
-                return pysvf.AbstractState.is_switch_branch_feasible(self.svfir, cmp_var, intra_edge.get_successor_cond_value(), abstract_state)
+                return pysvf.AbstractState.isSwitchBranchFeasible(self.svfir, cmp_var, intraEdge.getSuccessorCondValue(), abstractState)
 
 
 
 
 
-    def ensure_all_asserts_validated(self):
+    def ensureAllAssertsValidated(self):
         svf_assert_count = 0
         overflow_count = 0
 
-        for node in self.svfir.get_icfg().get_nodes():
+        for node in self.svfir.getICFG().getNodes():
             if isinstance(node, pysvf.CallICFGNode):
-                called_function = node.get_called_function()
+                called_function = node.getCalledFunction()
                 if called_function:
-                    function_name = called_function.get_name()
+                    function_name = called_function.getName()
                     if function_name in ["svf_assert", "OVERFLOW"]:
                         if function_name == "svf_assert":
                             svf_assert_count += 1
@@ -785,52 +785,52 @@ class AbstractExecution:
        - Process its WTO components to analyze its control flow.
     """
     def analyse(self):
-        self.init_wto()
-        self.handle_global_node()
+        self.initWto()
+        self.handleGlobalNode()
         # # Process the main function if it exists
-        main_fun = self.svfir.get_fun_obj_var("main")
+        main_fun = self.svfir.getFunObjVar("main")
         if main_fun:
             # Arguments of main are initialized as top to represent all possible inputs
             for i in range(main_fun.arg_size()):
-                as_state = self.pre_abs_trace[self.icfg.get_global_icfg_node()]
-                as_state[main_fun.get_arg(i).get_id()] = IntervalValue.top()
+                as_state = self.pre_abs_trace[self.icfg.getGlobalICFGNode()]
+                as_state[main_fun.getArg(i).getId()] = IntervalValue.top()
 
             wto = self.func_to_wto[main_fun]
-            self.handle_wto_components(wto.components)
-        self.ensure_all_asserts_validated()
+            self.handleWtoComponents(wto.components)
+        self.ensureAllAssertsValidated()
 
 
     """
     Update the abstract state based on the given statement.
     This function updates the abstract state based on the given statement.
     """
-    def update_abs_state(self, stmt:pysvf.SVFStmt):
+    def updateAbsState(self, stmt:pysvf.SVFStmt):
         if isinstance(stmt, pysvf.AddrStmt):
-            self.update_state_on_addr(stmt)
+            self.updateStateOnAddr(stmt)
         elif isinstance(stmt, pysvf.BinaryOPStmt):
-            self.update_state_on_binary(stmt)
+            self.updateStateOnBinary(stmt)
         elif isinstance(stmt, pysvf.CmpStmt):
-            self.update_state_on_cmp(stmt)
+            self.updateStateOnCmp(stmt)
         elif isinstance(stmt, pysvf.LoadStmt):
-            self.update_state_on_load(stmt)
+            self.updateStateOnLoad(stmt)
         elif isinstance(stmt, pysvf.StoreStmt):
-            self.update_state_on_store(stmt)
+            self.updateStateOnStore(stmt)
         elif isinstance(stmt, pysvf.CopyStmt):
-            self.update_state_on_copy(stmt)
+            self.updateStateOnCopy(stmt)
         elif isinstance(stmt, pysvf.GepStmt):
-            self.update_state_on_gep(stmt)
+            self.updateStateOnGep(stmt)
         #phi
         elif isinstance(stmt, pysvf.PhiStmt):
-            self.update_state_on_phi(stmt)
+            self.updateStateOnPhi(stmt)
         # callpe
         elif isinstance(stmt, pysvf.CallPE):
-            self.update_state_on_call(stmt)
+            self.updateStateOnCall(stmt)
         # retpe
         elif isinstance(stmt, pysvf.RetPE):
-            self.update_state_on_ret(stmt)
+            self.updateStateOnRet(stmt)
         #select
         elif isinstance(stmt, pysvf.SelectStmt):
-            self.update_state_on_select(stmt)
+            self.updateStateOnSelect(stmt)
         elif isinstance(stmt, pysvf.UnaryOPStmt) or isinstance(stmt, pysvf.BranchStmt):
             pass
         else:
@@ -858,37 +858,37 @@ class AbstractExecution:
     :return: The initialized abstract value for the object variable.
     :rtype: pysvf.AbstractValue
     """
-    def init_obj_var(self, obj_var: pysvf.ObjVar):
-        var_id = obj_var.get_id()
-        obj = self.svfir.get_base_object(var_id).as_base_obj_var()
-        if obj.is_const_data_obj_var() or obj.is_constant_array() or obj.is_constant_struct():
-            if isinstance(obj_var, pysvf.ConstIntObjVar):
-                numeral = obj_var.get_sext_value()
+    def initObjVar(self, objVar: pysvf.ObjVar):
+        var_id = objVar.getId()
+        obj = self.svfir.getBaseObject(var_id).asBaseObjVar()
+        if obj.isConstDataObjVar() or obj.isConstantArray() or obj.isConstantStruct():
+            if isinstance(objVar, pysvf.ConstIntObjVar):
+                numeral = objVar.getSExtValue()
                 return IntervalValue(numeral, numeral)
 
-            elif isinstance(obj_var, pysvf.ConstFPObjVar):
-                return IntervalValue(obj_var.get_fp_value(), obj_var.get_fp_value())
+            elif isinstance(objVar, pysvf.ConstFPObjVar):
+                return IntervalValue(objVar.getFPValue(), objVar.getFPValue())
 
-            elif isinstance(obj_var, pysvf.ConstNullPtrObjVar):
+            elif isinstance(objVar, pysvf.ConstNullPtrObjVar):
                 return IntervalValue(0,0)
 
-            elif isinstance(obj_var, pysvf.GlobalObjVar):
-                return AddressValue(self.get_virtual_mem_address(var_id))
+            elif isinstance(objVar, pysvf.GlobalObjVar):
+                return AddressValue(self.getVirtualMemAddress(var_id))
 
-            elif obj.is_constant_array() or obj.is_constant_struct():
+            elif obj.isConstantArray() or obj.isConstantStruct():
                 return IntervalValue.top()
             else:
                 return IntervalValue.top()
         else:
-            return AddressValue(self.get_virtual_mem_address(var_id))
+            return AddressValue(self.getVirtualMemAddress(var_id))
 
 
-    def update_state_on_addr(self, addr: pysvf.AddrStmt):
-        node = addr.get_icfg_node()
+    def updateStateOnAddr(self, addr: pysvf.AddrStmt):
+        node = addr.getICFGNode()
         abstract_state = self.post_abs_trace[node]
         assert isinstance(abstract_state, AbstractState)
-        abstract_state[addr.get_rhs_id()] = AbstractValue(self.init_obj_var(addr.get_rhs_var().as_obj_var()))
-        abstract_state[addr.get_lhs_id()] = abstract_state[addr.get_rhs_id()]
+        abstract_state[addr.getRHSVarID()] = AbstractValue(self.initObjVar(addr.getRHSVar().asObjVar()))
+        abstract_state[addr.getLHSVarID()] = abstract_state[addr.getRHSVarID()]
 
 
 
@@ -896,18 +896,18 @@ class AbstractExecution:
 
 
 
-    def update_state_on_cmp(self, cmp: pysvf.CmpStmt):
-        node = cmp.get_icfg_node()
+    def updateStateOnCmp(self, cmp: pysvf.CmpStmt):
+        node = cmp.getICFGNode()
         abstract_state = self.post_abs_trace[node]
         assert isinstance(abstract_state, AbstractState)
-        op0 = cmp.get_op_var(0)
-        op1 = cmp.get_op_var(1)
-        res = cmp.get_res_id()
-        if abstract_state.is_interval(op0.get_id()) and abstract_state.is_interval(op1.get_id()):
+        op0 = cmp.getOpVar(0)
+        op1 = cmp.getOpVar(1)
+        res = cmp.getResId()
+        if abstract_state.getVar(op0.getId()).isInterval() and abstract_state.getVar(op0.getId()).isInterval():
             res_val = IntervalValue(0)
-            lhs = abstract_state[op0.get_id()].get_interval()
-            rhs = abstract_state[op1.get_id()].get_interval()
-            predicate = cmp.get_predicate()
+            lhs = abstract_state[op0.getId()].getInterval()
+            rhs = abstract_state[op1.getId()].getInterval()
+            predicate = cmp.getPredicate()
             if predicate == Predicate.ICMP_EQ or predicate == Predicate.FCMP_OEQ or predicate == Predicate.FCMP_UEQ:
                 res_val = lhs.eq_interval(rhs)
             elif predicate == Predicate.ICMP_NE or predicate == Predicate.FCMP_ONE or predicate == Predicate.FCMP_UNE:
@@ -925,51 +925,51 @@ class AbstractExecution:
             elif predicate == Predicate.FCMP_TRUE:
                 res_val = IntervalValue(1,1)
             abstract_state[res] = AbstractValue(res_val)
-        if abstract_state.is_addr(op0.get_id()) and abstract_state.is_addr(op1.get_id()):
+        if abstract_state.getVar(op0.getId()).isAddr() and abstract_state.getVar(op0.getId()).isAddr():
             res_val = None
-            lhs = abstract_state[op0.get_id()]
-            rhs = abstract_state[op1.get_id()]
-            predicate = cmp.get_predicate()
+            lhs = abstract_state[op0.getId()]
+            rhs = abstract_state[op1.getId()]
+            predicate = cmp.getPredicate()
 
             if predicate in [Predicate.ICMP_EQ, Predicate.FCMP_OEQ, Predicate.FCMP_UEQ]:
-                if len(lhs.get_addrs()) == 1 and len(rhs.get_addrs()) == 1:
+                if len(lhs.getAddrs()) == 1 and len(rhs.getAddrs()) == 1:
                     res_val = IntervalValue(lhs.equals(rhs))
                 else:
-                    if lhs.get_addrs().has_intersect(rhs.get_addrs()):
+                    if lhs.getAddrs().hasIntersect(rhs.getAddrs()):
                         res_val = IntervalValue.top()
                     else:
                         res_val = IntervalValue(0)
 
             elif predicate in [Predicate.ICMP_NE, Predicate.FCMP_ONE, Predicate.FCMP_UNE]:
-                if len(lhs.get_addrs()) == 1 and len(rhs.get_addrs()) == 1:
+                if len(lhs.getAddrs()) == 1 and len(rhs.getAddrs()) == 1:
                     res_val = IntervalValue(not lhs.equals(rhs))
                 else:
-                    if lhs.get_addrs().has_intersect(rhs.get_addrs()):
+                    if lhs.getAddrs().hasIntersect(rhs.getAddrs()):
                         res_val = IntervalValue.top()
                     else:
                         res_val = IntervalValue(1)
 
             elif predicate in [Predicate.ICMP_UGT, Predicate.ICMP_SGT, Predicate.FCMP_OGT, Predicate.FCMP_UGT]:
-                if len(lhs.get_addrs()) == 1 and len(rhs.get_addrs()) == 1:
-                    res_val = IntervalValue(next(iter(lhs.get_addrs())) > next(iter(rhs.get_addrs())))
+                if len(lhs.getAddrs()) == 1 and len(rhs.getAddrs()) == 1:
+                    res_val = IntervalValue(next(iter(lhs.getAddrs())) > next(iter(rhs.getAddrs())))
                 else:
                     res_val = IntervalValue.top()
 
             elif predicate in [Predicate.ICMP_UGE, Predicate.ICMP_SGE, Predicate.FCMP_OGE, Predicate.FCMP_UGE]:
-                if len(lhs.get_addrs()) == 1 and len(rhs.get_addrs()) == 1:
-                    res_val = IntervalValue(next(iter(lhs.get_addrs())) >= next(iter(rhs.get_addrs())))
+                if len(lhs.getAddrs()) == 1 and len(rhs.getAddrs()) == 1:
+                    res_val = IntervalValue(next(iter(lhs.getAddrs())) >= next(iter(rhs.getAddrs())))
                 else:
                     res_val = IntervalValue.top()
 
             elif predicate in [Predicate.ICMP_ULT, Predicate.ICMP_SLT, Predicate.FCMP_OLT, Predicate.FCMP_ULT]:
-                if len(lhs.get_addrs()) == 1 and len(rhs.get_addrs()) == 1:
-                    res_val = IntervalValue(next(iter(lhs.get_addrs())) < next(iter(rhs.get_addrs())))
+                if len(lhs.getAddrs()) == 1 and len(rhs.getAddrs()) == 1:
+                    res_val = IntervalValue(next(iter(lhs.getAddrs())) < next(iter(rhs.getAddrs())))
                 else:
                     res_val = IntervalValue.top()
 
             elif predicate in [Predicate.ICMP_ULE, Predicate.ICMP_SLE, Predicate.FCMP_OLE, Predicate.FCMP_ULE]:
-                if len(lhs.get_addrs()) == 1 and len(rhs.get_addrs()) == 1:
-                    res_val = IntervalValue(next(iter(lhs.get_addrs())) <= next(iter(rhs.get_addrs())))
+                if len(lhs.getAddrs()) == 1 and len(rhs.getAddrs()) == 1:
+                    res_val = IntervalValue(next(iter(lhs.getAddrs())) <= next(iter(rhs.getAddrs())))
                 else:
                     res_val = IntervalValue.top()
 
@@ -986,37 +986,37 @@ class AbstractExecution:
 
 
 
-    def update_state_on_call(self, call: pysvf.CallPE):
-        node = call.get_icfg_node()
+    def updateStateOnCall(self, call: pysvf.CallPE):
+        node = call.getICFGNode()
         abstract_state = self.post_abs_trace[node]
-        lhs = call.get_lhs_id()
-        rhs = call.get_rhs_id()
+        lhs = call.getLHSVarID()
+        rhs = call.getRHSVarID()
         abstract_state[lhs] = abstract_state[rhs]
 
 
-    def update_state_on_ret(self, ret: pysvf.RetPE):
-        node = ret.get_icfg_node()
+    def updateStateOnRet(self, ret: pysvf.RetPE):
+        node = ret.getICFGNode()
         abstract_state = self.post_abs_trace[node]
-        abstract_state[ret.get_lhs_id()] = abstract_state[ret.get_rhs_id()]
+        abstract_state[ret.getLHSVarID()] = abstract_state[ret.getRHSVarID()]
 
 
 
-    def update_state_on_select(self, select: pysvf.SelectStmt):
-        node = select.get_icfg_node()
+    def updateStateOnSelect(self, select: pysvf.SelectStmt):
+        node = select.getICFGNode()
         abstract_state = self.post_abs_trace[node]
         assert isinstance(abstract_state, AbstractState)
         res = select.get_res_id()
-        tval = select.get_true_value().get_id()
-        fval = select.get_false_value().get_id()
-        cond = select.get_condition().get_id()
-        if abstract_state[cond].get_interval().is_numeral():
-            if abstract_state[cond].get_interval().is_zero():
+        tval = select.get_true_value().getId()
+        fval = select.get_false_value().getId()
+        cond = select.getCondition().getId()
+        if abstract_state[cond].getInterval().isInterval():
+            if abstract_state[cond].getInterval().is_zero():
                 abstract_state[res] = abstract_state[fval]
             else:
                 abstract_state[res] = abstract_state[tval]
         else:
-            abstract_state[res].join_with(abstract_state[tval])
-            abstract_state[res].join_with(abstract_state[fval])
+            abstract_state[res].joinWith(abstract_state[tval])
+            abstract_state[res].joinWith(abstract_state[fval])
 
 
 
@@ -1036,29 +1036,24 @@ class AbstractExecution:
     :return: The calculated access offset as an IntervalValue.
     :rtype: pysvf.IntervalValue
     """
-    def get_access_offset(self, obj_id: int, gep: pysvf.GepStmt) -> pysvf.IntervalValue:
-        obj = self.svfir.get_gnode(obj_id)
-        abstract_state = self.post_abs_trace[gep.get_icfg_node()]
+    def getAccessOffset(self, objId: int, gep: pysvf.GepStmt) -> pysvf.IntervalValue:
+        obj = self.svfir.getGNode(objId)
+        abstract_state = self.post_abs_trace[gep.getICFGNode()]
 
         # Field-insensitive base object
         if isinstance(obj, pysvf.BaseObjVar):
             # Get base size
-            access_offset = abstract_state.get_byte_offset(gep)
+            access_offset = abstract_state.getByteOffset(gep)
             return access_offset
 
         # A sub-object of an aggregate object
         elif isinstance(obj, pysvf.GepObjVar):
             access_offset = (
-                    self.buf_overflow_helper.get_gep_obj_offset_from_base(obj)
-                    + abstract_state.get_byte_offset(gep)
+                    self.buf_overflow_helper.getGepObjOffsetFromBase(obj)
+                    + abstract_state.getByteOffset(gep)
             )
             return access_offset
 
         else:
             assert isinstance(obj, pysvf.DummyObjVar), "What other types of object?"
             return pysvf.IntervalValue.top()
-
-
-
-
-
