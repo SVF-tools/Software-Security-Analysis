@@ -6,8 +6,9 @@ def check_icfg_case(module_name, result, expected):
     print(f"Test case {module_name} passed!")
 
 
-def test_icfg(module_name_vec):
-    pag = pysvf.getPAG(module_name_vec)  # Build Program Assignment Graph (SVFIR)
+def test_icfg(argv):
+    pysvf.buildSVFModule(argv)  # Build Program Assignment Graph (SVFIR)
+    pag = pysvf.getPAG()
     icfg = pag.getICFG()  # Get ICFG
     gt = Ass1_ICFGTraversal(pag)  # Create ICFG Traversal object
 
@@ -37,16 +38,17 @@ def test_icfg(module_name_vec):
         print(f"Test case {module_name} not found!")
 
 
-def test_pta(module_name_vec):
-    pag = pysvf.getPAG(module_name_vec) # Build Program Assignment Graph (SVFIR)
+def test_pta(argv):
+    pysvf.buildSVFModule(argv)  # Build Program Assignment Graph (SVFIR)
+    pag = pysvf.getPAG()
     andersen_pta = Ass1_Andersen(pag)
     andersen_pta.analyze()  # Run Andersen pointer analysis
     del andersen_pta
 
 
-def test_taint(module_name_vec):
-    pag = pysvf.getPAG(module_name_vec)  # Build Program Assignment Graph (SVFIR)
-
+def test_taint(argv):
+    pysvf.buildSVFModule(argv)  # Build Program Assignment Graph (SVFIR)
+    pag = pysvf.getPAG()
     taint = Ass1_ICFGTraversal(pag)
     taint.taintChecking()  # Perform taint analysis
 
@@ -97,6 +99,7 @@ def main():
     taint_enabled = False
     icfg_enabled = False
     module_name_vec = ""
+    argv = []
 
     args = sys.argv[1:]
 
@@ -108,7 +111,7 @@ def main():
         elif arg == "-icfg":
             icfg_enabled = True
         else:
-            module_name_vec = arg
+            argv.append(arg)
 
     # Default to taint analysis if none specified
     if not (pta_enabled or taint_enabled or icfg_enabled):
@@ -116,15 +119,15 @@ def main():
 
     assert (pta_enabled + taint_enabled + icfg_enabled) == 1, "Only one analysis can be enabled."
 
-    if module_name_vec == "":
+    if argv == []:
         assert False, "No module specified. Please specify a module to analyze."
 
     if pta_enabled:
-        test_pta(module_name_vec)
+        test_pta(argv)
     elif taint_enabled:
-        test_taint(module_name_vec)
+        test_taint(argv)
     elif icfg_enabled:
-        test_icfg(module_name_vec)
+        test_icfg(argv)
 
 
 if __name__ == "__main__":

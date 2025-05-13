@@ -2,10 +2,10 @@ from Assignment2 import *
 
 if __name__ == "__main__":
     # check sys.argv and print friendly error message if not enough arguments
-    if len(sys.argv) != 2:
+    if len(sys.argv) >= 2:
         print("Usage: python3 Main.py <path-to-bc-file>")
         sys.exit(1)
-    bc_file = sys.argv[1]
-    pag = pysvf.getPAG(bc_file)
+    pysvf.buildSVFModule(sys.argv[1:])
+    pag = pysvf.getPAG()
     ass4 = Assignment2(pag)
     ass4.analyse()
