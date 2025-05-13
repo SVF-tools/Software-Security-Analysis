@@ -18,6 +18,10 @@ def test_icfg(argv):
     for src in gt.identifySources():
         for snk in gt.identifySinks():
             gt.reachability(src, snk)
+    for arg in argv:
+        # not start with -
+        if not arg.startswith('-'):
+            module_name_vec = arg
 
     module_name = os.path.basename(module_name_vec)
     if module_name == "test1.ll":
@@ -52,6 +56,10 @@ def test_taint(argv):
     taint = Ass1_ICFGTraversal(pag)
     taint.taintChecking()  # Perform taint analysis
 
+    for arg in argv:
+        # not start with -
+        if not arg.startswith('-'):
+            module_name_vec = arg
     module_name_vec = os.path.basename(module_name_vec)
     print(taint.getPaths())
     if module_name_vec == "test1.ll":
