@@ -1,5 +1,5 @@
 file(GLOB SOURCES
-        *.cpp
+        CPP/*.cpp
 )
 add_executable(lab1 ${SOURCES})
 set_target_properties(lab1 PROPERTIES

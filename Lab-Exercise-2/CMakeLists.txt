@@ -1,5 +1,5 @@
 file (GLOB SOURCES
-        *.cpp
+        CPP/*.cpp
 )
 add_executable(lab2 ${SOURCES})
 
