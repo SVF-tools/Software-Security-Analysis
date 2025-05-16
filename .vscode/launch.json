@@ -18,6 +18,19 @@
       "cwd": "${workspaceFolder}",
       "preLaunchTask": "C/C++: cpp build active file",
       "MIMode": "lldb"
+    },
+    {
+        "name": "Launch Python Script",
+        "type": "python",
+        "request": "launch",
+      // Please change to the executable of your current assignment. Lab python versions are Jupyter Notebook.
+      // |  Assignment-1    | "${workspaceFolder}/python/Assignment-1/Python/Main.py"      | "-icfg", "Assignment-1/Tests/testcases/icfg/test1.ll" |
+      // |  Assignment-2    | "${workspaceFolder}/python/Assignment-2/Python/Main.py"      | "Assignment-2/Tests/testcases/sse/test1.ll" |
+      // |  Assignment-3    | "${workspaceFolder}/python/Assignment-3/Python/Main.py"      | "Assignment-3/Tests/ae/test1.ll" |
+        "program": "${workspaceFolder}/python/Assignment-1/Python/Main.py",  
+        "console": "integratedTerminal",
+        "cwd": "${workspaceFolder}",
+        "args": []
     }
   ]
 }
