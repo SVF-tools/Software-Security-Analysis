@@ -29,8 +29,8 @@
       // |  Assignment-3    | "${workspaceFolder}/Assignment-3/Python/Main.py"      | "Assignment-3/Tests/ae/test1.ll" |
         "program": "${workspaceFolder}/Assignment-1/Python/Main.py",  
         "args": [],
-        "console": "integratedTerminal",
-        "cwd": "${workspaceFolder}"
+        "cwd": "${workspaceFolder}",
+        "console": "integratedTerminal"
     }
   ]
 }
