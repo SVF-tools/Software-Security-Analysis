@@ -5,7 +5,7 @@ foreach(filename ${ass2files})
     message(STATUS "Adding test for ${filename}")
     add_test(
             NAME ass2-py/${filename}
-            COMMAND python3 Main.py ${CMAKE_CURRENT_SOURCE_DIR}/../Tests/${filename}
+            COMMAND python3 test-sse.py ${CMAKE_CURRENT_SOURCE_DIR}/../Tests/${filename}
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 endforeach()

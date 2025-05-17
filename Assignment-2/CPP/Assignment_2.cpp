@@ -25,7 +25,7 @@
  * Created on: Feb 19, 2024
  */
 
-#include "Assignment-2.h"
+#include "Assignment_2.h"
 #include "Util/Options.h"
 
 using namespace SVF;

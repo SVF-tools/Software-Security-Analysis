@@ -1,6 +1,6 @@
 include_directories(../ ${GTRAV_DIR})
 file(GLOB SOURCES
-        Assignment-1.cpp
+        Assignment_1.cpp
 )
 list(REMOVE_ITEM SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/test.cpp")
 set(LIB ${SVF_LIB} ${llvm_libs})

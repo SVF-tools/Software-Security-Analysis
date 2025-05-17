@@ -25,7 +25,7 @@
  * Created on: Feb 19, 2024
  */
 
-#include "Assignment-3.h"
+#include "Assignment_3.h"
 #include "Util/Options.h"
 #include "Util/WorkList.h"
 

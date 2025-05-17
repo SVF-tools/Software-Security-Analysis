@@ -25,7 +25,7 @@
  * Created on: Feb 18, 2024
  */
 
-#include "Assignment-1.h"
+#include "Assignment_1.h"
 #include "WPA/Andersen.h"
 #include <sys/stat.h>
 #include <filesystem>
