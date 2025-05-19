@@ -1,5 +1,5 @@
 
-from Ass2_helper import *
+from Z3SSEMgr import *
 
 
 class Assignment2(SSE):
