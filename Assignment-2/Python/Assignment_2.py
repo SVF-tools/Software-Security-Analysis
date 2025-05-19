@@ -31,9 +31,9 @@ class Assignment2(SSE):
     '''
     def handle_branch(self, edge: pysvf.IntraCFGEdge) -> bool:
         assert isinstance(edge, pysvf.IntraCFGEdge), "edge is not a valid IntraCFGEdge object, the type of edge is {}".format(type(edge))
-        assert edge.get_condition() and "not a conditional control-flow transfer?"
-        cond = self.z3mgr.get_z3_expr(edge.get_condition().get_id(), self.calling_ctx)
-        successor_val = self.z3mgr.get_z3_val(edge.get_successor_cond_value())
+        assert edge.getCondition() and "not a conditional control-flow transfer?"
+        cond = self.z3mgr.getZ3Expr(edge.getCondition().getId(), self.callingCtx)
+        successor_val = self.z3mgr.getZ3Val(edge.getSuccessorCondValue())
         pass
 
     '''
@@ -57,7 +57,7 @@ class Assignment2(SSE):
     '''
     def handle_intra(self, edge: pysvf.IntraCFGEdge) -> bool:
         assert isinstance(edge, pysvf.IntraCFGEdge), "edge is not a valid IntraCFGEdge object, the type of edge is {}".format(type(edge))
-        if edge.get_condition():
+        if edge.getCondition():
             if self.handle_branch(edge) is False:
                 return False
         pass
@@ -77,13 +77,3 @@ class Assignment2(SSE):
 
 
 
-# Example usage
-if __name__ == "__main__":
-    # check sys.argv and print friendly error message if not enough arguments
-    if len(sys.argv) != 2:
-        print("Usage: python3 Assignment2.py <path-to-bc-file>")
-        sys.exit(1)
-    bc_file = sys.argv[1]
-    pag = pysvf.getPAG(bc_file)
-    ass4 = Assignment2(pag)
-    ass4.analyse()
