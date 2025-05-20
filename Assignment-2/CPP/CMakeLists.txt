@@ -23,7 +23,7 @@ message(STATUS "file for sse_assert_files: ${ass2files}")
 foreach(filename ${ass2files})
     message(STATUS "Adding test for ${filename}")
     add_test(
-            NAME ass2/${filename}
+            NAME ass2-cpp/${filename}
             COMMAND ass2 ${CMAKE_CURRENT_SOURCE_DIR}/../Tests/${filename}
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )

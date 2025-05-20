@@ -22,7 +22,7 @@ file(GLOB pta_assert_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${CMAKE_CURRENT
 foreach(filename ${pta_assert_files})
     message(STATUS "Adding test for ${filename}")
     add_test(
-            NAME ass1-pta/${filename}
+            NAME ass1-pta-cpp/${filename}
             COMMAND ass1 -pta ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )
@@ -32,7 +32,7 @@ message(STATUS "Adding test for icfg_assert_files")
 file(GLOB icfg_assert_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${CMAKE_CURRENT_SOURCE_DIR}/../Tests/testcases/icfg/*.ll")
 foreach(filename ${icfg_assert_files})
     add_test(
-            NAME ass1-icfg/${filename}
+            NAME ass1-icfg-cpp/${filename}
             COMMAND ass1 -icfg ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )
@@ -42,7 +42,7 @@ message(STATUS "Adding test for taint_assert_files")
 file(GLOB taint_assert_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "${CMAKE_CURRENT_SOURCE_DIR}/../Tests/testcases/taint/*.ll")
 foreach(filename ${taint_assert_files})
     add_test(
-            NAME ass1-taint/${filename}
+            NAME ass1-taint-cpp/${filename}
             COMMAND ass1 -taint ${CMAKE_CURRENT_SOURCE_DIR}/${filename}
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )

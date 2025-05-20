@@ -21,7 +21,7 @@ set_target_properties(ass3 PROPERTIES
 file(GLOB ae_assert_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/../Tests "${CMAKE_CURRENT_SOURCE_DIR}/../Tests/ae/*.ll")
 foreach(filename ${ae_assert_files})
     add_test(
-            NAME ass3-ae/${filename}
+            NAME ass3-ae-cpp/${filename}
             COMMAND ass3 ${CMAKE_CURRENT_SOURCE_DIR}/../Tests/${filename}
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )
@@ -30,7 +30,7 @@ endforeach()
 file(GLOB buf_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/../Tests "${CMAKE_CURRENT_SOURCE_DIR}/../Tests/buf/*.ll")
 foreach(filename ${buf_files})
     add_test(
-            NAME ass3-buf/${filename}
+            NAME ass3-buf-cpp/${filename}
             COMMAND ass3 -overflow ${CMAKE_CURRENT_SOURCE_DIR}/../Tests/${filename}
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )
