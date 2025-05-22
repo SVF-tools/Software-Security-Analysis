@@ -30,7 +30,6 @@
 #include "WPA/Andersen.h"
 
 
-#define FlippedAddressMask (AddressMask^0xffffffff)
 namespace SVF {
 	class IntervalExeState;
 	class IntervalValue;
