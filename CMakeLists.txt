@@ -9,43 +9,17 @@ project(Software-Security-Analysis
         LANGUAGES C CXX
 )
 
-# Check if the LLVM_DIR environment variable is defined and set it accordingly
-if (DEFINED LLVM_DIR)
-    set(ENV{LLVM_DIR} "${LLVM_DIR}")
-elseif (DEFINED ENV{LLVM_DIR})
-    set(LLVM_DIR $ENV{LLVM_DIR})
-else()
-    message(FATAL_ERROR "\
-WARNING: The LLVM_DIR var was not set !\n\
-Please set this to environment variable to point to the LLVM_DIR directory or set this variable to cmake configuration\n(e.g. on linux: export LLVM_DIR=/path/to/LLVM/dir) \n or \n \n(make the project via: cmake -DLLVM_DIR=your_path_to_LLVM) ")
-endif()
-
-# If the LLVM_DIR environment variable is set, configure CMake build flags and standards for C++ and C
-if (DEFINED ENV{LLVM_DIR})
-    # Set the C++ standard to C++17 and configure compiler flags based on the build type
-    set(CMAKE_CXX_STANDARD 17)
-    if(CMAKE_BUILD_TYPE MATCHES "Debug")
-        set(CMAKE_CXX_FLAGS "-fPIC -std=gnu++17 -O0 -fno-rtti -Wno-deprecated")
-    else()
-        set(CMAKE_CXX_FLAGS "-fPIC -std=gnu++17 -O3 -fno-rtti -Wno-deprecated")
-    endif()
-    set(CMAKE_C_FLAGS "-fPIC")
-    # Check if compiler is GNU and version is less than 9
-    if (CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9)
-        # Link filesystem library globally
-        link_libraries(stdc++fs)
-    endif()
-endif()
 
 # Locate and use the LLVM package for the project
 find_package(LLVM REQUIRED CONFIG)
 message(STATUS "LLVM STATUS:
-  Version       ${LLVM_VERSION}
-  Includes      ${LLVM_INCLUDE_DIRS}
-  Libraries     ${LLVM_LIBRARY_DIRS}
-  Build type    ${LLVM_BUILD_TYPE}
-  Dynamic lib   ${LLVM_LINK_LLVM_DYLIB}"
+    Version                             ${LLVM_VERSION}
+    Includes                            ${LLVM_INCLUDE_DIRS}
+    Libraries                           ${LLVM_LIBRARY_DIRS}
+    Build type                          ${LLVM_BUILD_TYPE}
+    Dynamic lib                         ${LLVM_LINK_LLVM_DYLIB}"
 )
+
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 include(AddLLVM)
 
@@ -97,32 +71,8 @@ if(NOT LLVM_ENABLE_EH)
     add_compile_options("-fno-exceptions")
 endif()
 
-# Check if the SVF_DIR environment variable is defined and set it accordingly
-if (DEFINED SVF_DIR)
-    set(ENV{SVF_DIR} "${SVF_DIR}")
-elseif (DEFINED ENV{SVF_DIR})
-    set(SVF_DIR $ENV{SVF_DIR})
-else()
-    message(FATAL_ERROR "\
-WARNING: The SVF_DIR var was not set !\n\
-Please set this to environment variable to point to the SVF_DIR directory or set this variable to cmake configuration\n
-(e.g. on linux: export SVF_DIR=/path/to/SVF/dir) \n or \n \n(make the project via: cmake -DSVF_DIR=your_path_to_SVF) ")
-endif()
+find_package(SVF 3.0 REQUIRED CONFIG HINTS ${SVF_DIR} $ENV{SVF_DIR})
 
-# Locate and configure SVF package based on the build type (Debug or Release)
-if(CMAKE_BUILD_TYPE MATCHES "Debug")
-    MESSAGE (STATUS "building SVF in debug mode")
-    if (EXISTS "${SVF_DIR}/Debug-build")
-        set(SVF_BIN "${SVF_DIR}/Debug-build")
-    else()
-        set(SVF_BIN "${SVF_DIR}/Release-build")
-    endif()
-else()
-    MESSAGE (STATUS "building SVF in release mode")
-    set(SVF_BIN "${SVF_DIR}/Release-build")
-endif()
-
-find_package(SVF CONFIG HINTS ${SVF_DIR} ${SVF_BIN})
 message(STATUS "SVF STATUS:
     Found:                              ${SVF_FOUND}
     Version:                            ${SVF_VERSION}
@@ -144,10 +94,10 @@ if("${SVF_FOUND}")
     message(STATUS "Found installed SVF instance; importing using modern CMake methods")
 
     # Ensure compatibility between SVF and LLVM in terms of RTTI and exception handling
-    if(NOT (${SVF_ENABLE_RTTI} STREQUAL ${LLVM_ENABLE_RTTI}))
+    if(NOT ${SVF_ENABLE_RTTI} STREQUAL ${LLVM_ENABLE_RTTI})
         message(FATAL_ERROR "SVF & LLVM RTTI support mismatch (SVF: ${SVF_ENABLE_RTTI}, LLVM: ${LLVM_ENABLE_RTTI})!")
     endif()
-    if(NOT (${SVF_ENABLE_EXCEPTIONS} STREQUAL ${LLVM_ENABLE_EH}))
+    if( (${SVF_ENABLE_EXCEPTIONS} STREQUAL ${LLVM_ENABLE_EH}))
         message(FATAL_ERROR "SVF & LLVM exceptions support mismatch (SVF: ${SVF_ENABLE_EXCEPTIONS}, LLVM: ${LLVM_ENABLE_EH})!")
     endif()
 
@@ -177,8 +127,9 @@ find_path(
         HINTS ${Z3_DIR} ENV Z3_DIR
         PATH_SUFFIXES include z3)
 message(STATUS "Z3 STATUS:
-  Z3 library file:        ${Z3_LIBRARIES}
-  Z3 include directory:   ${Z3_INCLUDES}")
+    Z3 library file:                    ${Z3_LIBRARIES}
+    Z3 include directory:               ${Z3_INCLUDES}"
+  )
 
 # Add the Z3 include directory and link the Z3 library to all targets of SVF
 set(CMAKE_INSTALL_RPATH ${Z3_INCLUDES})
