@@ -10,6 +10,34 @@ project(Software-Security-Analysis
 )
 
 
+# Check if the LLVM_DIR environment variable is defined and set it accordingly
+if (DEFINED LLVM_DIR)
+    set(ENV{LLVM_DIR} "${LLVM_DIR}")
+elseif (DEFINED ENV{LLVM_DIR})
+    set(LLVM_DIR $ENV{LLVM_DIR})
+else()
+    message(FATAL_ERROR "\
+WARNING: The LLVM_DIR var was not set !\n\
+Please set this to environment variable to point to the LLVM_DIR directory or set this variable to cmake configuration\n(e.g. on linux: export LLVM_DIR=/path/to/LLVM/dir) \n or \n \n(make the project via: cmake -DLLVM_DIR=your_path_to_LLVM) ")
+endif()
+
+# If the LLVM_DIR environment variable is set, configure CMake build flags and standards for C++ and C
+if (DEFINED ENV{LLVM_DIR})
+    # Set the C++ standard to C++17 and configure compiler flags based on the build type
+    set(CMAKE_CXX_STANDARD 17)
+    if(CMAKE_BUILD_TYPE MATCHES "Debug")
+        set(CMAKE_CXX_FLAGS "-fPIC -std=gnu++17 -O0 -fno-rtti -Wno-deprecated")
+    else()
+        set(CMAKE_CXX_FLAGS "-fPIC -std=gnu++17 -O3 -fno-rtti -Wno-deprecated")
+    endif()
+    set(CMAKE_C_FLAGS "-fPIC")
+    # Check if compiler is GNU and version is less than 9
+    if (CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9)
+        # Link filesystem library globally
+        link_libraries(stdc++fs)
+    endif()
+endif()
+
 
 # Locate and use the LLVM package for the project
 find_package(LLVM REQUIRED CONFIG)
@@ -22,7 +50,6 @@ message(STATUS "LLVM STATUS:
     Exceptions enabled:                 ${LLVM_ENABLE_EH}
     Dynamic lib:                        ${LLVM_LINK_LLVM_DYLIB}"
 )
-
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 include(AddLLVM)
 
@@ -138,6 +165,7 @@ include_directories(SYSTEM ${Z3_INCLUDES})
 #   Everything above this line is a general CMake template for SVF ecosystem projects.
 #   Everything below this line is specific to this project (user/application code).
 # ==============================================================================
+
 
 enable_testing()
 
