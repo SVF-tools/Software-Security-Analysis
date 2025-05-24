@@ -9,7 +9,6 @@ project(Software-Security-Analysis
         LANGUAGES C CXX
 )
 
-
 # Check if the LLVM_DIR environment variable is defined and set it accordingly
 if (DEFINED LLVM_DIR)
     set(ENV{LLVM_DIR} "${LLVM_DIR}")
