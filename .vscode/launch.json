@@ -17,7 +17,7 @@
       "args": [], // may input the test llvm bc file or other options and flags the program may use
       "cwd": "${workspaceFolder}",
       "preLaunchTask": "C/C++: cpp build active file",
-      "MIMode": "lldb"
+      "MIMode": "gdb"
     },
     {
         "name": "Launch Python Script",
