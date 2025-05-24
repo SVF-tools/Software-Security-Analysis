@@ -10,14 +10,17 @@ project(Software-Security-Analysis
 )
 
 
+
 # Locate and use the LLVM package for the project
 find_package(LLVM REQUIRED CONFIG)
 message(STATUS "LLVM STATUS:
-    Version                             ${LLVM_VERSION}
-    Includes                            ${LLVM_INCLUDE_DIRS}
-    Libraries                           ${LLVM_LIBRARY_DIRS}
-    Build type                          ${LLVM_BUILD_TYPE}
-    Dynamic lib                         ${LLVM_LINK_LLVM_DYLIB}"
+    Version:                            ${LLVM_VERSION}
+    Includes:                           ${LLVM_INCLUDE_DIRS}
+    Libraries:                          ${LLVM_LIBRARY_DIRS}
+    Build type:                         ${LLVM_BUILD_TYPE}
+    RTTI enabled:                       ${LLVM_ENABLE_RTTI}
+    Exceptions enabled:                 ${LLVM_ENABLE_EH}
+    Dynamic lib:                        ${LLVM_LINK_LLVM_DYLIB}"
 )
 
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
@@ -44,19 +47,7 @@ if(LLVM_LINK_LLVM_DYLIB)
     set(llvm_libs LLVM)
 else()
     message(STATUS "Linking to separate LLVM static libraries")
-    llvm_map_components_to_libnames(llvm_libs
-            bitwriter
-            core
-            ipo
-            irreader
-            instcombine
-            instrumentation
-            target
-            linker
-            analysis
-            scalaropts
-            support
-    )
+    llvm_map_components_to_libnames(llvm_libs bitwriter core ipo irreader instcombine instrumentation target linker analysis scalaropts support)
 endif()
 
 # Re-include AddLLVM module and configure LLVM/CMake settings
@@ -71,7 +62,14 @@ if(NOT LLVM_ENABLE_EH)
     add_compile_options("-fno-exceptions")
 endif()
 
-find_package(SVF 3.0 REQUIRED CONFIG HINTS ${SVF_DIR} $ENV{SVF_DIR})
+
+# If SVF_DIR is not set while ENV{SVF_DIR} is set, sync.
+if(NOT DEFINED SVF_DIR AND DEFINED ENV{SVF_DIR})
+    set(SVF_DIR $ENV{SVF_DIR})
+endif()
+# Find the SVF CMake package (pass $SVF_DIR as a (prioritised) hint) Set
+# $SVF_DIR to the installation prefix used to install SVF
+find_package(SVF REQUIRED CONFIG HINTS ${SVF_DIR} ${SVF_DIR}/Debug-build ${SVF_DIR}/Release-build)
 
 message(STATUS "SVF STATUS:
     Found:                              ${SVF_FOUND}
@@ -86,19 +84,26 @@ message(STATUS "SVF STATUS:
     Install include directory:          ${SVF_INSTALL_INCLUDE_DIR}
     Install 'extapi.bc' file path:      ${SVF_INSTALL_EXTAPI_FILE}")
 
-# Map LLVM components to their library names for use in linking
-llvm_map_components_to_libnames(llvm_libs bitwriter core ipo irreader instcombine instrumentation target linker analysis scalaropts support)
+# Set default build type to Release if not set
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
+# Assert if CMAKE_BUILD_TYPE is Debug but SVF_BUILD_TYPE is Release
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND SVF_BUILD_TYPE STREQUAL "Release")
+    message(FATAL_ERROR "CMAKE_BUILD_TYPE=Debug but SVF_BUILD_TYPE=Release is not allowed!")
+endif()
 
 # Check if SVF is found and handle importing with modern CMake methods or legacy methods
 if("${SVF_FOUND}")
     message(STATUS "Found installed SVF instance; importing using modern CMake methods")
 
     # Ensure compatibility between SVF and LLVM in terms of RTTI and exception handling
-    if(NOT ${SVF_ENABLE_RTTI} STREQUAL ${LLVM_ENABLE_RTTI})
-        message(FATAL_ERROR "SVF & LLVM RTTI support mismatch (SVF: ${SVF_ENABLE_RTTI}, LLVM: ${LLVM_ENABLE_RTTI})!")
+    if(NOT (${SVF_ENABLE_RTTI} STREQUAL ${LLVM_ENABLE_RTTI}))
+        message(FATAL_ERROR "SVF & LLVM RTTI support mismatch (SVF: ${SVF_ENABLE_RTTI}, LLVM: ${LLVM_ENABLE_RTTI})! This indicates that the version of LLVM used by your SVF dependency does not match the version of LLVM used by your current project. You need to check and ensure both are using the same LLVM version.")
     endif()
     if(NOT (${SVF_ENABLE_EXCEPTIONS} STREQUAL ${LLVM_ENABLE_EH}))
-        message(FATAL_ERROR "SVF & LLVM exceptions support mismatch (SVF: ${SVF_ENABLE_EXCEPTIONS}, LLVM: ${LLVM_ENABLE_EH})!")
+        message(WARNING "SVF & LLVM exceptions support mismatch (SVF: ${SVF_ENABLE_EXCEPTIONS}, LLVM: ${LLVM_ENABLE_EH}). You may not be able to catch exceptions across modules between SVF and LLVM.")
     endif()
 
     # Include SVF include directories and link the library directories
@@ -114,18 +119,8 @@ set(SVF_LIB SvfLLVM SvfCore)
 
 # Find and configure Z3 package, first trying the system Z3 with CMake, then fallback to SVF's Z3 instance
 # Find Z3 and its include directory from the top-level include file
-find_library(
-        Z3_LIBRARIES
-        REQUIRED
-        NAMES z3
-        HINTS ${Z3_DIR} ENV Z3_DIR
-        PATH_SUFFIXES bin lib)
-find_path(
-        Z3_INCLUDES
-        REQUIRED
-        NAMES z3++.h
-        HINTS ${Z3_DIR} ENV Z3_DIR
-        PATH_SUFFIXES include z3)
+find_library(Z3_LIBRARIES REQUIRED NAMES z3 HINTS ${Z3_DIR} ENV Z3_DIR PATH_SUFFIXES bin lib)
+find_path(Z3_INCLUDES REQUIRED NAMES z3++.h HINTS ${Z3_DIR} ENV Z3_DIR PATH_SUFFIXES include z3)
 message(STATUS "Z3 STATUS:
     Z3 library file:                    ${Z3_LIBRARIES}
     Z3 include directory:               ${Z3_INCLUDES}"
@@ -135,6 +130,14 @@ message(STATUS "Z3 STATUS:
 set(CMAKE_INSTALL_RPATH ${Z3_INCLUDES})
 link_libraries(${Z3_LIBRARIES})
 include_directories(SYSTEM ${Z3_INCLUDES})
+
+# ==============================================================================
+#                           SVF Ecosystem CMake Template
+# ==============================================================================
+#                 ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+#   Everything above this line is a general CMake template for SVF ecosystem projects.
+#   Everything below this line is specific to this project (user/application code).
+# ==============================================================================
 
 enable_testing()
 
