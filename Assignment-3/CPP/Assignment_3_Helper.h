@@ -82,8 +82,10 @@ namespace SVF {
 		IntervalValue getGepObjOffsetFromBase(const GepObjVar* obj) const {
 			if (hasGepObjOffsetFromBase(obj))
 				return gepObjOffsetFromBase.at(obj);
-			else
+			else {
 				assert(false && "GepObjVar not found in gepObjOffsetFromBase");
+				abort();
+			}
 		}
 		SVFBugReport& getBugReporter() {
 			return _recoder;

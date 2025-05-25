@@ -25,9 +25,9 @@ if (DEFINED ENV{LLVM_DIR})
     # Set the C++ standard to C++17 and configure compiler flags based on the build type
     set(CMAKE_CXX_STANDARD 17)
     if(CMAKE_BUILD_TYPE MATCHES "Debug")
-        set(CMAKE_CXX_FLAGS "-fPIC -std=gnu++17 -O0 -fno-rtti -Wno-deprecated")
+        set(CMAKE_CXX_FLAGS "-fPIC -std=gnu++17 -O0 -fno-rtti -Wno-deprecated -Werror")
     else()
-        set(CMAKE_CXX_FLAGS "-fPIC -std=gnu++17 -O3 -fno-rtti -Wno-deprecated")
+        set(CMAKE_CXX_FLAGS "-fPIC -std=gnu++17 -O3 -fno-rtti -Wno-deprecated -Werror")
     endif()
     set(CMAKE_C_FLAGS "-fPIC")
     # Check if compiler is GNU and version is less than 9
@@ -108,7 +108,8 @@ message(STATUS "SVF STATUS:
     Install binary directory:           ${SVF_INSTALL_BIN_DIR}
     Install library directory:          ${SVF_INSTALL_LIB_DIR}
     Install include directory:          ${SVF_INSTALL_INCLUDE_DIR}
-    Install 'extapi.bc' file path:      ${SVF_INSTALL_EXTAPI_FILE}")
+    Install 'extapi.bc' file path:      ${SVF_INSTALL_EXTAPI_FILE}
+    Install BC:                         ${SVF_INSTALL_EXTAPI_BC}")
 
 # Set default build type to Release if not set
 if(NOT CMAKE_BUILD_TYPE)
@@ -167,6 +168,7 @@ include_directories(SYSTEM ${Z3_INCLUDES})
 
 
 enable_testing()
+
 
 # Add subdirectories for various components of the project
 add_subdirectory(HelloWorld)

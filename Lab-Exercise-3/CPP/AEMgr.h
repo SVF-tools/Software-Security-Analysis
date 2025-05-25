@@ -156,6 +156,7 @@ namespace SVF {
 				if (iv.getNumeral() == 0) {
 					SVFUtil::outs() << SVFUtil::errMsg("\t FAILURE :") << "the assertion is unsatisfiable\n";
 					assert(false);
+					abort();
 				}
 				else {
 					SVFUtil::outs() << SVFUtil::sucMsg("\t SUCCESS :") << "the assertion is successfully verified\n";
@@ -165,6 +166,7 @@ namespace SVF {
 			else {
 				SVFUtil::outs() << SVFUtil::errMsg("\t FAILURE :") << "the assertion is unsatisfiable\n";
 				assert(false);
+				abort();
 			}
 		}
 
