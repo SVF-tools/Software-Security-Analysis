@@ -216,12 +216,13 @@ class AbstractExecutionHelper:
         """
         self.node_to_bug_info[node] = msg
 
-    def printBugInfo(self):
-        """
-        Print the bug information for each node.
-        """
-        for node, msg in self.node_to_bug_info.items():
-            print(f"Node: {node}, Bug Info: {msg}")
+    def printReport(self):
+        if len(self.node_to_bug_info) > 0:
+            print("######################Buffer Overflow ({} found)######################".format(len(self.node_to_bug_info)))
+            print("---------------------------------------------")
+            for node, msg in self.node_to_bug_info.items():
+                print(f"{node}: {msg}\n---------------------------------------------")
+
 
 
     def updateGepObjOffsetFromBase(self, abstractState: pysvf.AbstractState, gepAddrs: pysvf.AddressValue, objAddrs: pysvf.AddressValue, offset: pysvf.IntervalValue):
@@ -738,8 +739,8 @@ class AbstractExecution:
 
 
     def ensureAllAssertsValidated(self):
-        svf_assert_count = 0
-        overflow_count = 0
+        svf_assert_to_be_verified = 0
+        overflow_assert_to_be_verified = 0
 
         for node in self.svfir.getICFG().getNodes():
             if isinstance(node, pysvf.CallICFGNode):
@@ -748,9 +749,9 @@ class AbstractExecution:
                     function_name = called_function.getName()
                     if function_name in ["svf_assert", "OVERFLOW"]:
                         if function_name == "svf_assert":
-                            svf_assert_count += 1
+                            svf_assert_to_be_verified += 1
                         elif function_name == "OVERFLOW":
-                            overflow_count += 1
+                            overflow_assert_to_be_verified += 1
                         else:
                             pass
 
@@ -758,12 +759,9 @@ class AbstractExecution:
                             raise AssertionError(
                                 f"The stub function callsite (svf_assert or OVERFLOW) has not been checked: {node}"
                             )
-        if len(self.assert_points) == svf_assert_count + overflow_count:
-            print("All svf_assert and OVERFLOW are validated.")
-        else:
-            raise AssertionError(
-                f"Not all svf_assert and OVERFLOW are validated. {len(self.assert_points)} svf_assert and OVERFLOW are validated, but {svf_assert_count + overflow_count} svf_assert and OVERFLOW are found."
-            )
+                        
+        assert overflow_assert_to_be_verified <= len(self.buf_overflow_helper.node_to_bug_info), \
+            "The number of stub asserts (ground truth) should <= the number of overflow reported"
 
 
 
@@ -798,7 +796,7 @@ class AbstractExecution:
             wto = self.func_to_wto[main_fun]
             self.handleWtoComponents(wto.components)
         self.ensureAllAssertsValidated()
-
+        self.buf_overflow_helper.printReport()
 
     """
     Update the abstract state based on the given statement.
