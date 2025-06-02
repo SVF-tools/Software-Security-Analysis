@@ -36,7 +36,7 @@ WORKDIR ${HOME}
 RUN git clone "https://github.com/SVF-tools/SVF.git"
 WORKDIR ${HOME}/SVF
 RUN echo "Building SVF ..."
-RUN bash ./build.sh
+RUN bash ./build.sh debug
 
 # Export SVF, llvm, z3 paths
 ENV PATH=${HOME}/SVF/Release-build/bin:$PATH
@@ -52,5 +52,5 @@ RUN git clone "https://github.com/SVF-tools/Software-Security-Analysis.git"
 WORKDIR ${HOME}/Software-Security-Analysis
 RUN echo "Building Software-Security-Analysis ..."
 RUN sed -i 's/lldb/gdb/g' ${HOME}/Software-Security-Analysis/.vscode/launch.json
-RUN cmake -DCMAKE_BUILD_TYPE=MinSizeRel .
+RUN cmake -DCMAKE_BUILD_TYPE=Debug .
 RUN make -j8

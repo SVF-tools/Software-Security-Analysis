@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "(debug) Launch",
+      "name": "(debug) Launch C++",
       "type": "cppdbg",
       "request": "launch",
       // Please change to the executable of your current lab or assignment
@@ -17,17 +17,17 @@
       "args": [], // may input the test llvm bc file or other options and flags the program may use
       "cwd": "${workspaceFolder}",
       "preLaunchTask": "C/C++: cpp build active file",
-      "MIMode": "gdb"
+      "MIMode": "lldb"  // change to "gdb" if you are using non-macOS system
     },
     {
-        "name": "Launch Python Script",
+        "name": "(debug) Launch Python",
         "type": "python",
         "request": "launch",
-      // Please change to the executable of your current assignment. Lab python versions are Jupyter Notebook.
-      // |  Assignment-1    | "${workspaceFolder}/Assignment-1/Python/Main.py"      | "-icfg", "Assignment-1/Tests/testcases/icfg/test1.ll" |
-      // |  Assignment-2    | "${workspaceFolder}/Assignment-2/Python/Main.py"      | "Assignment-2/Tests/testcases/sse/test1.ll" |
-      // |  Assignment-3    | "${workspaceFolder}/Assignment-3/Python/Main.py"      | "Assignment-3/Tests/ae/test1.ll" |
-        "program": "${workspaceFolder}/Assignment-1/Python/Main.py",  
+      // Please change to the executable of your current assignment. Python version of the lab exercises are using Jupyter Notebook.
+      // |  Assignment-1    | "${workspaceFolder}/Assignment-1/Python/test.py"      | "-icfg", "Assignment-1/Tests/testcases/icfg/test1.ll" |
+      // |  Assignment-2    | "${workspaceFolder}/Assignment-2/Python/test-sse.py"      | "Assignment-2/Tests/testcases/sse/test1.ll" |
+      // |  Assignment-3    | "${workspaceFolder}/Assignment-3/Python/test-ae.py"      | "Assignment-3/Tests/ae/test1.ll" |
+        "program": "${workspaceFolder}/HelloWorld/hello.py",  
         "args": [],
         "cwd": "${workspaceFolder}",
         "console": "integratedTerminal"
