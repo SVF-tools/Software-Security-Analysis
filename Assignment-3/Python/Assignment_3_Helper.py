@@ -224,7 +224,6 @@ class AbstractExecutionHelper:
                 print(f"{node}: {msg}\n---------------------------------------------")
 
 
-
     def updateGepObjOffsetFromBase(self, abstractState: pysvf.AbstractState, gepAddrs: pysvf.AddressValue, objAddrs: pysvf.AddressValue, offset: pysvf.IntervalValue):
         """
         Update the GEP object offset from the base address.
@@ -766,7 +765,6 @@ class AbstractExecution:
 
 
 
-
     """
     Perform the main analysis of the program.
 
@@ -797,6 +795,7 @@ class AbstractExecution:
             self.handleWtoComponents(wto.components)
         self.ensureAllAssertsValidated()
         self.buf_overflow_helper.printReport()
+
 
     """
     Update the abstract state based on the given statement.
@@ -910,13 +909,13 @@ class AbstractExecution:
                 res_val = lhs.eq_interval(rhs)
             elif predicate == Predicate.ICMP_NE or predicate == Predicate.FCMP_ONE or predicate == Predicate.FCMP_UNE:
                 res_val = lhs.ne_interval(rhs)
-            elif predicate == Predicate.ICMP_SGT or predicate == Predicate.FCMP_OGT or predicate == Predicate.FCMP_UGT:
+            elif predicate == Predicate.ICMP_SGT or  predicate == Predicate.FCMP_UGT or predicate == Predicate.FCMP_OGT or predicate == Predicate.FCMP_UGT:
                 res_val = (lhs  > rhs)
-            elif predicate == Predicate.ICMP_SGE or predicate == Predicate.FCMP_OGE or predicate == Predicate.FCMP_UGE:
+            elif predicate == Predicate.ICMP_SGE or  predicate == Predicate.FCMP_UGE or predicate == Predicate.FCMP_OGE or predicate == Predicate.FCMP_UGE:
                 res_val = (lhs >= rhs)
-            elif predicate == Predicate.ICMP_SLT or predicate == Predicate.FCMP_OLT or predicate == Predicate.FCMP_ULT:
+            elif predicate == Predicate.ICMP_SLT or  predicate == Predicate.ICMP_ULT or predicate == Predicate.FCMP_OLT or predicate == Predicate.FCMP_ULT:
                 res_val = (lhs < rhs)
-            elif predicate == Predicate.ICMP_SLE or predicate == Predicate.FCMP_OLE or predicate == Predicate.FCMP_ULE:
+            elif predicate == Predicate.ICMP_SLE or predicate == Predicate.ICMP_ULE or  predicate == Predicate.FCMP_OLE or predicate == Predicate.FCMP_ULE:
                 res_val = (lhs <= rhs)
             elif predicate == Predicate.FCMP_FALSE:
                 res_val = IntervalValue(0,0)
