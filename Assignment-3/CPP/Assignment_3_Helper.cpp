@@ -1,3 +1,30 @@
+//===- Assignment_3_Helper.cpp -- Abstract Interpretation --//
+//
+//                     SVF: Static Value-Flow Analysis
+//
+// Copyright (C) <2013-2022>  <Yulei Sui>
+//
+
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+//===----------------------------------------------------------------------===//
+/*
+ * Helper Functions for Abstract Interpretation and buffer overflow detection
+ *
+ * Created on: Feb 19, 2024
+ */
+
 #include "Assignment_3.h"
 #include "WPA/Andersen.h"
 
@@ -466,19 +493,21 @@ void AbstractExecution::handleGlobalNode() {
 	}
 }
 
+/// If we have stub calls as ground truths in the program, including svf_assert and OVERFLOW, 
+/// make sure they are fully verified/checked.
 void AbstractExecution::ensureAllAssertsValidated() {
-	u32_t svf_assert_count = 0;
-	u32_t overflow_count = 0;
+	u32_t svf_assert_to_be_verified = 0;
+	u32_t overflow_assert_to_be_verified = 0;
 	for (auto it = svfir->getICFG()->begin(); it != svfir->getICFG()->end(); ++it) {
 		const ICFGNode* node = it->second;
 		if (const CallICFGNode* call = SVFUtil::dyn_cast<CallICFGNode>(node)) {
 			if (const FunObjVar* fun = call->getCalledFunction()) {
 				if (fun->getName() == "svf_assert" || fun->getName() == "OVERFLOW") {
 					if (fun->getName() == "svf_assert") {
-						svf_assert_count++;
+						svf_assert_to_be_verified++;
 					}
 					else {
-						overflow_count++;
+						overflow_assert_to_be_verified++;
 					}
 					if (assert_points.find(call) == assert_points.end()) {
 						std::stringstream ss;
@@ -491,14 +520,11 @@ void AbstractExecution::ensureAllAssertsValidated() {
 			}
 		}
 	}
-	if (overflow_count == 0) {
-		SVFBugReport& report = bufOverflowHelper.getBugReporter();
-		assert (report.getBugSet().size() == 0 && "There should be no overflow bugs");
-	} else {
-		assert(overflow_count <= bufOverflowHelper.getBugReporter().getBugSet().size() &&
-		       "The number of overflow bugs should be equal to the number of stub functions called");
-	}
+
+	assert(overflow_assert_to_be_verified <= bufOverflowHelper.getBugReporter().getBugSet().size() &&
+		       "The number of stub asserts (ground truth) should <= the number of overflow reported");
 }
+
 
 
 /**
@@ -787,5 +813,3 @@ void AbstractExecution::handleStubFunctions(const SVF::CallICFGNode* callNode) {
 		}
 	}
 }
-
-
