@@ -103,8 +103,7 @@ namespace SVF {
 
 		    /// Return its abstract state given an ICFGNode
 		AbstractState& getAbsStateFromTrace(const ICFGNode* node) {
-			const ICFGNode* repNode = icfg->getRepNode(node);
-			return postAbsTrace[repNode];
+			return postAbsTrace[node];
 		}
 
 		/// Update the offset of a GEP (GetElementPtr) object from its base address
