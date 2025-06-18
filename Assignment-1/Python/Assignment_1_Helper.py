@@ -1,5 +1,6 @@
 import pysvf
 from typing import Union
+import os
 class AndersenPTA:
     def __init__(self, pag: pysvf.SVFIR):
         assert isinstance(pag, pysvf.SVFIR), "pag is not a valid SVFIR object, the type of pag is {}".format(type(pag))
@@ -112,7 +113,12 @@ class ICFGTraversal:
     // if (1) alias(p,q)==true and (2) source reaches sink on ICFG.
     '''
     def taintChecking(self):
-        self.readSrcSnkFromFile("../Tests/SrcSnk.txt")
+        if os.path.exists("../Tests/SrcSnk.txt"):
+            self.readSrcSnkFromFile("../Tests/SrcSnk.txt")
+        elif os.path.exists("Assignment-1/Tests/SrcSnk.txt"):
+            self.readSrcSnkFromFile("Assignment-1/Tests/SrcSnk.txt")
+        else:
+            raise FileNotFoundError("SrcSnk.txt not found")
         self.ander.analyze()
         for src in self.identifySources():
             for snk in self.identifySinks():
