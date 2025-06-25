@@ -32,18 +32,6 @@ using namespace z3;
 using namespace SVF;
 using namespace SVFUtil;
 
-// For assert (Q), add ¬Q to the solver to prove the absence of counterexamples; 
-// otherwise return a counterexample
-// return true means there is no counterexample, false means there is at least one counterexample
-bool checkNegateAssert(Z3Examples* z3Mgr, z3::expr q) {
-	// negative check
-	z3Mgr->getSolver().push();
-	z3Mgr->addToSolver(!q);
-	z3Mgr->getSolver().check();
-	bool res = z3Mgr->getSolver().check() == z3::unsat;
-	z3Mgr->getSolver().pop();
-	return res;
-}
 /*
  // Please set the "program": "${workspaceFolder}/bin/ass3" in file '.vscode/launch.json'
  // To run your testcase from 1-7, please set the string number for "args" in file'.vscode/launch.json'
@@ -61,7 +49,7 @@ int main(int argc, char** argv) {
 		z3Mgr->test0();
 		//  assert(x==5);
 		z3::expr assert_cond = (z3Mgr->getZ3Expr("x") == z3Mgr->getZ3Expr(5));
-		result = checkNegateAssert(z3Mgr, assert_cond);
+		result = z3Mgr->checkNegateAssert(assert_cond);
 	}
 	else if (test_name == "test1") {
 		z3Mgr->test1();

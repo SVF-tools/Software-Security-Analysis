@@ -140,6 +140,18 @@ namespace SVF {
 			resetZ3ExprMap();
 		}
 
+		// For assert (Q), add ¬Q to the solver to prove the absence of counterexamples;
+		// return true means there is no counterexample, false means there is at least one counterexample
+		bool checkNegateAssert(z3::expr q) {
+			// negative check
+			getSolver().push();
+			getSolver().add(!q);
+			getSolver().check();
+			bool res = getSolver().check() == z3::unsat;
+			getSolver().pop();
+			return res;
+		}
+
 	 protected:
 		z3::context ctx;
 		z3::solver solver;
