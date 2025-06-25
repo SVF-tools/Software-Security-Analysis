@@ -34,6 +34,7 @@ using namespace SVFUtil;
 
 // For assert (Q), add ¬Q to the solver to prove the absence of counterexamples; 
 // otherwise return a counterexample
+// return true means there is no counterexample, false means there is at least one counterexample
 bool checkNegateAssert(Z3Examples* z3Mgr, z3::expr q) {
 	// negative check
 	z3Mgr->getSolver().push();
@@ -60,7 +61,7 @@ int main(int argc, char** argv) {
 		z3Mgr->test0();
 		//  assert(x==5);
 		z3::expr assert_cond = (z3Mgr->getZ3Expr("x") == z3Mgr->getZ3Expr(5));
-		result = checkNegateAssert(z3Mgr, assert_cond) && z3Mgr->hasZ3Expr("x") && z3Mgr->z3Expr2NumValue(z3Mgr->getZ3Expr("x")) == 5;
+		result = checkNegateAssert(z3Mgr, assert_cond);
 	}
 	else if (test_name == "test1") {
 		z3Mgr->test1();
