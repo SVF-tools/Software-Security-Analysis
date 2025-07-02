@@ -286,12 +286,12 @@ class SSE:
         assert isinstance(path, list), "path is not a valid list, the type of path is {}".format(type(path))
         for edge in path:
             if edge.isIntraCFGEdge():
-                if not self.handle_intra(edge):
+                if not self.handleIntra(edge):
                     return False
             elif edge.isCallCFGEdge():
-                self.handle_call(edge)
+                self.handleCall(edge)
             elif edge.isRetCFGEdge():
-                self.handle_ret(edge)
+                self.handleRet(edge)
             else:
                 assert False, "what other edges we have?"
         return True

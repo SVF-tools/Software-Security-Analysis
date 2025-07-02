@@ -13,7 +13,7 @@ class Assignment2(SSE):
     /// Note that translatePath returns true if the path is feasible, false if the path is infeasible. (3) If a path is feasible,
     /// you will need to call assertchecking to verify the assertion (which is the last ICFGNode of this path).
     '''
-    def collect_and_translate_path(self, path: list) -> None:
+    def collectAndTranslatePath(self, path: list) -> None:
         assert isinstance(path, list), "path is not a valid list, the type of path is {}".format(type(path))
         pass
 
@@ -29,7 +29,7 @@ class Assignment2(SSE):
     /// edge->getSuccessorCondValue() returns the actual condition value (1/0 for if/else) when this branch/IntraCFGEdge is executed. For example, the successorCondValue is 1 on the edge from ICFGNode1 to ICFGNode2, and 0 on the edge from ICFGNode1 to ICFGNode3
  n true if the path is feasible, false otherwise.
     '''
-    def handle_branch(self, edge: pysvf.IntraCFGEdge) -> bool:
+    def handleBranch(self, edge: pysvf.IntraCFGEdge) -> bool:
         assert isinstance(edge, pysvf.IntraCFGEdge), "edge is not a valid IntraCFGEdge object, the type of edge is {}".format(type(edge))
         assert edge.getCondition() and "not a conditional control-flow transfer?"
         cond = self.z3mgr.getZ3Expr(edge.getCondition().getId(), self.callingCtx)
@@ -39,7 +39,7 @@ class Assignment2(SSE):
     '''
     /// TODO: Implement handling of function calls
     '''
-    def handle_call(self, edge: pysvf.CallCFGEdge) -> None:
+    def handleCall(self, edge: pysvf.CallCFGEdge) -> None:
         assert isinstance(edge, pysvf.CallCFGEdge), "edge is not a valid CallCFGEdge object, the type of edge is {}".format(type(edge))
         pass
 
@@ -47,7 +47,7 @@ class Assignment2(SSE):
     '''
     /// TODO: Implement handling of function returns
     '''
-    def handle_ret(self, edge: pysvf.RetCFGEdge) -> None:
+    def handleRet(self, edge: pysvf.RetCFGEdge) -> None:
         assert isinstance(edge, pysvf.RetCFGEdge), "edge is not a valid RetCFGEdge object, the type of edge is {}".format(type(edge))
         pass
 
@@ -55,12 +55,16 @@ class Assignment2(SSE):
     /// TODO: Translate AddrStmt, CopyStmt, LoadStmt, StoreStmt, GepStmt and CmpStmt
     /// Translate AddrStmt, CopyStmt, LoadStmt, StoreStmt, GepStmt, BinaryOPStmt, CmpStmt, SelectStmt, and PhiStmt
     '''
-    def handle_intra(self, edge: pysvf.IntraCFGEdge) -> bool:
+    def handleNonBranch(self, edge: pysvf.IntraCFGEdge) -> bool:
+        assert isinstance(edge, pysvf.IntraCFGEdge), "edge is not a valid IntraCFGEdge object, the type of edge is {}".format(type(edge))
+        pass
+
+    def handleIntra(self, edge: pysvf.IntraCFGEdge) -> bool:
         assert isinstance(edge, pysvf.IntraCFGEdge), "edge is not a valid IntraCFGEdge object, the type of edge is {}".format(type(edge))
         if edge.getCondition():
-            if self.handle_branch(edge) is False:
+            if self.handleBranch(edge) is False:
                 return False
-        pass
+        return self.handleNonBranch(edge)
 
     '''
     /// TODO: Implement your context-sensitive ICFG traversal here to traverse each program path (once for any loop) from
