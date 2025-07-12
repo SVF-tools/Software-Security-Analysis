@@ -71,7 +71,7 @@ void SSE::handleRet(const RetCFGEdge* retEdge) {
 ///       	     1	/    \  0
 ///       	  ICFGNode2   ICFGNode3
 /// edge->getCondition() returns the branch condition variable (%cmp) of type SVFValue* (for if/else) or a numeric condition variable (for switch).
-/// Given the condition variable, you could obtain the SVFVar ID via "svfir->getValueNode(edge->getCondition())""
+/// Given the condition variable, you could obtain the SVFVar ID via "edge->getCondition()->getId()"
 /// edge->getCondition() returns nullptr if this IntraCFGEdge is not a branch.
 /// edge->getSuccessorCondValue() returns the actual condition value (1/0 for if/else) when this branch/IntraCFGEdge is executed. For example, the successorCondValue is 1 on the edge from ICFGNode1 to ICFGNode2, and 0 on the edge from ICFGNode1 to ICFGNode3
 bool SSE::handleBranch(const IntraCFGEdge* edge) {
