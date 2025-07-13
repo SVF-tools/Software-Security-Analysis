@@ -147,8 +147,6 @@ class Z3Mgr:
         val = z3.simplify(self.getEvalExpr(expr))
         if isinstance(val, z3.IntNumRef):
             return val.as_long()
-        elif val.is_numeral():
-            return val.as_long()
         else:
             assert False, "this expression is not numeral"
             sys.exit(1)
