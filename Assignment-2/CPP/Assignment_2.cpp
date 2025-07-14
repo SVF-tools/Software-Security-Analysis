@@ -51,17 +51,15 @@ void SSE::collectAndTranslatePath() {
 }
 
 /// TODO: Implement handling of function calls
-/// Return true means a feasible path, false otherwise
 void SSE::handleCall(const CallCFGEdge* calledge) {
 	/// TODO: your code starts from here
-	return;
+
 }
 
 /// TODO: Implement handling of function returns
-/// Return true means a feasible path, false otherwise
 void SSE::handleRet(const RetCFGEdge* retEdge) {
 	/// TODO: your code starts from here
-	return;
+
 }
 
 /// TODO: Implement handling of branch statements inside a function
