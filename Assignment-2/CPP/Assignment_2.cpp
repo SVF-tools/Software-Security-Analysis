@@ -43,9 +43,9 @@ void SSE::reachability(const ICFGEdge* curEdge, const ICFGNode* snk) {
 
 /// TODO: collect each path once this method is called during reachability analysis, and
 /// Collect each program path from the entry to each assertion of the program. In this function,
-/// you will need (1) add each path into the paths set, (2) call translatePath to convert each path into Z3 expressions.
-/// Note that translatePath returns true if the path is feasible, false if the path is infeasible. (3) If a path is feasible,
-/// you will need to call assertchecking to verify the assertion (which is the last ICFGNode of this path).
+/// you will need (1) add each path into the paths set; (2) call translatePath to convert each path into Z3 expressions.
+/// Note that translatePath returns true if the path is feasible, false if the path is infeasible; (3) If a path is feasible,
+/// you will need to call assertchecking to verify the assertion (which is the last ICFGNode of this path); (4) reset z3 solver.
 void SSE::collectAndTranslatePath() {
 	/// TODO: your code starts from here
 }
