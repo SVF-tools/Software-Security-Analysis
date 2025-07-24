@@ -108,19 +108,6 @@ namespace SVF {
 			}
 		}
 
-		NodeID getNodeID(std::string name, u32_t size) {
-			auto it = _strToID.find(name);
-			if (it != _strToID.end())
-				return it->second;
-			else {
-				_strToID[name] = currentExprIdx;
-				_idToStr[currentExprIdx] = name;
-				++currentExprIdx;
-				currentExprIdx += (size - 1);
-				return _strToID[name];
-			}
-		}
-
 		u32_t getVirtualAddr(NodeID id) const {
 			return AddressMask + id;
 		}
@@ -141,11 +128,11 @@ namespace SVF {
 			auto iter = _strToID.find(arr_name);
 			assert(iter != _strToID.end() && "Gep BaseObject expr not found?");
 			u32_t baseObjID = iter->second;
-			u32_t gepObj = baseObjID + offset;
-			if (baseObjID == gepObj) {
+			if (offset == 0) {
 				return AddressMask + baseObjID;
-			}
+			} 
 			else {
+				u32_t gepObj = (baseObjID << 8) + offset;
 				return AddressMask + gepObj;
 			}
 		}
