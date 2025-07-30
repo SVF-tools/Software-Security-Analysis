@@ -84,8 +84,18 @@ void AbstractExecution::bufOverflowDetection(const SVF::SVFStmt* stmt) {
 	}
 }
 
-/// TODO : Implement the handleCycleWTO function
-void AbstractExecution::handleCycleWTO(const ICFGCycleWTO* cycle) {
+/**
+ * @brief Handle ICFG nodes in a cycle using widening and narrowing operators
+ * 
+ * This function implements abstract interpretation for cycles in the ICFG using widening and narrowing
+ * operators to ensure termination. It processes all ICFG nodes within a cycle and implements
+ * widening-narrowing iteration to reach fixed points twice: once for widening (to ensure termination)
+ * and once for narrowing (to improve precision).
+ * 
+ * @param cycle The WTO cycle containing ICFG nodes to be processed
+ * @return void
+ */
+void AbstractExecution::handleICFGCycle(const ICFGCycleWTO* cycle) {
 	// Get execution states from in edges
 	bool is_feasible = mergeStatesFromPredecessors(cycle->head()->getICFGNode(), preAbsTrace[cycle->head()->getICFGNode()]);
 	if (!is_feasible) {
