@@ -471,7 +471,10 @@ class AbstractExecution:
     Initialize the WTO (Weak topological order) for each function.
     """
     def initWto(self):
+        callgraphScc = pysvf.getCallGraphSCC()
         for node in self.svfir.getCallGraph().getNodes():
+            if callgraphScc.isInCycle(node.getId()):
+                self.recursive_funs.add(node.getFunction())
             fun = node.getFunction()
             assert isinstance(fun, pysvf.FunObjVar)
             if fun.isDeclaration():
@@ -655,23 +658,37 @@ class AbstractExecution:
             self.bufOverflowDetection(stmt)
 
         if isinstance(node, pysvf.CallICFGNode):
-            fun_name = node.getCalledFunction().getName()
-            if fun_name == "OVERFLOW" or fun_name == "svf_assert" or fun_name == "svf_assert_eq":
-                self.handleStubFunction(node)
-            elif fun_name == "mem_insert" or fun_name == "str_insert":
-                self.updateStateOnExtCall(node)
-            elif fun_name == "nd" or fun_name == "rand":
-                lhs_id = node.getRetICFGNode().getActualRet().getId()
-                self.post_abs_trace[node][lhs_id] = AbstractValue(IntervalValue.top())
-            else:
-                for edge in node.getOutEdges():
-                    self.handleFunction(edge.getDstNode())
+            self.handleCallSite(node)
         
         # If the abstract state is the same as the last abstract state, return false because we have reached fixpoint
         if last_as is not None and self.post_abs_trace[node] == last_as:
             return False
         
         return True
+
+    """
+    Handle a call site in the control flow graph
+    
+    This function processes a call site by updating the abstract state, handling the called function,
+    and managing the call stack. It resumes the execution state after the function call.
+    return void
+    """
+    def handleCallSite(self, node: pysvf.CallICFGNode):
+        fun_name = node.getCalledFunction().getName()
+        print(fun_name)
+        if fun_name == "OVERFLOW" or fun_name == "svf_assert" or fun_name == "svf_assert_eq":
+            self.handleStubFunction(node)
+        elif fun_name == "nd" or fun_name == "rand":
+            lhs_id = node.getRetICFGNode().getActualRet().getId()
+            self.post_abs_trace[node][lhs_id] = AbstractValue(IntervalValue.top())
+        elif fun_name == "mem_insert" or fun_name == "str_insert": #isExternalCallForAssignment
+            self.updateStateOnExtCall(node)
+        elif pysvf.isExtCall(node.getCalledFunction()):
+            pass
+        elif node.getCalledFunction() in self.recursive_funs:
+            return
+        else:
+            self.handleFunction(self.svfir.getICFG().getFunEntryICFGNode(node.getCalledFunction()))
 
 
     """
@@ -752,55 +769,6 @@ class AbstractExecution:
             else:
                 print(f"Your implementation failed to detect the buffer overflow! {callNode}")
                 assert False
-
-
-
-    """
-    Handle a call site in the interprocedural control flow graph (ICFG).
-
-    This function processes a call node in the ICFG by determining the callee function
-    and taking appropriate actions based on its type. It handles external calls, 
-    recursive calls, and function calls with weak topological order (WTO) components.
-
-    Steps:
-    1. Identify the callee function associated with the call site.
-    2. If the callee is an external function (e.g., 'mem_insert' or 'str_insert'), 
-       update the abstract state accordingly and return.
-    3. For other functions:
-       - Push the call node onto the call site stack to track the call hierarchy.
-       - If the callee has WTO components, process them recursively.
-       - If the callee does not have WTO components, merge the abstract states 
-         from its predecessors.
-    4. Pop the call node from the call site stack after processing.
-
-    :param call_node: The call node representing the function call in the ICFG.
-    :type call_node: pysvf.CallICFGNode
-    """
-    def handleCallSite(self, callNode: pysvf.CallICFGNode):
-
-        # Get the callee function associated with the call site
-        callee = callNode.getCalledFunction()
-
-        if callee.getName() == 'mem_insert' or callee.getName() == 'str_insert':
-            self.updateStateOnExtCall(callNode)
-            return
-        elif callee.getName() == 'nd' or callee.getName() == 'rand':
-            lhsId = callNode.getRetICFGNode().getActualRet().getId()
-            self.post_abs_trace[callNode][lhsId] = AbstractValue(IntervalValue.top())
-        else:
-            self.call_site_stack.append(callNode)
-
-            if callee in self.func_to_wto:
-                # Handle the callee function
-                wto = self.func_to_wto[callee]
-                self.handleWtoComponents(wto.components)
-
-                # Pop the call node from the call site stack
-                self.call_site_stack.pop()
-            else:
-                res, self.post_abs_trace[callNode] = self.mergeStatesFromPredecessors(callNode)
-                pass
-
 
 
     """
@@ -1188,3 +1156,8 @@ class AbstractExecution:
         else:
             assert isinstance(obj, pysvf.DummyObjVar), "What other types of object?"
             return pysvf.IntervalValue.top()
+
+
+
+
+
