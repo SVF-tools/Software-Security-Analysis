@@ -1,30 +1,3 @@
-//===- Assignment_3_Helper.cpp -- Abstract Interpretation --//
-//
-//                     SVF: Static Value-Flow Analysis
-//
-// Copyright (C) <2013-2022>  <Yulei Sui>
-//
-
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//
-//===----------------------------------------------------------------------===//
-/*
- * Helper Functions for Abstract Interpretation and buffer overflow detection
- *
- * Created on: Feb 19, 2024
- */
-
 #include "Assignment_3.h"
 #include "WPA/Andersen.h"
 
@@ -149,6 +122,13 @@ void AbstractExecution::initWTO() {
 		auto* wto = new ICFGWTO(icfg, icfg->getFunEntryICFGNode(fun));
 		wto->init();
 		funcToWTO[fun] = wto;
+	}
+	for (auto fun: funcToWTO) {
+		for (const ICFGWTOComp* comp : fun.second->getWTOComponents()) {
+			if (const ICFGCycleWTO* cycle = SVFUtil::dyn_cast<ICFGCycleWTO>(comp)) {
+				cycleHeadToCycle[cycle->head()->getICFGNode()] = cycle;
+			}
+		}
 	}
 }
 
@@ -526,7 +506,6 @@ void AbstractExecution::ensureAllAssertsValidated() {
 }
 
 
-
 /**
  * @brief The driver program
  *
@@ -549,73 +528,50 @@ void AbstractExecution::analyse() {
 			AbstractState& as = getAbsStateFromTrace(icfg->getGlobalICFGNode());
 			as[fun->getArg(i)->getId()] = IntervalValue::top();
 		}
-		ICFGWTO* wto = funcToWTO[fun];
-		handleWTOComponents(wto->getWTOComponents());
+		//assert the main function exist
+		assert(svfir->getFunObjVar("main") != nullptr && "Main function not found");
+		handleFunction(svfir->getICFG()->getFunEntryICFGNode(svfir->getFunObjVar("main")));
 	}
 	return;
 }
 
 /**
- * @brief Hanlde two types of WTO components (singleton and cycle)
- */
-void AbstractExecution::handleWTOComponents(const std::list<const ICFGWTOComp*>& wtoComps) {
-	for (const ICFGWTOComp* wtoNode : wtoComps) {
-		if (const ICFGSingletonWTO* node = SVFUtil::dyn_cast<ICFGSingletonWTO>(wtoNode)) {
-			handleSingletonWTO(node);
-		}
-		// Handle WTO cycles
-		else if (const ICFGCycleWTO* cycle = SVFUtil::dyn_cast<ICFGCycleWTO>(wtoNode)) {
-			handleCycleWTO(cycle);
-		}
-		// Assert false for unknown WTO types
-		else {
-			assert(false && "unknown WTO type!");
-		}
-	}
-}
-
-/**
- * @brief Handle a Weak Topological Order (WTO) node in the control flow graph
+ * @brief Handle a node in the ICFG
  *
- * This function processes a WTO node, which typically represents a loop in the control flow graph.
- * It first propagates the state to the node if feasible. Then, it updates the abstract state
- * and performs buffer overflow detection for each statement in the node. If the node is a call
- * node, it handles the call site or specific stub functions.
+ * This function handles a node in the ICFG by merging the abstract states of its predecessors,
+ * updating the abstract state based on the node's statements, and handling stub functions.
+ * It also checks if the abstract state has reached a fixpoint and returns the result.
+ * Return true means the abstract state has changed
+ * Return false means the abstract state has reached a fixpoint or is infeasible
  *
- * @param node The WTO node to be processed
+ * @param node The node to be handled
+ * @return True if the abstract state has changed, false if it has reached a fixpoint or is infeasible
  */
-void AbstractExecution::handleSingletonWTO(const ICFGSingletonWTO* singletonWTO) {
-	const ICFGNode* node = singletonWTO->getICFGNode();
-	// Propagate the states from predecessors to the current node and return true if the control-flow is feasible
-	bool is_feasible = mergeStatesFromPredecessors(node, preAbsTrace[node]);
-	if (is_feasible) {
-		postAbsTrace[node] = preAbsTrace[node];
+bool AbstractExecution::handleICFGNode(const ICFGNode* node) {
+	AbstractState tmpEs;
+	bool is_feasible = mergeStatesFromPredecessors(node, tmpEs);
+	if (!is_feasible) {
+		SVFUtil::errs() << "Infeasible for node " << node->getId() << "\n";
+		return false;
 	}
-	else {
-		return;
-	}
-
-	std::deque<const ICFGNode*> worklist;
-
-	// Handle each SVF statement in the node
+	preAbsTrace[node] = tmpEs;
+	// Store the last abstract state, used to check if the abstract state has reached a fixpoint
+	AbstractState last_as = postAbsTrace[node]; 
+	postAbsTrace[node] = preAbsTrace[node];
 	for (const SVFStmt* stmt : node->getSVFStmts()) {
-		updateAbsState(stmt); // Update the abstract state with the current statement
-		bufOverflowDetection(stmt); // Perform buffer overflow detection for the statement
+		updateAbsState(stmt);
+		bufOverflowDetection(stmt);
 	}
 
-	// Handle call nodes by inlining the callee function
-	if (const CallICFGNode* callnode = SVFUtil::dyn_cast<CallICFGNode>(node)) {
-		// Get the name of the callee function
-		std::string funName = callnode->getCalledFunction()->getName();
-		if (funName == "OVERFLOW" || funName == "svf_assert" || funName == "svf_assert_eq") {
-			handleStubFunctions(callnode); // Handle specific stub functions
-		}
-		else {
-			handleCallSite(callnode); // Handle general call sites
-		}
+	if (const CallICFGNode* callNode = SVFUtil::dyn_cast<CallICFGNode>(node)) {
+			handleCallSite(callNode);
 	}
+	// If the abstract state is the same as the last abstract state, return false because we have reached fixpoint
+	if (postAbsTrace[node] == last_as) {
+		return false;
+	}
+	return true;
 }
-
 /**
  * @brief Handle state updates for each type of SVF statement
  *
@@ -691,8 +647,15 @@ void AbstractExecution::updateAbsState(const SVFStmt* stmt) {
 void AbstractExecution::handleCallSite(const CallICFGNode* callNode) {
 	// Get the callee function associated with the call site
 	const FunObjVar* callee = callNode->getCalledFunction();
-
-	if (isExternalCallForAssignment(callee)) {
+	std::string fun_name = callee->getName();
+	if (fun_name == "OVERFLOW" || fun_name == "svf_assert" || fun_name == "svf_assert_eq") {
+		handleStubFunctions(callNode);
+	} 
+	else if (fun_name == "nd" || fun_name == "rand") {
+		NodeID lhsId = callNode->getRetICFGNode()->getActualRet()->getId();
+		postAbsTrace[callNode][lhsId] = AbstractValue(IntervalValue::top());
+	} 
+	else if (isExternalCallForAssignment(callee)) {
 		// implement external calls for the assignment
 		updateStateOnExtCall(callNode);
 	}
@@ -705,15 +668,111 @@ void AbstractExecution::handleCallSite(const CallICFGNode* callNode) {
 		return;
 	}
 	else {
-		// Push the call node onto the call site stack
-		callSiteStack.push_back(callNode);
 		// Handle the callee function
-		ICFGWTO* wto = funcToWTO[callee];
-		handleWTOComponents(wto->getWTOComponents());
-
-		// Pop the call node from the call site stack
-		callSiteStack.pop_back();
+		handleFunction(svfir->getICFG()->getFunEntryICFGNode(callee));
 	}
+}
+
+/**
+ * @brief Get the next nodes of a node
+ * 
+ * Returns the next nodes of a node that are inside the same function.
+ * And if CallICFGNode, shortcut to the RetICFGNode	.
+ * 
+ * @param node The node to get the next nodes of
+ * @return The next nodes of the node
+ */
+std::vector<const ICFGNode*> AbstractExecution::getNextNodes(const ICFGNode* node) const {
+	std::vector<const ICFGNode*> outEdges;
+	for (const ICFGEdge* edge : node->getOutEdges()) {
+		const ICFGNode* dst = edge->getDstNode();
+		// Only nodes inside the same function are included
+		if (dst->getFun() == node->getFun()) {
+			outEdges.push_back(dst);
+		}
+	}
+	if (const CallICFGNode* callNode = SVFUtil::dyn_cast<CallICFGNode>(node)) {
+		// Shortcut to the RetICFGNode
+		const ICFGNode* retNode = callNode->getRetICFGNode();
+		outEdges.push_back(retNode);
+	}
+	return outEdges;
+}
+
+/**
+ * @brief Get the next nodes of a cycle
+ * 
+ * Returns the next nodes of cycle components that are outside the cycle.
+ * Inner cycles are skipped since their next nodes cannot be outside the outer cycle.
+ * And Inner cycles are handled in the outer cycle.
+ * Only nodes that point outside the cycle are included in cycleNext.
+ * 
+ * @param cycle The cycle to get the next nodes of
+ * @return The next nodes of the cycle
+ */
+std::vector<const ICFGNode*> AbstractExecution::getNextNodesOfCycle(const ICFGCycleWTO* cycle) const {
+	Set<const ICFGNode*> cycleNodes;
+	// Insert the head of the cycle and the heads of the inner cycles
+	cycleNodes.insert(cycle->head()->getICFGNode());
+	for (const ICFGWTOComp* comp : cycle->getWTOComponents()) {
+		if (const ICFGSingletonWTO* singleton = SVFUtil::dyn_cast<ICFGSingletonWTO>(comp)) {
+			cycleNodes.insert(singleton->getICFGNode());
+		} else if (const ICFGCycleWTO* subCycle = SVFUtil::dyn_cast<ICFGCycleWTO>(comp)) {
+			cycleNodes.insert(subCycle->head()->getICFGNode());
+		}
+	}
+	std::vector<const ICFGNode*> outEdges;
+	std::vector<const ICFGNode*> nextNodes = getNextNodes(cycle->head()->getICFGNode());
+	for (const ICFGNode* nextNode : nextNodes) {
+		// Only nodes that point outside the cycle are included
+		if (cycleNodes.find(nextNode) == cycleNodes.end()) {
+			outEdges.push_back(nextNode);
+		}
+	}
+	for (const ICFGWTOComp* comp : cycle->getWTOComponents()) {
+		if (const ICFGSingletonWTO* singleton = SVFUtil::dyn_cast<ICFGSingletonWTO>(comp)) {
+			std::vector<const ICFGNode*> nextNodes = getNextNodes(singleton->getICFGNode());
+			// Only nodes that point outside the cycle are included
+			for (const ICFGNode* nextNode : nextNodes) {
+				if (cycleNodes.find(nextNode) == cycleNodes.end()) {
+					outEdges.push_back(nextNode);
+				}
+			}
+		} else if (const ICFGCycleWTO* subCycle = SVFUtil::dyn_cast<ICFGCycleWTO>(comp)) {
+			// skip inner cycle inside the outer cycle, because 1) it will be handled in the outer cycle. 
+			//2) its next nodes won't be outside the outer cycle.
+			continue;
+		}
+	}
+	return outEdges;
+}
+
+void AbstractExecution::handleFunction(const ICFGNode* funEntry)
+ {
+	FIFOWorkList<const ICFGNode*> worklist;
+	worklist.push(funEntry);
+	while (!worklist.empty()) {
+		const ICFGNode* node = worklist.pop();
+		if (cycleHeadToCycle.find(node) != cycleHeadToCycle.end()) {
+			const ICFGCycleWTO* cycle = cycleHeadToCycle[node];
+			handleICFGCycle(cycle);
+			std::vector<const ICFGNode*> cycleNextNodes = getNextNodesOfCycle(cycle);
+			for (const ICFGNode* nextNode : cycleNextNodes) {
+				worklist.push(nextNode);
+			}
+		}
+		else {
+			if (!handleICFGNode(node)) {
+				SVFUtil::errs() << "Fixpoint reached or infeasible for node " << node->getId() << "\n";
+				continue;
+			}
+			std::vector<const ICFGNode*> nextNodes = getNextNodes(node);
+			for (const ICFGNode* nextNode : nextNodes) {
+				worklist.push(nextNode);
+			}
+		}
+	}
+	return;
 }
 
 /**
@@ -813,3 +872,5 @@ void AbstractExecution::handleStubFunctions(const SVF::CallICFGNode* callNode) {
 		}
 	}
 }
+
+

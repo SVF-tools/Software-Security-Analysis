@@ -479,6 +479,13 @@ class AbstractExecution:
             wto = ICFGWTO(self.icfg, self.icfg.getFunEntryICFGNode(fun))
             wto.init()
             self.func_to_wto[fun] = wto
+            
+        # Build mapping from cycle head nodes to their corresponding cycles
+        self.cycle_head_to_cycle = {}
+        for fun, wto in self.func_to_wto.items():
+            for comp in wto.components:
+                if isinstance(comp, ICFGWTOCycle):
+                    self.cycle_head_to_cycle[comp.head.node] = comp
 
 
     """
@@ -512,33 +519,159 @@ class AbstractExecution:
     def handleWtoComponents(self, wtoComps):
         for comp in wtoComps:
             if isinstance(comp, ICFGWTONode):
-                self.handleSingletonWto(comp)
+                self.handleICFGNode(comp)
             elif isinstance(comp, ICFGWTOCycle):
                 self.handleCycleWto(comp)
+
+    """
+    Handle a function in the ICFG using WTO components and worklist algorithm.
+    
+    This function processes a function by:
+    1. Building a set of WTO components for the function
+    2. Using a worklist algorithm to process nodes in topological order
+    3. Handling cycles and singleton nodes appropriately
+    4. Managing the flow between different components
+    """
+    def handleFunction(self, funEntry: pysvf.ICFGNode):
+        # Use worklist algorithm to process nodes
+        worklist = [funEntry]  # FIFO worklist using list
+        
+        while worklist:
+            node = worklist.pop(0)  # FIFO: pop from front
+            
+            # Check if current node is a cycle head
+            if node in self.cycle_head_to_cycle:
+                cycle = self.cycle_head_to_cycle[node]
+                self.handleICFGCycle(cycle)
+                # Get next nodes of the cycle and add to worklist
+                cycle_next_nodes = self.getNextNodesOfCycle(cycle)
+                for next_node in cycle_next_nodes:
+                    worklist.append(next_node)
+            else:
+                # Handle singleton node
+                if not self.handleICFGNode(node):
+                    print(f"Fixpoint reached or infeasible for node {node.getId()}")
+                    continue
+                
+                # Get next nodes and add to worklist
+                next_nodes = self.getNextNodes(node)
+                for next_node in next_nodes:
+                    worklist.append(next_node)
+
+    """
+    Get the next nodes of a given ICFG node.
+    
+    This function returns the successor nodes of a given ICFG node by examining
+    its outgoing edges. It handles both intra-procedural edges and call-return edges.
+    
+    :param node: The ICFG node whose successors are to be found
+    :type node: pysvf.ICFGNode
+    :return: List of successor nodes
+    :rtype: List[pysvf.ICFGNode]
+    """
+    def getNextNodes(self, node: pysvf.ICFGNode) -> List[pysvf.ICFGNode]:
+        out_edges = []
+        for edge in node.getOutEdges():
+            dst = edge.getDstNode()
+            if dst.getFun() == node.getFun():
+                out_edges.append(dst)
+        
+        # Handle call-return edges
+        if isinstance(node, pysvf.CallICFGNode):
+            ret_node = node.getRetICFGNode()
+            out_edges.append(ret_node)
+        
+        return out_edges
+
+    """
+    Get the next nodes of a cycle.
+    
+    This function returns the next nodes of a cycle by iterating through the cycle's components.
+    The next nodes of a cycle are the next nodes of the cycle nodes (including cycle head and cycle components)
+    that are located outside the cycle.
+    
+    Inner cycles are skipped because their next nodes cannot be outside the outer cycle.
+    Only the next nodes of cycle nodes that point to nodes outside the cycle are included in cycleNext.
+    
+    :param cycle: The WTO cycle whose next nodes are to be found
+    :type cycle: ICFGWTOCycle
+    :return: List of next nodes that are outside the cycle
+    :rtype: List[pysvf.ICFGNode]
+    """
+    def getNextNodesOfCycle(self, cycle: ICFGWTOCycle) -> List[pysvf.ICFGNode]:
+        cycle_nodes = set()
+        cycle_nodes.add(cycle.head.node)
+        
+        for comp in cycle.components:
+            if isinstance(comp, ICFGWTONode):
+                cycle_nodes.add(comp.node)
+            elif isinstance(comp, ICFGWTOCycle):
+                cycle_nodes.add(comp.head.node)
+        
+        out_edges = []
+        
+        # Get next nodes of cycle head
+        next_nodes = self.getNextNodes(cycle.head.node)
+        for next_node in next_nodes:
+            if next_node not in cycle_nodes:
+                out_edges.append(next_node)
+        
+        # Get next nodes of cycle components
+        for comp in cycle.components:
+            if isinstance(comp, ICFGWTONode):
+                next_nodes = self.getNextNodes(comp.node)
+                for next_node in next_nodes:
+                    if next_node not in cycle_nodes:
+                        out_edges.append(next_node)
+            elif isinstance(comp, ICFGWTOCycle):
+                # Skip inner cycles inside the outer cycle
+                # because their next nodes won't be outside the outer cycle
+                continue
+        
+        return out_edges
 
 
     """
     Handle a singleton WTO
+    This function handles a node in the ICFG by merging the abstract states of its predecessors,
+    updating the abstract state based on the node's statements, and handling stub functions.
+    It also checks if the abstract state has reached a fixpoint and returns the result.
+    Return true means the abstract state has changed
+    Return false means the abstract state has reached a fixpoint or is infeasible
+    
     """
-    def handleSingletonWto(self, singleWto: ICFGWTONode):
-        node = singleWto.node
+    def handleICFGNode(self, node: pysvf.ICFGNode):
         is_feasible, self.pre_abs_trace[node] = self.mergeStatesFromPredecessors(node)
-        if is_feasible:
-            self.post_abs_trace[node] = self.pre_abs_trace[node]
-        else:
-            return
-
+        if not is_feasible:
+            print(f"Infeasible for node {node.getId()}")
+            return False
+        
+        # Store the last abstract state, used to check if the abstract state has reached a fixpoint
+        last_as = self.post_abs_trace[node] if node in self.post_abs_trace else None
+        self.post_abs_trace[node] = self.pre_abs_trace[node]
+        
         for stmt in node.getSVFStmts():
             self.updateAbsState(stmt)
             self.bufOverflowDetection(stmt)
 
         if isinstance(node, pysvf.CallICFGNode):
             fun_name = node.getCalledFunction().getName()
-            if fun_name == 'OVERFLOW' or fun_name == 'svf_assert' or fun_name == 'svf_assert_eq':
-                pass
+            if fun_name == "OVERFLOW" or fun_name == "svf_assert" or fun_name == "svf_assert_eq":
                 self.handleStubFunction(node)
+            elif fun_name == "mem_insert" or fun_name == "str_insert":
+                self.updateStateOnExtCall(node)
+            elif fun_name == "nd" or fun_name == "rand":
+                lhs_id = node.getRetICFGNode().getActualRet().getId()
+                self.post_abs_trace[node][lhs_id] = AbstractValue(IntervalValue.top())
             else:
-                self.handleCallSite(node)
+                for edge in node.getOutEdges():
+                    self.handleFunction(edge.getDstNode())
+        
+        # If the abstract state is the same as the last abstract state, return false because we have reached fixpoint
+        if last_as is not None and self.post_abs_trace[node] == last_as:
+            return False
+        
+        return True
 
 
     """
@@ -791,8 +924,9 @@ class AbstractExecution:
                 as_state = self.pre_abs_trace[self.icfg.getGlobalICFGNode()]
                 as_state[main_fun.getArg(i).getId()] = IntervalValue.top()
 
-            wto = self.func_to_wto[main_fun]
-            self.handleWtoComponents(wto.components)
+            self.handleFunction(self.icfg.getFunEntryICFGNode(main_fun))
+        else:
+            assert False, "Main function not found"
         self.ensureAllAssertsValidated()
         self.buf_overflow_helper.printReport()
 
@@ -1054,3 +1188,8 @@ class AbstractExecution:
         else:
             assert isinstance(obj, pysvf.DummyObjVar), "What other types of object?"
             return pysvf.IntervalValue.top()
+
+
+
+
+

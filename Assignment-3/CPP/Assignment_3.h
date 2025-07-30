@@ -44,11 +44,6 @@ namespace SVF {
 			return instance;
 		}
 
-		/// Handle a Singleton Weak Topological Order (WTO) node in the control flow graph
-		void handleSingletonWTO(const ICFGSingletonWTO* node);
-		/// Handle a WTO which involves control-flow cycle(s)
-		void handleCycleWTO(const ICFGCycleWTO* cycle);
-
 		/// Handle global variables and initializations
 		void handleGlobalNode();
 
@@ -83,8 +78,6 @@ namespace SVF {
 		/// Handle stub functions for verifying abstract interpretation results
 		void handleStubFunctions(const CallICFGNode* call);
 
-		void handleWTOComponents(const std::list<const ICFGWTOComp*>& wtoComps);
-
 		/// Mark recursive functions in the call graph
 		void initWTO();
 
@@ -101,7 +94,19 @@ namespace SVF {
 		void handleCallSite(const CallICFGNode* callnode);
 		bool isExternalCallForAssignment(const SVF::FunObjVar* func);
 
-		    /// Return its abstract state given an ICFGNode
+		/// Handle a function in the ICFG 
+		void handleFunction(const ICFGNode* funEntry);
+
+		/// Get the next nodes of a node
+		std::vector<const ICFGNode*> getNextNodes(const ICFGNode* node) const;
+		/// Get the next nodes of a cycle
+		std::vector<const ICFGNode*> getNextNodesOfCycle(const ICFGCycleWTO* cycle) const;
+
+		bool handleICFGNode(const ICFGNode* node);
+
+		void handleICFGCycle(const ICFGCycleWTO* cycle);
+
+		/// Return its abstract state given an ICFGNode
 		AbstractState& getAbsStateFromTrace(const ICFGNode* node) {
 			return postAbsTrace[node];
 		}
@@ -123,8 +128,6 @@ namespace SVF {
 		SVFIR* svfir;
 		ICFG* icfg;
 
-		/// callstack
-		std::vector<const CallICFGNode*> callSiteStack;
 		/// Map a function to its corresponding WTO
 		Map<const FunObjVar*, ICFGWTO*> funcToWTO;
 		/// A set of functions which are involved in recursions
@@ -138,6 +141,8 @@ namespace SVF {
 		AbstractExecutionHelper bufOverflowHelper;
 
 		Set<const CallICFGNode*> assert_points;
+
+		Map<const ICFGNode*, const ICFGCycleWTO*> cycleHeadToCycle;
 
 		AbsExtAPI* utils;
 	};
