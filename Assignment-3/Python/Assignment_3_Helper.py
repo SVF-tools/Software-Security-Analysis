@@ -1156,8 +1156,4 @@ class AbstractExecution:
         else:
             assert isinstance(obj, pysvf.DummyObjVar), "What other types of object?"
             return pysvf.IntervalValue.top()
-
-
-
-
-
+        
