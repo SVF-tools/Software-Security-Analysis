@@ -515,18 +515,6 @@ class AbstractExecution:
 
 
     """
-    Handle the WTO (Weak Topological Order) components.
-    This function iterates through the WTO components and handles them based on their type.
-    It calls the appropriate helper function for each component, such as handle_singleton_wto or handleCycleWto.
-    """
-    def handleWtoComponents(self, wtoComps):
-        for comp in wtoComps:
-            if isinstance(comp, ICFGWTONode):
-                self.handleICFGNode(comp)
-            elif isinstance(comp, ICFGWTOCycle):
-                self.handleCycleWto(comp)
-
-    """
     Handle a function in the ICFG using WTO components and worklist algorithm.
     
     This function processes a function by:
