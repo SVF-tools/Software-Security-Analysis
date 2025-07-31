@@ -175,10 +175,17 @@ class ICFGWTO:
 
 
     def get_successors(self, node: ICFGNode) -> List[ICFGNode]:
+        successors = []
         if isinstance(node, pysvf.CallICFGNode):
             return [node.getRetICFGNode()]
         else:
-            return [edge.getDstNode() for edge in node.getOutEdges()]
+            for e in node.getOutEdges():
+                if not e.isIntraCFGEdge() or node.getFun() != e.getDstNode().getFun():
+                    continue
+                else:
+                    successors.append(e.getDstNode())
+        return successors
+
 
     def build_node_to_depth(self):
         builder = self.WTOCycleDepthBuilder(self.node_to_depth)
