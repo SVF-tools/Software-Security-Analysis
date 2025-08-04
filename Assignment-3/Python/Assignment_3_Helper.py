@@ -261,107 +261,36 @@ class AbstractExecutionHelper:
                         raise AssertionError("gepRhsObjVar has no gepObjOffsetFromBase")
 
 
-    def getStrlen(self, abstractState, strValue):
+    def handleMemcpy(self, abstractState: pysvf.AbstractState, dst: pysvf.SVFVar, src: pysvf.SVFVar, len: pysvf.IntervalValue, start_idx: int):
         """
-        Calculate the length of a string in the abstract state.
-
-        :param abstractState: The abstract state containing variable information.
-        :param strValue: The SVF variable representing the string.
-        :return: An IntervalValue representing the string length.
+        Handle a memcpy operation in the abstract state.
         """
-        value_id = strValue.getId()
-        dst_size = 0
-        max_limit = 10000  # Prevent infinite or corrupted symbolic memory
-
-        # Determine the size of the destination object
-        for addr in abstractState[value_id].getAddrs():
-            obj_id = abstractState.getIDFromAddr(addr)
-
-            try:
-                base_object = self.svfir.getBaseObject(obj_id)
-            except Exception as e:
-                print(f"[warn] failed to get base object for obj_id {obj_id}: {e}")
-                continue
-
-            if not base_object:
-                continue
-
-            if base_object.isConstantByteSize():
-                dst_size = base_object.getByteSizeOfObj()
-            else:
-                icfg_node = base_object.getICFGNode()
-                for stmt in icfg_node.getSVFStmts():
-                    if isinstance(stmt, pysvf.AddrStmt):
-                        try:
-                            dst_size = abstractState.getAllocaInstByteSize(stmt)
-                            break
-                        except Exception as e:
-                            print(f"[warn] failed to get alloca size: {e}")
-                            continue
-
-            # If we've determined a reasonable size, stop
-            if dst_size > 0:
-                break
-
-        # Safety cap
-        if dst_size == 0 or dst_size > max_limit:
-            dst_size = max_limit
-
-        length = 0
-        elem_size = 1
-
-        # Calculate string length
-        if abstractState.isAddr(value_id):
-            for index in range(dst_size):
-                try:
-                    expr0 = abstractState.getGepObjAddrs(value_id, pysvf.IntervalValue(index))
-                except Exception as e:
-                    print(f"[warn] getGepObjAddrs failed at index {index}: {e}")
-                    break
-
-                val = pysvf.AbstractValue()
-
-                for addr in expr0:
-                    try:
-                        val.join_with(abstractState.load(addr))
-                    except Exception as e:
-                        print(f"[warn] load from addr {addr} failed: {e}")
-                        continue
-
-                iv = val.getInterval()
-                if iv.isInterval():
-                    try:
-                        if chr(iv.getIntNumeral()) == '\0':
-                            break
-                    except:
-                        break
-                length += 1
-
-            # Determine element size
-            try:
-                ty = strValue.getType()
-                if ty.isArrayTy():
-                    elem_size = ty.getTypeOfElement().getByteSize()
-                elif ty.isPointerTy():
-                    elem_type = abstractState.getPointeeElement(value_id)
-                    if elem_type:
-                        if elem_type.isArrayTy():
-                            elem_size = elem_type.getTypeOfElement().getByteSize()
-                        else:
-                            elem_size = elem_type.getByteSize()
-                    else:
-                        elem_size = 1
+        dstId = dst.getId()
+        srcId = src.getId()
+        elemSize = 1
+        if isinstance(dst, pysvf.ValVar):
+            if dst.getType().isArrayTy():
+                elemSize = dst.getType().getTypeOfElement().getByteSize()
+            elif dst.getType().isPointerTy():
+                elemType = abstractState.getPointeeElement(dstId)
+                if elemType.isArrayTy():
+                    elemSize = elemType.getTypeOfElement().getByteSize()
                 else:
-                    raise AssertionError("Unsupported type")
-            except Exception as e:
-                print(f"[warn] failed to get element size: {e}")
-                elem_size = 1
-
-        # Return as IntervalValue
-        if length == 0:
-            return pysvf.IntervalValue(0, pysvf.Options.max_field_limit())
-        else:
-            return pysvf.IntervalValue(length * elem_size)
+                    elemSize = elemType.getByteSize()
+            else:
+                raise AssertionError("Unsupported type")
+        size = len.lb().getNumeral()
+        range_val = size/elemSize
+        if abstractState.inVarToAddrsTable(dstId) and abstractState.inVarToAddrsTable(srcId):
+            for index in range(0, int(range_val)):
+                expr_src = abstractState.getGepObjAddrs(srcId, pysvf.IntervalValue(index))
+                expr_dst = abstractState.getGepObjAddrs(dstId, pysvf.IntervalValue(index + start_idx))
+                for addr_src in expr_src:
+                    for addr_dst in expr_dst:
+                        objId = abstractState.getIDFromAddr(addr_src)
+                        if objId in abstractState.getLocToVal():
+                            lhs = abstractState.load(addr_src)
+                            abstractState.store(addr_dst, lhs)
 
 
     def getStrlen(self, abstractState, strValue):
@@ -1151,4 +1080,3 @@ class AbstractExecution:
         else:
             assert isinstance(obj, pysvf.DummyObjVar), "What other types of object?"
             return pysvf.IntervalValue.top()
-        
