@@ -1,5 +1,5 @@
-; ModuleID = './test14.ll'
-source_filename = "test14.c"
+; ModuleID = './test6.ll'
+source_filename = "test6.c"
 target datalayout = "e-m:o-i64:64-i128:128-n32:64-S128"
 target triple = "arm64-apple-macosx14.0.0"
 
@@ -13,37 +13,27 @@ entry:
   call void @llvm.memset.p0.i64(ptr align 1 %buffer, i8 0, i64 10, i1 false), !dbg !25
   %arraydecay = getelementptr inbounds [10 x i8], ptr %buffer, i64 0, i64 0, !dbg !26
   call void @mem_insert(ptr noundef %arraydecay, ptr noundef @.str, i32 noundef 3, i32 noundef 5), !dbg !27
-  %arrayidx = getelementptr inbounds [10 x i8], ptr %buffer, i64 0, i64 3, !dbg !28
+  %arrayidx = getelementptr inbounds [10 x i8], ptr %buffer, i64 0, i64 5, !dbg !28
   %0 = load i8, ptr %arrayidx, align 1, !dbg !28
   %conv = sext i8 %0 to i32, !dbg !28
   %cmp = icmp eq i32 %conv, 97, !dbg !29
   call void @svf_assert(i1 noundef zeroext %cmp), !dbg !30
-  %arrayidx2 = getelementptr inbounds [10 x i8], ptr %buffer, i64 0, i64 4, !dbg !31
+  %arrayidx2 = getelementptr inbounds [10 x i8], ptr %buffer, i64 0, i64 6, !dbg !31
   %1 = load i8, ptr %arrayidx2, align 1, !dbg !31
   %conv3 = sext i8 %1 to i32, !dbg !31
   %cmp4 = icmp eq i32 %conv3, 98, !dbg !32
   call void @svf_assert(i1 noundef zeroext %cmp4), !dbg !33
-  %arrayidx6 = getelementptr inbounds [10 x i8], ptr %buffer, i64 0, i64 5, !dbg !34
+  %arrayidx6 = getelementptr inbounds [10 x i8], ptr %buffer, i64 0, i64 7, !dbg !34
   %2 = load i8, ptr %arrayidx6, align 1, !dbg !34
   %conv7 = sext i8 %2 to i32, !dbg !34
   %cmp8 = icmp eq i32 %conv7, 99, !dbg !35
   call void @svf_assert(i1 noundef zeroext %cmp8), !dbg !36
-  %arrayidx10 = getelementptr inbounds [10 x i8], ptr %buffer, i64 0, i64 6, !dbg !37
+  %arrayidx10 = getelementptr inbounds [10 x i8], ptr %buffer, i64 0, i64 8, !dbg !37
   %3 = load i8, ptr %arrayidx10, align 1, !dbg !37
   %conv11 = sext i8 %3 to i32, !dbg !37
-  %cmp12 = icmp eq i32 %conv11, 100, !dbg !38
+  %cmp12 = icmp ne i32 %conv11, 100, !dbg !38
   call void @svf_assert(i1 noundef zeroext %cmp12), !dbg !39
-  %arrayidx14 = getelementptr inbounds [10 x i8], ptr %buffer, i64 0, i64 7, !dbg !40
-  %4 = load i8, ptr %arrayidx14, align 1, !dbg !40
-  %conv15 = sext i8 %4 to i32, !dbg !40
-  %cmp16 = icmp eq i32 %conv15, 101, !dbg !41
-  call void @svf_assert(i1 noundef zeroext %cmp16), !dbg !42
-  %arrayidx18 = getelementptr inbounds [10 x i8], ptr %buffer, i64 0, i64 8, !dbg !43
-  %5 = load i8, ptr %arrayidx18, align 1, !dbg !43
-  %conv19 = sext i8 %5 to i32, !dbg !43
-  %cmp20 = icmp ne i32 %conv19, 102, !dbg !44
-  call void @svf_assert(i1 noundef zeroext %cmp20), !dbg !45
-  ret i32 0, !dbg !46
+  ret i32 0, !dbg !40
 }
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
@@ -67,7 +57,7 @@ attributes #3 = { "frame-pointer"="non-leaf" "no-trapping-math"="true" "stack-pr
 
 !0 = !DIGlobalVariableExpression(var: !1, expr: !DIExpression())
 !1 = distinct !DIGlobalVariable(scope: null, file: !2, line: 7, type: !3, isLocal: true, isDefinition: true)
-!2 = !DIFile(filename: "test14.c", directory: "/Users/z5489735/2023/0718/Software-Security-Analysis/Assignment-3/Tests/buf")
+!2 = !DIFile(filename: "test6.c", directory: "/Users/z5489735/2023/0718/Software-Security-Analysis/teaching/Assignment-3/Tests/buf")
 !3 = !DICompositeType(tag: DW_TAG_array_type, baseType: !4, size: 56, elements: !5)
 !4 = !DIBasicType(name: "char", size: 8, encoding: DW_ATE_signed_char)
 !5 = !{!6}
@@ -105,10 +95,4 @@ attributes #3 = { "frame-pointer"="non-leaf" "no-trapping-math"="true" "stack-pr
 !37 = !DILocation(line: 11, column: 16, scope: !16)
 !38 = !DILocation(line: 11, column: 26, scope: !16)
 !39 = !DILocation(line: 11, column: 5, scope: !16)
-!40 = !DILocation(line: 12, column: 16, scope: !16)
-!41 = !DILocation(line: 12, column: 26, scope: !16)
-!42 = !DILocation(line: 12, column: 5, scope: !16)
-!43 = !DILocation(line: 13, column: 16, scope: !16)
-!44 = !DILocation(line: 13, column: 26, scope: !16)
-!45 = !DILocation(line: 13, column: 5, scope: !16)
-!46 = !DILocation(line: 14, column: 5, scope: !16)
+!40 = !DILocation(line: 12, column: 5, scope: !16)
