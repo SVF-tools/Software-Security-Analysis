@@ -1,7 +1,7 @@
 #include "stdbool.h"
 extern void svf_assert(bool);
 
-int nd(void)
+int foo(void)
 {
     return 1;
 }
@@ -10,7 +10,7 @@ int main() {
   int x, y;
   x = 1;
   y = 0;
-  switch (nd())
+  switch (foo())
   {
     case 0:
         x += 1;

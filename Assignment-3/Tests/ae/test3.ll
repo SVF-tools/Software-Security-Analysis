@@ -1,43 +1,60 @@
 ; ModuleID = './test3.ll'
-source_filename = "./test3.c"
+source_filename = "test3.c"
 target datalayout = "e-m:o-i64:64-i128:128-n32:64-S128"
 target triple = "arm64-apple-macosx14.0.0"
 
-%struct.A = type { i32, [2 x i32] }
+; Function Attrs: noinline nounwind ssp uwtable(sync)
+define i32 @foo() #0 !dbg !9 {
+entry:
+  ret i32 1, !dbg !14
+}
 
 ; Function Attrs: noinline nounwind ssp uwtable(sync)
-define i32 @getValue(ptr noundef %arr, i32 noundef %x) #0 !dbg !9 {
+define i32 @main() #0 !dbg !15 {
 entry:
-  call void @llvm.dbg.value(metadata ptr %arr, metadata !24, metadata !DIExpression()), !dbg !25
-  call void @llvm.dbg.value(metadata i32 %x, metadata !26, metadata !DIExpression()), !dbg !25
-  %b = getelementptr inbounds %struct.A, ptr %arr, i32 0, i32 1, !dbg !27
-  %idxprom = sext i32 %x to i64, !dbg !28
-  %arrayidx = getelementptr inbounds [2 x i32], ptr %b, i64 0, i64 %idxprom, !dbg !28
-  %0 = load i32, ptr %arrayidx, align 4, !dbg !28
-  ret i32 %0, !dbg !29
+  call void @llvm.dbg.value(metadata i32 1, metadata !16, metadata !DIExpression()), !dbg !17
+  call void @llvm.dbg.value(metadata i32 0, metadata !18, metadata !DIExpression()), !dbg !17
+  %call = call i32 @foo(), !dbg !19
+  switch i32 %call, label %sw.default [
+    i32 0, label %sw.bb
+    i32 1, label %sw.bb1
+    i32 2, label %sw.bb3
+  ], !dbg !20
+
+sw.bb:                                            ; preds = %entry
+  %add = add nsw i32 1, 1, !dbg !21
+  call void @llvm.dbg.value(metadata i32 %add, metadata !16, metadata !DIExpression()), !dbg !17
+  br label %sw.epilog, !dbg !23
+
+sw.bb1:                                           ; preds = %entry
+  %add2 = add nsw i32 1, 0, !dbg !24
+  call void @llvm.dbg.value(metadata i32 %add2, metadata !16, metadata !DIExpression()), !dbg !17
+  br label %sw.epilog, !dbg !25
+
+sw.bb3:                                           ; preds = %entry
+  %sub = sub nsw i32 1, 0, !dbg !26
+  call void @llvm.dbg.value(metadata i32 %sub, metadata !16, metadata !DIExpression()), !dbg !17
+  br label %sw.epilog, !dbg !27
+
+sw.default:                                       ; preds = %entry
+  %inc = add nsw i32 1, 1, !dbg !28
+  call void @llvm.dbg.value(metadata i32 %inc, metadata !16, metadata !DIExpression()), !dbg !17
+  %inc4 = add nsw i32 0, 1, !dbg !29
+  call void @llvm.dbg.value(metadata i32 %inc4, metadata !18, metadata !DIExpression()), !dbg !17
+  br label %sw.epilog, !dbg !30
+
+sw.epilog:                                        ; preds = %sw.default, %sw.bb3, %sw.bb1, %sw.bb
+  %x.0 = phi i32 [ %inc, %sw.default ], [ %sub, %sw.bb3 ], [ %add2, %sw.bb1 ], [ %add, %sw.bb ], !dbg !31
+  %y.0 = phi i32 [ %inc4, %sw.default ], [ 0, %sw.bb3 ], [ 0, %sw.bb1 ], [ 0, %sw.bb ], !dbg !17
+  call void @llvm.dbg.value(metadata i32 %y.0, metadata !18, metadata !DIExpression()), !dbg !17
+  call void @llvm.dbg.value(metadata i32 %x.0, metadata !16, metadata !DIExpression()), !dbg !17
+  %cmp = icmp sge i32 %x.0, %y.0, !dbg !32
+  call void @svf_assert(i1 noundef zeroext %cmp), !dbg !33
+  ret i32 0, !dbg !34
 }
 
 ; Function Attrs: nocallback nofree nosync nounwind speculatable willreturn memory(none)
 declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
-
-; Function Attrs: noinline nounwind ssp uwtable(sync)
-define i32 @main() #0 !dbg !30 {
-entry:
-  %a = alloca %struct.A, align 4
-  call void @llvm.dbg.declare(metadata ptr %a, metadata !33, metadata !DIExpression()), !dbg !34
-  %a1 = getelementptr inbounds %struct.A, ptr %a, i32 0, i32 0, !dbg !35
-  store i32 0, ptr %a1, align 4, !dbg !36
-  %b = getelementptr inbounds %struct.A, ptr %a, i32 0, i32 1, !dbg !37
-  %arrayidx = getelementptr inbounds [2 x i32], ptr %b, i64 0, i64 0, !dbg !38
-  store i32 1, ptr %arrayidx, align 4, !dbg !39
-  %b2 = getelementptr inbounds %struct.A, ptr %a, i32 0, i32 1, !dbg !40
-  %arrayidx3 = getelementptr inbounds [2 x i32], ptr %b2, i64 0, i64 1, !dbg !41
-  store i32 2, ptr %arrayidx3, align 4, !dbg !42
-  %call = call i32 @getValue(ptr noundef %a, i32 noundef 1), !dbg !43
-  %cmp = icmp eq i32 %call, 2, !dbg !44
-  call void @svf_assert(i1 noundef zeroext %cmp), !dbg !45
-  ret i32 0, !dbg !46
-}
 
 declare void @svf_assert(i1 noundef zeroext) #2
 
@@ -53,7 +70,7 @@ attributes #2 = { "frame-pointer"="non-leaf" "no-trapping-math"="true" "stack-pr
 !llvm.ident = !{!8}
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C11, file: !1, producer: "Homebrew clang version 16.0.6", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug, splitDebugInlining: false, nameTableKind: None, sysroot: "/Library/Developer/CommandLineTools/SDKs/MacOSX14.sdk", sdk: "MacOSX14.sdk")
-!1 = !DIFile(filename: "test3.c", directory: "/Users/z5489735/2023/0522/Software-Security-Analysis/Assignment-3/Tests/ae")
+!1 = !DIFile(filename: "test3.c", directory: "/Users/z5489735/2023/0718/Software-Security-Analysis/teaching/Assignment-3/Tests/ae")
 !2 = !{i32 7, !"Dwarf Version", i32 4}
 !3 = !{i32 2, !"Debug Info Version", i32 3}
 !4 = !{i32 1, !"wchar_size", i32 4}
@@ -61,41 +78,29 @@ attributes #2 = { "frame-pointer"="non-leaf" "no-trapping-math"="true" "stack-pr
 !6 = !{i32 7, !"uwtable", i32 1}
 !7 = !{i32 7, !"frame-pointer", i32 1}
 !8 = !{!"Homebrew clang version 16.0.6"}
-!9 = distinct !DISubprogram(name: "getValue", scope: !10, file: !10, line: 13, type: !11, scopeLine: 13, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !0, retainedNodes: !23)
-!10 = !DIFile(filename: "./test3.c", directory: "/Users/z5489735/2023/0522/Software-Security-Analysis/Assignment-3/Tests/ae")
-!11 = !DISubroutineType(types: !12)
-!12 = !{!13, !14, !13}
-!13 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
-!14 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !15, size: 64)
-!15 = !DIDerivedType(tag: DW_TAG_typedef, name: "A", file: !10, line: 11, baseType: !16)
-!16 = distinct !DICompositeType(tag: DW_TAG_structure_type, file: !10, line: 8, size: 96, elements: !17)
-!17 = !{!18, !19}
-!18 = !DIDerivedType(tag: DW_TAG_member, name: "a", scope: !16, file: !10, line: 9, baseType: !13, size: 32)
-!19 = !DIDerivedType(tag: DW_TAG_member, name: "b", scope: !16, file: !10, line: 10, baseType: !20, size: 64, offset: 32)
-!20 = !DICompositeType(tag: DW_TAG_array_type, baseType: !13, size: 64, elements: !21)
-!21 = !{!22}
-!22 = !DISubrange(count: 2)
-!23 = !{}
-!24 = !DILocalVariable(name: "arr", arg: 1, scope: !9, file: !10, line: 13, type: !14)
-!25 = !DILocation(line: 0, scope: !9)
-!26 = !DILocalVariable(name: "x", arg: 2, scope: !9, file: !10, line: 13, type: !13)
-!27 = !DILocation(line: 14, column: 17, scope: !9)
-!28 = !DILocation(line: 14, column: 12, scope: !9)
-!29 = !DILocation(line: 14, column: 5, scope: !9)
-!30 = distinct !DISubprogram(name: "main", scope: !10, file: !10, line: 17, type: !31, scopeLine: 17, spFlags: DISPFlagDefinition, unit: !0, retainedNodes: !23)
-!31 = !DISubroutineType(types: !32)
-!32 = !{!13}
-!33 = !DILocalVariable(name: "a", scope: !30, file: !10, line: 18, type: !15)
-!34 = !DILocation(line: 18, column: 7, scope: !30)
-!35 = !DILocation(line: 19, column: 7, scope: !30)
-!36 = !DILocation(line: 19, column: 9, scope: !30)
-!37 = !DILocation(line: 20, column: 7, scope: !30)
-!38 = !DILocation(line: 20, column: 5, scope: !30)
-!39 = !DILocation(line: 20, column: 12, scope: !30)
-!40 = !DILocation(line: 21, column: 7, scope: !30)
-!41 = !DILocation(line: 21, column: 5, scope: !30)
-!42 = !DILocation(line: 21, column: 12, scope: !30)
-!43 = !DILocation(line: 22, column: 16, scope: !30)
-!44 = !DILocation(line: 22, column: 32, scope: !30)
-!45 = !DILocation(line: 22, column: 5, scope: !30)
-!46 = !DILocation(line: 23, column: 5, scope: !30)
+!9 = distinct !DISubprogram(name: "foo", scope: !1, file: !1, line: 4, type: !10, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !0, retainedNodes: !13)
+!10 = !DISubroutineType(types: !11)
+!11 = !{!12}
+!12 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
+!13 = !{}
+!14 = !DILocation(line: 6, column: 5, scope: !9)
+!15 = distinct !DISubprogram(name: "main", scope: !1, file: !1, line: 9, type: !10, scopeLine: 9, spFlags: DISPFlagDefinition, unit: !0, retainedNodes: !13)
+!16 = !DILocalVariable(name: "x", scope: !15, file: !1, line: 10, type: !12)
+!17 = !DILocation(line: 0, scope: !15)
+!18 = !DILocalVariable(name: "y", scope: !15, file: !1, line: 10, type: !12)
+!19 = !DILocation(line: 13, column: 11, scope: !15)
+!20 = !DILocation(line: 13, column: 3, scope: !15)
+!21 = !DILocation(line: 16, column: 11, scope: !22)
+!22 = distinct !DILexicalBlock(scope: !15, file: !1, line: 14, column: 3)
+!23 = !DILocation(line: 17, column: 9, scope: !22)
+!24 = !DILocation(line: 19, column: 11, scope: !22)
+!25 = !DILocation(line: 20, column: 9, scope: !22)
+!26 = !DILocation(line: 22, column: 11, scope: !22)
+!27 = !DILocation(line: 23, column: 9, scope: !22)
+!28 = !DILocation(line: 25, column: 10, scope: !22)
+!29 = !DILocation(line: 26, column: 10, scope: !22)
+!30 = !DILocation(line: 27, column: 9, scope: !22)
+!31 = !DILocation(line: 0, scope: !22)
+!32 = !DILocation(line: 29, column: 18, scope: !15)
+!33 = !DILocation(line: 29, column: 5, scope: !15)
+!34 = !DILocation(line: 30, column: 5, scope: !15)
