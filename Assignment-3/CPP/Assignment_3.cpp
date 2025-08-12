@@ -96,19 +96,15 @@ void AbstractExecution::bufOverflowDetection(const SVF::SVFStmt* stmt) {
  * @return void
  */
 void AbstractExecution::handleICFGCycle(const ICFGCycleWTO* cycle) {
-	// Get execution states from in edges
-	bool is_feasible = mergeStatesFromPredecessors(cycle->head()->getICFGNode(), preAbsTrace[cycle->head()->getICFGNode()]);
-	if (!is_feasible) {
-		return;
-	} else {
-		AbstractState pre_as = preAbsTrace[cycle->head()->getICFGNode()];
-		// set -widen-delay
-		s32_t widen_delay = Options::WidenDelay();
-		bool increasing = true;
+	const ICFGNode* head = cycle->head()->getICFGNode();
+	bool increasing = true;
+	u32_t iteration = 0;
+	u32_t widen_delay = Options::WidenDelay(); // or use a class member if you have one
+
+	while (true) {
 		/// TODO: your code starts from here
-
-
 	}
+
 }
 
 

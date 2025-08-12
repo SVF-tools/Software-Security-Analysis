@@ -18,7 +18,13 @@ class Assignment3(AbstractExecution):
     :type cycle: ICFGWTOCycle
     """
     def handleICFGCycle(self, cycle: ICFGWTOCycle):
-        pass
+        head = cycle.head.node
+        increasing = True
+        iteration = 0
+        widen_delay = self.widen_delay  # Use class member for widen delay
+
+        while True:
+            pass
 
     #TODO : Implement the state updates for Copy, Binary, Store, Load, Gep, Phi
     # TODO: your code starts from here
