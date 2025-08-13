@@ -265,6 +265,11 @@ class AbstractExecutionHelper:
         """
         Handle a memcpy operation in the abstract state.
         """
+        assert isinstance(abstractState, pysvf.AbstractState), "abstractState is not a pysvf.AbstractState"
+        assert isinstance(dst, pysvf.SVFVar), "dst is not a pysvf.SVFVar"
+        assert isinstance(src, pysvf.SVFVar), "src is not a pysvf.SVFVar"
+        assert isinstance(len, pysvf.IntervalValue), "len is not a pysvf.IntervalValue"
+        assert isinstance(start_idx, int), "start_idx is not an integer"
         dstId = dst.getId()
         srcId = src.getId()
         elemSize = 1
