@@ -10,7 +10,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     env:
-      XCODE_VERSION: '15.3.0'
+      XCODE_VERSION: '16.0.0'
     steps:
       # checkout the repo
       - uses: actions/checkout@v2
