@@ -146,7 +146,7 @@ void AbstractExecution::initWTO() {
 		const FunObjVar* fun = item.second->getFunction();
 		if(fun->isDeclaration())
 			continue;
-		auto* wto = new ICFGWTO(icfg, icfg->getFunEntryICFGNode(fun));
+		auto* wto = new ICFGWTO(icfg->getFunEntryICFGNode(fun));
 		wto->init();
 		funcToWTO[fun] = wto;
 	}
