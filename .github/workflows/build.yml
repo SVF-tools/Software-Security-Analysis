@@ -43,7 +43,7 @@ jobs:
       - name: build
         run: |
           export SVF_DIR=$(npm root)/SVF
-          export LLVM_DIR=$(npm root)/llvm-16.0.0.obj
+          export LLVM_DIR=$(npm root)/llvm-18.1.0.obj
           export Z3_DIR=$(npm root)/z3.obj
           echo "SVF_DIR="$SVF_DIR
           echo "LLVM_DIR="$LLVM_DIR
