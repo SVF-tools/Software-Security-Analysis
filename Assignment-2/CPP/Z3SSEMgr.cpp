@@ -37,7 +37,7 @@ using namespace llvm;
 using namespace z3;
 
 Z3SSEMgr::Z3SSEMgr(SVFIR* ir)
-: Z3Mgr(ir->getPAGNodeNum() * 10)
+: Z3Mgr(ir->getSVFVarNum() * 10)
 , svfir(ir) {
 }
 
