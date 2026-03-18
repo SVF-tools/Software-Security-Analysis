@@ -12,7 +12,7 @@ class Z3Mgr:
         self.ctx = z3.Context()
         self.solver = z3.Solver(ctx=self.ctx)
         self.var_id_to_expr_map = {}
-        self.max_num_of_expr = svfir.getPAGNodeNum()*10
+        self.max_num_of_expr = svfir.getSVFVarNum()*10
         self.current_expr_idx = 0
 
         self.addressMask = 0x7f000000
@@ -35,8 +35,8 @@ class Z3Mgr:
             if base_obj_var.isConstIntObjVar():
                 obj = base_obj_var.asConstIntObjVar()
                 return z3.IntVal(obj.getSExtValue(), self.ctx)
-            elif base_obj_var.asConstData().isConstFPObjVar():
-                obj = base_obj_var.asConstData().asConstFPObjVar()
+            elif base_obj_var.asConstDataObjVar().isConstFPObjVar():
+                obj = base_obj_var.asConstDataObjVar().asConstFPObjVar()
                 return z3.IntVal(obj.getFPValue(), self.ctx)
             elif base_obj_var.isGlobalObjVar():
                 return z3.IntVal(self.getVirtualMemAddress(obj_var.getId()), self.ctx)
@@ -112,7 +112,7 @@ class Z3Mgr:
         rawstr = ""
         rawstr += "ctx:[ "
         for node in callingCtx:
-            rawstr += str(node.get_id()) + " "
+            rawstr += str(node.getId()) + " "
         rawstr += "] "
         return rawstr
 
@@ -203,8 +203,8 @@ class Z3Mgr:
                     valstr = "\t Value: " + hex(e.as_long()) + "\n"
                 else:
                     valstr = "\t Value: " + str(e.as_long()) + "\n"
-                print_val_map["ValVar" + str(idx) + "("+ node.get_name() +")" ] = valstr
-                val_key_map[idx] = "ValVar" + str(idx) + "("+ node.get_name() +")"
+                print_val_map["ValVar" + str(idx) + "("+ node.getName() +")" ] = valstr
+                val_key_map[idx] = "ValVar" + str(idx) + "("+ node.getName() +")"
             else:
                 if self.isVirtualMemAddress(e.as_long()):
                     stored_value = self.getEvalExpr(self.loadValue(e))
