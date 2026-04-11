@@ -254,13 +254,23 @@ void AbstractExecution::updateStateOnCmp(const CmpStmt* cmp) {
 	}
 }
 
-/// Abstract state updates on an CallPE
-void AbstractExecution::updateStateOnCall(const CallPE* call) {
-	const ICFGNode* node = call->getICFGNode();
+/// Abstract state updates on an CallPE (phi-like: formal = join(actual1@cs1, actual2@cs2, ...))
+void AbstractExecution::updateStateOnCall(const CallPE* callPE) {
+	const ICFGNode* node = callPE->getICFGNode();
 	AbstractState& as = getAbsStateFromTrace(node);
-	NodeID lhs = call->getLHSVarID();
-	NodeID rhs = call->getRHSVarID();
-	as[lhs] = as[rhs];
+	NodeID res = callPE->getResID();
+	AbstractValue rhs;
+	for (u32_t i = 0; i < callPE->getOpVarNum(); i++)
+	{
+		NodeID curId = callPE->getOpVarID(i);
+		const ICFGNode* opICFGNode = callPE->getOpCallICFGNode(i);
+		if (postAbsTrace.count(opICFGNode))
+		{
+			AbstractState& opAs = postAbsTrace[opICFGNode];
+			rhs.join_with(opAs[curId]);
+		}
+	}
+	as[res] = rhs;
 }
 
 /// Abstract state updates on an RetPE
