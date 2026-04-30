@@ -26,6 +26,7 @@
  */
 #include "Assignment_3_Helper.h"
 #include "AE/Svfexe/AbsExtAPI.h"
+#include "AE/Svfexe/AbstractStateManager.h"
 #include "SVFIR/SVFIR.h"
 
 namespace SVF {
@@ -121,12 +122,17 @@ namespace SVF {
 
 		/// Destructor
 		virtual ~AbstractExecution() {
+			delete svfStateMgr;
 		}
 
 	 protected:
 		/// SVFIR and ICFG
 		SVFIR* svfir;
 		ICFG* icfg;
+		/// Adapter that lets us reuse AbsExtAPI (which now requires an
+		/// AbstractStateManager) without giving up our own pre/postAbsTrace.
+		/// Trace is synced in/out around AbsExtAPI calls.
+		AbstractStateManager* svfStateMgr = nullptr;
 
 		/// Map a function to its corresponding WTO
 		Map<const FunObjVar*, ICFGWTO*> funcToWTO;

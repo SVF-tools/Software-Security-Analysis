@@ -77,7 +77,7 @@ class Assignment3(AbstractExecution):
                 # Update GEP object offset from base
                 self.buf_overflow_helper.updateGepObjOffsetFromBase(abstract_state,
                     abstract_state[lhs].getAddrs(),  abstract_state[rhs].getAddrs(),
-                    abstract_state.getByteOffset(stmt)
+                    self.buf_overflow_helper.getByteOffset(abstract_state, stmt)
                 )
 
                 # TODO: your code starts from here

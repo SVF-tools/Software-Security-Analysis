@@ -217,6 +217,93 @@ class AbstractExecutionHelper:
         self.node_to_bug_info = {}
         self.svfir = svfir
 
+    # ------------------------------------------------------------------
+    # Helpers that used to live as instance methods on `pysvf.AbstractState`.
+    # Upstream (Semi-Sparse refactor) moved them to `AbstractStateManager`,
+    # which requires a sparsity-aware trace we don't keep here. We re-implement
+    # the dense-mode behavior using only public AbstractState surface so the
+    # Python side mirrors the C++ side (`AbstractExecutionHelper::getByteOffset`).
+    # ------------------------------------------------------------------
+    def getByteOffset(self, abstract_state: pysvf.AbstractState, gep: pysvf.GepStmt) -> pysvf.IntervalValue:
+        if gep.isConstantOffset():
+            return pysvf.IntervalValue(gep.getConstantByteOffset())
+        max_field_limit = pysvf.Options.max_field_limit()
+        res = pysvf.IntervalValue(0)
+        pairs = gep.getOffsetVarAndGepTypePairVec()
+        for i in reversed(range(len(pairs))):
+            idx_var, idx_type = pairs[i]
+            if idx_type.isArrayType() or idx_type.isPointerType():
+                if idx_type.isArrayType():
+                    elem_byte_size = idx_type.asArrayType().getTypeOfElement().getByteSize()
+                else:
+                    elem_byte_size = gep.getSrcPointeeType().getByteSize()
+                if isinstance(idx_var, pysvf.ConstIntValVar):
+                    val = idx_var.getSExtValue()
+                    lb = val * elem_byte_size if (max_field_limit / elem_byte_size) >= val else max_field_limit
+                    res = res + pysvf.IntervalValue(lb, lb)
+                else:
+                    idx_val = abstract_state[idx_var.getId()].getInterval()
+                    if idx_val.isBottom():
+                        res = res + pysvf.IntervalValue(0, 0)
+                    else:
+                        ub_int = idx_val.ub().getNumeral()
+                        lb_int = idx_val.lb().getNumeral()
+                        ub = 0 if ub_int < 0 else (
+                             elem_byte_size * ub_int if (max_field_limit / elem_byte_size) >= ub_int
+                             else max_field_limit)
+                        lb = 0 if lb_int < 0 else (
+                             elem_byte_size * lb_int if (max_field_limit / elem_byte_size) >= lb_int
+                             else max_field_limit)
+                        res = res + pysvf.IntervalValue(lb, ub)
+            elif idx_type.isStructType():
+                res = res + pysvf.IntervalValue(gep.getStructFieldOffset(idx_var, idx_type.asStructType()))
+            else:
+                raise AssertionError("gep type pair only supports arr/ptr/struct")
+        return res
+
+    def getGepObjAddrs(self, abstract_state: pysvf.AbstractState, var_id: int, offset: pysvf.IntervalValue) -> pysvf.AddressValue:
+        gep_addrs = pysvf.AddressValue()
+        max_field_limit = pysvf.Options.max_field_limit()
+        lb = min(offset.lb().getNumeral(), max_field_limit)
+        ub = min(offset.ub().getNumeral(), max_field_limit)
+        addrs = abstract_state[var_id].getAddrs()
+        for i in range(lb, ub + 1):
+            for addr in addrs:
+                base_obj = abstract_state.getIDFromAddr(addr)
+                gep_obj = self.svfir.getGepObjVar(base_obj, i)
+                gep_addrs.insert(pysvf.AbstractState.getVirtualMemAddress(gep_obj))
+        return gep_addrs
+
+    def getPointeeElement(self, abstract_state: pysvf.AbstractState, var_id: int):
+        ptr_val = abstract_state[var_id]
+        if not ptr_val.isAddr():
+            return None
+        for addr in ptr_val.getAddrs():
+            obj_id = abstract_state.getIDFromAddr(addr)
+            if obj_id == 0:
+                continue
+            return self.svfir.getBaseObject(obj_id).getType()
+        return None
+
+    def getAllocaInstByteSize(self, abstract_state: pysvf.AbstractState, addr: pysvf.AddrStmt) -> int:
+        rhs = addr.getRHSVar()
+        if not isinstance(rhs, pysvf.ObjVar):
+            raise AssertionError("Addr rhs value is not ObjVar")
+        base = self.svfir.getBaseObject(rhs.getId())
+        if base.isConstantByteSize():
+            return base.getByteSizeOfObj()
+        max_field_limit = pysvf.Options.max_field_limit()
+        sizes = addr.getArrSize()
+        res = 1
+        for value in sizes:
+            sz_val = abstract_state[value.getId()].getInterval()
+            if sz_val.isBottom():
+                ub = max_field_limit
+            else:
+                ub = sz_val.ub().getNumeral()
+            res = res * ub if res * ub <= max_field_limit else max_field_limit
+        return int(res)
+
     def reportBufOverflow(self, node, msg):
         """
         Record an overflow node and its associated exception.
@@ -277,7 +364,7 @@ class AbstractExecutionHelper:
             if dst.getType().isArrayTy():
                 elemSize = dst.getType().getTypeOfElement().getByteSize()
             elif dst.getType().isPointerTy():
-                elemType = abstractState.getPointeeElement(dstId)
+                elemType = self.getPointeeElement(abstractState, dstId)
                 if elemType.isArrayTy():
                     elemSize = elemType.getTypeOfElement().getByteSize()
                 else:
@@ -288,8 +375,8 @@ class AbstractExecutionHelper:
         range_val = size/elemSize
         if abstractState.inVarToAddrsTable(dstId) and abstractState.inVarToAddrsTable(srcId):
             for index in range(0, int(range_val)):
-                expr_src = abstractState.getGepObjAddrs(srcId, pysvf.IntervalValue(index))
-                expr_dst = abstractState.getGepObjAddrs(dstId, pysvf.IntervalValue(index + start_idx))
+                expr_src = self.getGepObjAddrs(abstractState, srcId, pysvf.IntervalValue(index))
+                expr_dst = self.getGepObjAddrs(abstractState, dstId, pysvf.IntervalValue(index + start_idx))
                 for addr_src in expr_src:
                     for addr_dst in expr_dst:
                         objId = abstractState.getIDFromAddr(addr_src)
@@ -320,7 +407,7 @@ class AbstractExecutionHelper:
                 icfg_node = base_object.getICFGNode()
                 for stmt in icfg_node.getSVFStmts():
                     if isinstance(stmt, pysvf.AddrStmt):
-                        dst_size = abstractState.getAllocaInstByteSize(stmt)
+                        dst_size = self.getAllocaInstByteSize(abstractState, stmt)
 
         length = 0
         elem_size = 1
@@ -328,7 +415,7 @@ class AbstractExecutionHelper:
         # Calculate the string length
         if abstractState.getVar(value_id).isAddr():
             for index in range(dst_size):
-                expr0 = abstractState.getGepObjAddrs(value_id, pysvf.IntervalValue(index))
+                expr0 = self.getGepObjAddrs(abstractState, value_id, pysvf.IntervalValue(index))
                 val = pysvf.AbstractValue()
 
                 for addr in expr0:
@@ -343,7 +430,7 @@ class AbstractExecutionHelper:
             if strValue.getType().isArrayTy():
                 elem_size = strValue.getType().getTypeOfElement().getByteSize()
             elif strValue.getType().isPointerTy():
-                elem_type = abstractState.getPointeeElement(value_id)
+                elem_type = self.getPointeeElement(abstractState, value_id)
                 if elem_type:
                     if elem_type.isArrayTy():
                         elem_size = elem_type.getTypeOfElement().getByteSize()
@@ -1071,14 +1158,14 @@ class AbstractExecution:
         # Field-insensitive base object
         if isinstance(obj, pysvf.BaseObjVar):
             # Get base size
-            access_offset = abstract_state.getByteOffset(gep)
+            access_offset = self.buf_overflow_helper.getByteOffset(abstract_state, gep)
             return access_offset
 
         # A sub-object of an aggregate object
         elif isinstance(obj, pysvf.GepObjVar):
             access_offset = (
                     self.buf_overflow_helper.getGepObjOffsetFromBase(obj)
-                    + abstract_state.getByteOffset(gep)
+                    + self.buf_overflow_helper.getByteOffset(abstract_state, gep)
             )
             return access_offset
 

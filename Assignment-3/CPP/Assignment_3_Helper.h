@@ -28,10 +28,69 @@
 #include "AE/Core/AbstractState.h"
 #include "AE/Svfexe/AEDetector.h"
 #include "AE/Core/ICFGWTO.h"
+#include "SVFIR/SVFStatements.h"
+#include "Util/Options.h"
 #include "Util/SVFBugReport.h"
 namespace SVF {
 	class AbstractExecutionHelper {
 	 public:
+		/// Compute the byte offset of a GepStmt against the given abstract state.
+		/// Replaces the upstream-removed `AbstractState::getByteOffset(GepStmt*)`.
+		/// Mirrors `AbstractStateManager::getGepByteOffset` but reads non-constant
+		/// indices directly from `as` (dense trace), since Assignment-3 manages
+		/// its own per-node trace separately from any AbstractStateManager.
+		IntervalValue getByteOffset(const AbstractState& as, const GepStmt* gep) {
+			if (gep->isConstantOffset())
+				return IntervalValue((s64_t)gep->accumulateConstantByteOffset());
+
+			IntervalValue res(0);
+			for (int i = gep->getOffsetVarAndGepTypePairVec().size() - 1; i >= 0; i--) {
+				const ValVar* idxOperandVar = gep->getOffsetVarAndGepTypePairVec()[i].first;
+				const SVFType* idxOperandType = gep->getOffsetVarAndGepTypePairVec()[i].second;
+
+				if (SVFUtil::isa<SVFArrayType>(idxOperandType) || SVFUtil::isa<SVFPointerType>(idxOperandType)) {
+					u32_t elemByteSize = 1;
+					if (const SVFArrayType* arrTy = SVFUtil::dyn_cast<SVFArrayType>(idxOperandType))
+						elemByteSize = arrTy->getTypeOfElement()->getByteSize();
+					else if (SVFUtil::isa<SVFPointerType>(idxOperandType))
+						elemByteSize = gep->getAccessPath().gepSrcPointeeType()->getByteSize();
+					else
+						assert(false && "idxOperandType must be ArrType or PtrType");
+
+					if (const ConstIntValVar* op = SVFUtil::dyn_cast<ConstIntValVar>(idxOperandVar)) {
+						s64_t lb = (double)Options::MaxFieldLimit() / elemByteSize >= op->getSExtValue()
+						           ? op->getSExtValue() * elemByteSize
+						           : Options::MaxFieldLimit();
+						res = res + IntervalValue(lb, lb);
+					}
+					else {
+						AbstractState& mut_as = const_cast<AbstractState&>(as);
+						IntervalValue idxVal = mut_as[idxOperandVar->getId()].getInterval();
+						if (idxVal.isBottom())
+							res = res + IntervalValue(0, 0);
+						else {
+							s64_t ub = (idxVal.ub().getIntNumeral() < 0) ? 0
+							           : (double)Options::MaxFieldLimit() / elemByteSize >= idxVal.ub().getIntNumeral()
+							           ? elemByteSize * idxVal.ub().getIntNumeral()
+							           : Options::MaxFieldLimit();
+							s64_t lb = (idxVal.lb().getIntNumeral() < 0) ? 0
+							           : (double)Options::MaxFieldLimit() / elemByteSize >= idxVal.lb().getIntNumeral()
+							           ? elemByteSize * idxVal.lb().getIntNumeral()
+							           : Options::MaxFieldLimit();
+							res = res + IntervalValue(lb, ub);
+						}
+					}
+				}
+				else if (const SVFStructType* structTy = SVFUtil::dyn_cast<SVFStructType>(idxOperandType)) {
+					res = res + IntervalValue(gep->getAccessPath().getStructFieldOffset(idxOperandVar, structTy));
+				}
+				else {
+					assert(false && "gep type pair only support arr/ptr/struct");
+				}
+			}
+			return res;
+		}
+
 		/// Add a detected bug to the bug reporter and print the report
 		///@{
 		void addBugToReporter(const AEException& e, const ICFGNode* node) {

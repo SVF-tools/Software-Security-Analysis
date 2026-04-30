@@ -81,13 +81,13 @@ IntervalValue AbstractExecution::getAccessOffset(NodeID objId, const GepStmt* ge
 	// Field-insensitive base object
 	if (SVFUtil::isa<BaseObjVar>(obj)) {
 		// get base size
-		IntervalValue accessOffset = as.getByteOffset(gep);
+		IntervalValue accessOffset = bufOverflowHelper.getByteOffset(as, gep);
 		return accessOffset;
 	}
 	// A sub object of an aggregate object
 	else if (SVFUtil::isa<GepObjVar>(obj)) {
 		IntervalValue accessOffset =
-		    bufOverflowHelper.getGepObjOffsetFromBase(SVFUtil::cast<GepObjVar>(obj)) + as.getByteOffset(gep);
+		    bufOverflowHelper.getGepObjOffsetFromBase(SVFUtil::cast<GepObjVar>(obj)) + bufOverflowHelper.getByteOffset(as, gep);
 		return accessOffset;
 	}
 	else{
@@ -543,7 +543,9 @@ void AbstractExecution::ensureAllAssertsValidated() {
 void AbstractExecution::analyse() {
 	// Init WTOs for all functions, and handle Global ICFGNode of SVFModule
 	initWTO();
-	utils = new AbsExtAPI(postAbsTrace);
+	AndersenWaveDiff* ander = AndersenWaveDiff::createAndersenWaveDiff(svfir);
+	svfStateMgr = new AbstractStateManager(svfir, ander);
+	utils = new AbsExtAPI(svfStateMgr);
 
 	// Handle the global node
 	handleGlobalNode();
@@ -687,8 +689,15 @@ void AbstractExecution::handleCallSite(const CallICFGNode* callNode) {
 		updateStateOnExtCall(callNode);
 	}
 	else if (SVFUtil::isExtCall(callee)) {
-		// handle external API calls
+		// handle external API calls — sync our trace into the stateMgr so
+		// AbsExtAPI sees the right state, then copy any updates back out.
+		for (const auto& kv : postAbsTrace) {
+			svfStateMgr->updateAbstractState(kv.first, kv.second);
+		}
 		utils->handleExtAPI(callNode);
+		for (const auto& kv : svfStateMgr->getTrace()) {
+			postAbsTrace[kv.first] = kv.second;
+		}
 	}
 	else if (recursiveFuns.find(callee) != recursiveFuns.end()) {
 		// skip recursive functions
