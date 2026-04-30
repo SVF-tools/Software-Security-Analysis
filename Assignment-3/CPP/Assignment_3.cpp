@@ -76,7 +76,7 @@ void AbstractExecution::bufOverflowDetection(const SVF::SVFStmt* stmt) {
 			AbstractState& as = getAbsStateFromTrace(gep->getICFGNode());
 			NodeID lhs = gep->getLHSVarID();
 			NodeID rhs = gep->getRHSVarID();
-			updateGepObjOffsetFromBase(as, as[lhs].getAddrs(), as[rhs].getAddrs(), bufOverflowHelper.getByteOffset(as, gep));
+			updateGepObjOffsetFromBase(as, as[lhs].getAddrs(), as[rhs].getAddrs(), svfStateMgr->getGepByteOffset(gep));
 
 			/// TODO: your code starts from here
 
@@ -264,9 +264,9 @@ void AbstractExecution::updateStateOnCall(const CallPE* callPE) {
 	{
 		NodeID curId = callPE->getOpVarID(i);
 		const ICFGNode* opICFGNode = callPE->getOpCallICFGNode(i);
-		if (postAbsTrace.count(opICFGNode))
+		if (postAbsTrace().count(opICFGNode))
 		{
-			AbstractState& opAs = postAbsTrace[opICFGNode];
+			AbstractState& opAs = postAbsTrace()[opICFGNode];
 			rhs.join_with(opAs[curId]);
 		}
 	}
