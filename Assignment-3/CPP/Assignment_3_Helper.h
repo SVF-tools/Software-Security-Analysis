@@ -28,10 +28,13 @@
 #include "AE/Core/AbstractState.h"
 #include "AE/Svfexe/AEDetector.h"
 #include "AE/Core/ICFGWTO.h"
+#include "SVFIR/SVFStatements.h"
+#include "Util/Options.h"
 #include "Util/SVFBugReport.h"
 namespace SVF {
 	class AbstractExecutionHelper {
 	 public:
+
 		/// Add a detected bug to the bug reporter and print the report
 		///@{
 		void addBugToReporter(const AEException& e, const ICFGNode* node) {

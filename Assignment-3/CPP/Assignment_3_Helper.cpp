@@ -81,13 +81,13 @@ IntervalValue AbstractExecution::getAccessOffset(NodeID objId, const GepStmt* ge
 	// Field-insensitive base object
 	if (SVFUtil::isa<BaseObjVar>(obj)) {
 		// get base size
-		IntervalValue accessOffset = as.getByteOffset(gep);
+		IntervalValue accessOffset = svfStateMgr->getGepByteOffset(gep);
 		return accessOffset;
 	}
 	// A sub object of an aggregate object
 	else if (SVFUtil::isa<GepObjVar>(obj)) {
 		IntervalValue accessOffset =
-		    bufOverflowHelper.getGepObjOffsetFromBase(SVFUtil::cast<GepObjVar>(obj)) + as.getByteOffset(gep);
+		    bufOverflowHelper.getGepObjOffsetFromBase(SVFUtil::cast<GepObjVar>(obj)) + svfStateMgr->getGepByteOffset(gep);
 		return accessOffset;
 	}
 	else{
@@ -221,12 +221,12 @@ bool AbstractExecution::mergeStatesFromPredecessors(const ICFGNode* block, Abstr
 	// Iterate over all incoming edges of the given block
 	for (auto& edge : block->getInEdges()) {
 		// Check if the source node of the edge has a post-execution state recorded
-		if (postAbsTrace.find(edge->getSrcNode()) != postAbsTrace.end()) {
+		if (postAbsTrace().find(edge->getSrcNode()) != postAbsTrace().end()) {
 			const IntraCFGEdge* intraCfgEdge = SVFUtil::dyn_cast<IntraCFGEdge>(edge);
 
 			// If the edge is an intra-block edge and has a condition
 			if (intraCfgEdge && intraCfgEdge->getCondition()) {
-				AbstractState tmpEs = postAbsTrace[edge->getSrcNode()];
+				AbstractState tmpEs = postAbsTrace()[edge->getSrcNode()];
 				// Check if the branch condition is feasible
 				if (isBranchFeasible(intraCfgEdge, tmpEs)) {
 					as.joinWith(tmpEs); // Merge the state with the current state
@@ -236,7 +236,7 @@ bool AbstractExecution::mergeStatesFromPredecessors(const ICFGNode* block, Abstr
 			}
 			else {
 				// For non-conditional edges, directly merge the state
-				as.joinWith(postAbsTrace[edge->getSrcNode()]);
+				as.joinWith(postAbsTrace()[edge->getSrcNode()]);
 				inEdgeNum++;
 			}
 		}
@@ -492,8 +492,8 @@ bool AbstractExecution::isBranchFeasible(const IntraCFGEdge* intraEdge, Abstract
 void AbstractExecution::handleGlobalNode() {
 	AbstractState as;
 	const ICFGNode* node = icfg->getGlobalICFGNode();
-	postAbsTrace[node] = preAbsTrace[node];
-	postAbsTrace[node][0] = AddressValue();
+	postAbsTrace()[node] = preAbsTrace[node];
+	postAbsTrace()[node][0] = AddressValue();
 	// Global Node, we just need to handle addr, load, store, copy and gep
 	for (const SVFStmt* stmt : node->getSVFStmts()) {
 		updateAbsState(stmt);
@@ -543,7 +543,9 @@ void AbstractExecution::ensureAllAssertsValidated() {
 void AbstractExecution::analyse() {
 	// Init WTOs for all functions, and handle Global ICFGNode of SVFModule
 	initWTO();
-	utils = new AbsExtAPI(postAbsTrace);
+	AndersenWaveDiff* ander = AndersenWaveDiff::createAndersenWaveDiff(svfir);
+	svfStateMgr = new AbstractStateManager(svfir, ander);
+	utils = new AbsExtAPI(svfStateMgr);
 
 	// Handle the global node
 	handleGlobalNode();
@@ -583,8 +585,8 @@ bool AbstractExecution::handleICFGNode(const ICFGNode* node) {
 	}
 	preAbsTrace[node] = tmpEs;
 	// Store the last abstract state, used to check if the abstract state has reached a fixpoint
-	AbstractState last_as = postAbsTrace[node]; 
-	postAbsTrace[node] = preAbsTrace[node];
+	AbstractState last_as = postAbsTrace()[node]; 
+	postAbsTrace()[node] = preAbsTrace[node];
 	for (const SVFStmt* stmt : node->getSVFStmts()) {
 		updateAbsState(stmt);
 		bufOverflowDetection(stmt);
@@ -594,7 +596,7 @@ bool AbstractExecution::handleICFGNode(const ICFGNode* node) {
 			handleCallSite(callNode);
 	}
 	// If the abstract state is the same as the last abstract state, return false because we have reached fixpoint
-	if (postAbsTrace[node] == last_as) {
+	if (postAbsTrace()[node] == last_as) {
 		return false;
 	}
 	return true;
@@ -680,14 +682,15 @@ void AbstractExecution::handleCallSite(const CallICFGNode* callNode) {
 	} 
 	else if (fun_name == "nd" || fun_name == "rand") {
 		NodeID lhsId = callNode->getRetICFGNode()->getActualRet()->getId();
-		postAbsTrace[callNode][lhsId] = AbstractValue(IntervalValue::top());
+		postAbsTrace()[callNode][lhsId] = AbstractValue(IntervalValue::top());
 	} 
 	else if (isExternalCallForAssignment(callee)) {
 		// implement external calls for the assignment
 		updateStateOnExtCall(callNode);
 	}
 	else if (SVFUtil::isExtCall(callee)) {
-		// handle external API calls
+		// handle external API calls — AbsExtAPI reads/writes through the
+		// same svfStateMgr that backs postAbsTrace(), so no sync needed.
 		utils->handleExtAPI(callNode);
 	}
 	else if (recursiveFuns.find(callee) != recursiveFuns.end()) {

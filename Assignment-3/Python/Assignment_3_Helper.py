@@ -204,7 +204,7 @@ class AbstractExecutionHelper:
     managing GEP object offsets, and other utilities.
     """
 
-    def __init__(self, svfir: pysvf.SVFIR):
+    def __init__(self, svfir: pysvf.SVFIR, svf_state_mgr: pysvf.AbstractStateManager = None):
         """
         Initialize member variables.
         """
@@ -216,6 +216,48 @@ class AbstractExecutionHelper:
         # Map to store exception information for each ICFGNode
         self.node_to_bug_info = {}
         self.svfir = svfir
+        # Optional: if a stateMgr is provided, getByteOffset delegates to its
+        # getGepByteOffset (the C++ side does the same via svfStateMgr->...).
+        self.svf_state_mgr = svf_state_mgr
+
+    # ------------------------------------------------------------------
+    # Helpers that used to live as instance methods on `pysvf.AbstractState`.
+    # Upstream (Semi-Sparse refactor) moved them to `AbstractStateManager`,
+    # which requires a sparsity-aware trace we don't keep here. We re-implement
+    # the dense-mode behavior using only public AbstractState surface so the
+    # Python side mirrors the C++ side (`AbstractExecutionHelper::getByteOffset`).
+    # ------------------------------------------------------------------
+    def getByteOffset(self, abstract_state: pysvf.AbstractState, gep: pysvf.GepStmt) -> pysvf.IntervalValue:
+        # Delegates to the stateMgr's upstream impl, mirroring the C++ side
+        # `svfStateMgr->getGepByteOffset(gep)`. The `abstract_state` argument
+        # is kept in the signature for symmetry with the call-site shape but
+        # is not consulted here -- the mgr reads non-constant indices from
+        # its own trace, which is the same trace this helper writes to.
+        return self.svf_state_mgr.getGepByteOffset(gep)
+
+    def getGepObjAddrs(self, abstract_state: pysvf.AbstractState, var_id: int, offset: pysvf.IntervalValue) -> pysvf.AddressValue:
+        # Delegates to the stateMgr's upstream impl. mgr.getGepObjAddrs takes
+        # a ValVar* (and infers the ICFGNode from it), so we look the var up
+        # by id. Matches the C++ side `svfStateMgr->getGepObjAddrs(...)`.
+        pointer = self.svfir.getGNode(var_id)
+        return self.svf_state_mgr.getGepObjAddrs(pointer, offset)
+
+    def getPointeeElement(self, abstract_state: pysvf.AbstractState, var_id: int):
+        ptr_val = abstract_state[var_id]
+        if not ptr_val.isAddr():
+            return None
+        for addr in ptr_val.getAddrs():
+            obj_id = abstract_state.getIDFromAddr(addr)
+            if obj_id == 0:
+                continue
+            return self.svfir.getBaseObject(obj_id).getType()
+        return None
+
+    def getAllocaInstByteSize(self, abstract_state: pysvf.AbstractState, addr: pysvf.AddrStmt) -> int:
+        # Delegates to the stateMgr's upstream impl. mgr.getAllocaInstByteSize
+        # takes the AddrStmt directly (it derives node + sizes itself). Matches
+        # the C++ side `svfStateMgr->getAllocaInstByteSize(addr)`.
+        return self.svf_state_mgr.getAllocaInstByteSize(addr)
 
     def reportBufOverflow(self, node, msg):
         """
@@ -277,7 +319,7 @@ class AbstractExecutionHelper:
             if dst.getType().isArrayTy():
                 elemSize = dst.getType().getTypeOfElement().getByteSize()
             elif dst.getType().isPointerTy():
-                elemType = abstractState.getPointeeElement(dstId)
+                elemType = self.getPointeeElement(abstractState, dstId)
                 if elemType.isArrayTy():
                     elemSize = elemType.getTypeOfElement().getByteSize()
                 else:
@@ -288,8 +330,8 @@ class AbstractExecutionHelper:
         range_val = size/elemSize
         if abstractState.inVarToAddrsTable(dstId) and abstractState.inVarToAddrsTable(srcId):
             for index in range(0, int(range_val)):
-                expr_src = abstractState.getGepObjAddrs(srcId, pysvf.IntervalValue(index))
-                expr_dst = abstractState.getGepObjAddrs(dstId, pysvf.IntervalValue(index + start_idx))
+                expr_src = self.getGepObjAddrs(abstractState, srcId, pysvf.IntervalValue(index))
+                expr_dst = self.getGepObjAddrs(abstractState, dstId, pysvf.IntervalValue(index + start_idx))
                 for addr_src in expr_src:
                     for addr_dst in expr_dst:
                         objId = abstractState.getIDFromAddr(addr_src)
@@ -320,7 +362,7 @@ class AbstractExecutionHelper:
                 icfg_node = base_object.getICFGNode()
                 for stmt in icfg_node.getSVFStmts():
                     if isinstance(stmt, pysvf.AddrStmt):
-                        dst_size = abstractState.getAllocaInstByteSize(stmt)
+                        dst_size = self.getAllocaInstByteSize(abstractState, stmt)
 
         length = 0
         elem_size = 1
@@ -328,7 +370,7 @@ class AbstractExecutionHelper:
         # Calculate the string length
         if abstractState.getVar(value_id).isAddr():
             for index in range(dst_size):
-                expr0 = abstractState.getGepObjAddrs(value_id, pysvf.IntervalValue(index))
+                expr0 = self.getGepObjAddrs(abstractState, value_id, pysvf.IntervalValue(index))
                 val = pysvf.AbstractValue()
 
                 for addr in expr0:
@@ -343,7 +385,7 @@ class AbstractExecutionHelper:
             if strValue.getType().isArrayTy():
                 elem_size = strValue.getType().getTypeOfElement().getByteSize()
             elif strValue.getType().isPointerTy():
-                elem_type = abstractState.getPointeeElement(value_id)
+                elem_type = self.getPointeeElement(abstractState, value_id)
                 if elem_type:
                     if elem_type.isArrayTy():
                         elem_size = elem_type.getTypeOfElement().getByteSize()
@@ -400,8 +442,16 @@ class AbstractExecution:
         self.func_to_wto = {}
         self.recursive_funs = set()
         self.pre_abs_trace = {}
-        self.post_abs_trace = {}
-        self.buf_overflow_helper = AbstractExecutionHelper(self.svfir)
+        # Owns the post-trace and is the backing store for AbsExtAPI as well
+        # as the GEP/load/store helpers (getGepByteOffset etc.). Replaces
+        # the old `self.post_abs_trace` dict so reads/writes on
+        # `self.post_abs_trace[node]` go through the mgr's trace.
+        self.ander = pysvf.AndersenWaveDiff(self.svfir)
+        self.svf_state_mgr = pysvf.AbstractStateManager(self.svfir, self.ander)
+        # Alias preserved so existing call-sites `self.post_abs_trace[node]`
+        # keep working. The mgr supports __getitem__/__setitem__/__contains__.
+        self.post_abs_trace = self.svf_state_mgr
+        self.buf_overflow_helper = AbstractExecutionHelper(self.svfir, self.svf_state_mgr)
         self.assert_points = set()
         self.widen_delay = 3
         self.addressMask = 0x7f000000
@@ -1071,14 +1121,14 @@ class AbstractExecution:
         # Field-insensitive base object
         if isinstance(obj, pysvf.BaseObjVar):
             # Get base size
-            access_offset = abstract_state.getByteOffset(gep)
+            access_offset = self.buf_overflow_helper.getByteOffset(abstract_state, gep)
             return access_offset
 
         # A sub-object of an aggregate object
         elif isinstance(obj, pysvf.GepObjVar):
             access_offset = (
                     self.buf_overflow_helper.getGepObjOffsetFromBase(obj)
-                    + abstract_state.getByteOffset(gep)
+                    + self.buf_overflow_helper.getByteOffset(abstract_state, gep)
             )
             return access_offset
 

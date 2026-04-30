@@ -26,6 +26,7 @@
  */
 #include "Assignment_3_Helper.h"
 #include "AE/Svfexe/AbsExtAPI.h"
+#include "AE/Svfexe/AbstractStateManager.h"
 #include "SVFIR/SVFIR.h"
 
 namespace SVF {
@@ -108,7 +109,7 @@ namespace SVF {
 
 		/// Return its abstract state given an ICFGNode
 		AbstractState& getAbsStateFromTrace(const ICFGNode* node) {
-			return postAbsTrace[node];
+			return (*svfStateMgr)[node];
 		}
 
 		/// Update the offset of a GEP (GetElementPtr) object from its base address
@@ -121,12 +122,18 @@ namespace SVF {
 
 		/// Destructor
 		virtual ~AbstractExecution() {
+			delete svfStateMgr;
 		}
 
 	 protected:
 		/// SVFIR and ICFG
 		SVFIR* svfir;
 		ICFG* icfg;
+		/// Owns the abstract trace immediately after an ICFGNode (post trace).
+		/// AbsExtAPI and the GEP/load/store helpers (getGepByteOffset etc.)
+		/// read and write through this manager; we don't keep a separate
+		/// postAbsTrace map any more.
+		AbstractStateManager* svfStateMgr = nullptr;
 
 		/// Map a function to its corresponding WTO
 		Map<const FunObjVar*, ICFGWTO*> funcToWTO;
@@ -134,8 +141,10 @@ namespace SVF {
 		Set<const FunObjVar*> recursiveFuns;
 		/// Abstract trace immediately before an ICFGNode.
 		Map<const ICFGNode*, AbstractState> preAbsTrace;
-		/// Abstract trace immediately after an ICFGNode.
-		Map<const ICFGNode*, AbstractState> postAbsTrace;
+		/// Convenience alias: the "post" trace lives inside svfStateMgr.
+		Map<const ICFGNode*, AbstractState>& postAbsTrace() {
+			return svfStateMgr->getTrace();
+		}
 
 	 private:
 		AbstractExecutionHelper bufOverflowHelper;
