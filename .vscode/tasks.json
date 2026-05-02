@@ -5,7 +5,7 @@
       "type": "shell",
       // We assume that SVF is installed under the same folder as Software-Security-Analysis 
       // You need to change LLVM_DIR, SVF_DIR and Z3_DIR to the correct paths if you installed SVF in a different location.
-      "command": "cmake -DCMAKE_BUILD_TYPE=Debug -DSVF_DIR=../SVF -DLLVM_DIR=../SVF/llvm-16.0.0.obj -DZ3_DIR=../SVF/z3.obj . && make",
+      "command": "cmake -DCMAKE_BUILD_TYPE=Debug -DSVF_DIR=../SVF -DLLVM_DIR=../SVF/llvm-21.1.0.obj -DZ3_DIR=../SVF/z3.obj . && make",
       "options": {
         "cwd": "${workspaceFolder}"
       },
