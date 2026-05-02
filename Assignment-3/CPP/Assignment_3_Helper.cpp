@@ -543,8 +543,11 @@ void AbstractExecution::ensureAllAssertsValidated() {
 void AbstractExecution::analyse() {
 	// Init WTOs for all functions, and handle Global ICFGNode of SVFModule
 	initWTO();
-	AndersenWaveDiff* ander = AndersenWaveDiff::createAndersenWaveDiff(svfir);
-	svfStateMgr = new AbstractStateManager(svfir, ander);
+	// AbstractStateManager was folded into AbstractInterpretation upstream; the
+	// header AE/Svfexe/AbstractStateManager.h was removed.  Use the singleton
+	// AbstractInterpretation; it pulls SVFIR from PAG::getPAG() internally and
+	// does not need an explicit Andersen analysis to be passed in.
+	svfStateMgr = &AbstractInterpretation::getAEInstance();
 	utils = new AbsExtAPI(svfStateMgr);
 
 	// Handle the global node

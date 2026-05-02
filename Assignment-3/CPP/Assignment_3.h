@@ -26,7 +26,7 @@
  */
 #include "Assignment_3_Helper.h"
 #include "AE/Svfexe/AbsExtAPI.h"
-#include "AE/Svfexe/AbstractStateManager.h"
+#include "AE/Svfexe/AbstractInterpretation.h"
 #include "SVFIR/SVFIR.h"
 
 namespace SVF {
@@ -122,7 +122,7 @@ namespace SVF {
 
 		/// Destructor
 		virtual ~AbstractExecution() {
-			delete svfStateMgr;
+			// svfStateMgr is the AbstractInterpretation singleton; SVF owns its lifetime.
 		}
 
 	 protected:
@@ -133,7 +133,7 @@ namespace SVF {
 		/// AbsExtAPI and the GEP/load/store helpers (getGepByteOffset etc.)
 		/// read and write through this manager; we don't keep a separate
 		/// postAbsTrace map any more.
-		AbstractStateManager* svfStateMgr = nullptr;
+		AbstractInterpretation* svfStateMgr = nullptr;
 
 		/// Map a function to its corresponding WTO
 		Map<const FunObjVar*, ICFGWTO*> funcToWTO;
