@@ -204,7 +204,7 @@ class AbstractExecutionHelper:
     managing GEP object offsets, and other utilities.
     """
 
-    def __init__(self, svfir: pysvf.SVFIR, svf_state_mgr: pysvf.AbstractStateManager = None):
+    def __init__(self, svfir: pysvf.SVFIR, svf_state_mgr: 'pysvf.AbstractInterpretation' = None):
         """
         Initialize member variables.
         """
@@ -222,7 +222,8 @@ class AbstractExecutionHelper:
 
     # ------------------------------------------------------------------
     # Helpers that used to live as instance methods on `pysvf.AbstractState`.
-    # Upstream (Semi-Sparse refactor) moved them to `AbstractStateManager`,
+    # Upstream (Semi-Sparse refactor) moved them to `AbstractInterpretation`
+    # (formerly `AbstractStateManager`, whose public header was removed),
     # which requires a sparsity-aware trace we don't keep here. We re-implement
     # the dense-mode behavior using only public AbstractState surface so the
     # Python side mirrors the C++ side (`AbstractExecutionHelper::getByteOffset`).
@@ -446,8 +447,11 @@ class AbstractExecution:
         # as the GEP/load/store helpers (getGepByteOffset etc.). Replaces
         # the old `self.post_abs_trace` dict so reads/writes on
         # `self.post_abs_trace[node]` go through the mgr's trace.
-        self.ander = pysvf.AndersenWaveDiff(self.svfir)
-        self.svf_state_mgr = pysvf.AbstractStateManager(self.svfir, self.ander)
+        # AbstractStateManager was folded into AbstractInterpretation upstream
+        # (the AbstractStateManager.h header was removed).  Use the
+        # AbstractInterpretation singleton; it pulls SVFIR from PAG::getPAG()
+        # internally and does not need an explicit Andersen instance.
+        self.svf_state_mgr = pysvf.AbstractInterpretation.getAEInstance()
         # Alias preserved so existing call-sites `self.post_abs_trace[node]`
         # keep working. The mgr supports __getitem__/__setitem__/__contains__.
         self.post_abs_trace = self.svf_state_mgr
