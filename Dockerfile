@@ -21,14 +21,13 @@ ENV build_deps="wget xz-utils git gdb tcl software-properties-common"
 RUN apt-get update --fix-missing
 RUN apt-get install -y $build_deps $lib_deps
 
-# Add deadsnakes PPA for multiple Python versions 
-RUN add-apt-repository ppa:deadsnakes/ppa
-RUN apt-get update
-RUN set -ex; \
-    apt-get update && apt-get install -y python3.10-dev python3-pip \
-            && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1;
-RUN python3 -m pip install pysvf -i https://test.pypi.org/simple/
-RUN python3 -m pip install z3-solver
+# Use the python3 that ships with the Ubuntu 24.04 base image (python 3.12).
+# Avoid pulling python3.10 from ppa:deadsnakes/ppa — Launchpad's PPA infrastructure
+# has been intermittently unreachable from CI runners (HTTP 504 / 2-minute timeouts
+# from add-apt-repository), and SVF does not pin a Python version.
+RUN apt-get install -y python3-dev python3-pip
+RUN python3 -m pip install --break-system-packages pysvf -i https://test.pypi.org/simple/
+RUN python3 -m pip install --break-system-packages z3-solver
 
 # Fetch and build SVF source.
 RUN echo "Downloading LLVM and building SVF to " ${HOME}
