@@ -26,292 +26,39 @@
  */
 
 #include "Assignment_3.h"
-#include "Util/Options.h"
-#include "Util/WorkList.h"
 
 using namespace SVF;
 using namespace SVFUtil;
 
-/// TODO : Implement the state updates for Copy, Binary, Store, Load, Gep, Phi
-void AbstractExecution::updateStateOnCopy(const CopyStmt* copy) {
-	/// TODO: your code starts from here
+// ===========================================================================
+// Student TODOs
+// ===========================================================================
+// Implement abstract interpretation for the assignment cases. The harness
+// (Assignment_3_Helper.cpp) drives the analysis and only calls into the six
+// entry points below; design and add any internal helpers you need.
+// ===========================================================================
 
+void AbstractExecution::updateAbsState(const SVFStmt* stmt) {
+	// TODO: dispatch on the statement subtype and update the abstract state.
 }
 
-/// Find the comparison predicates in "class BinaryOPStmt:OpCode" under SVF/svf/include/SVFIR/SVFStatements.h
-/// You are required to handle predicates (The program is assumed to have signed ints and also interger-overflow-free),
-/// including Add, FAdd, Sub, FSub, Mul, FMul, SDiv, FDiv, UDiv, SRem, FRem, URem, Xor, And, Or, AShr, Shl, LShr
-void AbstractExecution::updateStateOnBinary(const BinaryOPStmt* binary) {
-	/// TODO: your code starts from here
-
+bool AbstractExecution::mergeStatesFromPredecessors(const ICFGNode* block, AbstractState& as) {
+	// TODO: join predecessor post-states (with branch refinement) into `as`.
+	return false;
 }
 
-void AbstractExecution::updateStateOnStore(const StoreStmt* store) {
-	/// TODO: your code starts from here
-
-}
-
-void AbstractExecution::updateStateOnLoad(const LoadStmt* load) {
-	/// TODO: your code starts from here
-
-}
-
-void AbstractExecution::updateStateOnGep(const GepStmt* gep) {
-	/// TODO: your code starts from here
-
-}
-
-void AbstractExecution::updateStateOnPhi(const PhiStmt* phi) {
-	/// TODO: your code starts from here
-
-}
-
-/// TODO: handle GepStmt `lhs = rhs + off` and detect buffer overflow
-// Step 1: For each `obj \in pts(rhs)`, get the size of allocated baseobj (entire mem object) via `obj_size = svfir->getBaseObj(objId)->getByteSizeOfObj();`
-// There is a buffer overflow if `accessOffset.ub() >= obj_size`, where accessOffset is obtained via `getAccessOffset`
-// Step 2: invoke `reportBufOverflow` with the current ICFGNode if an overflow is detected
-void AbstractExecution::bufOverflowDetection(const SVF::SVFStmt* stmt) {
-	if (!SVFUtil::isa<CallICFGNode>(stmt->getICFGNode())) {
-		if (const GepStmt* gep = SVFUtil::dyn_cast<GepStmt>(stmt)) {
-			AbstractState& as = getAbsStateFromTrace(gep->getICFGNode());
-			NodeID lhs = gep->getLHSVarID();
-			NodeID rhs = gep->getRHSVarID();
-			updateGepObjOffsetFromBase(as, as[lhs].getAddrs(), as[rhs].getAddrs(), svfStateMgr->getGepByteOffset(gep));
-
-			/// TODO: your code starts from here
-
-		}
-	}
-}
-
-/**
- * @brief Handle ICFG nodes in a cycle using widening and narrowing operators
- * 
- * This function implements abstract interpretation for cycles in the ICFG using widening and narrowing
- * operators to ensure termination. It processes all ICFG nodes within a cycle and implements
- * widening-narrowing iteration to reach fixed points twice: once for widening (to ensure termination)
- * and once for narrowing (to improve precision).
- * 
- * @param cycle The WTO cycle containing ICFG nodes to be processed
- * @return void
- */
 void AbstractExecution::handleICFGCycle(const ICFGCycleWTO* cycle) {
-	const ICFGNode* head = cycle->head()->getICFGNode();
-	bool increasing = true;
-	u32_t iteration = 0;
-	u32_t widen_delay = Options::WidenDelay(); // or use a class member if you have one
-
-	while (true) {
-		/// TODO: your code starts from here
-	}
-
+	// TODO: iterate the cycle body to a fixpoint (widening optional).
 }
 
-
-/// Abstract state updates on an AddrStmt
-void AbstractExecution::updateStateOnAddr(const AddrStmt* addr) {
-	const ICFGNode* node = addr->getICFGNode();
-	AbstractState& as = getAbsStateFromTrace(node);
-	as.initObjVar(SVFUtil::cast<ObjVar>(addr->getRHSVar()));
-	as[addr->getLHSVarID()] = as[addr->getRHSVarID()];
+void AbstractExecution::bufOverflowDetection(const ICFGNode* node) {
+	// TODO: detect out-of-bounds memory accesses at `node`.
 }
 
-/// Abstract state updates on an CmpStmt
-void AbstractExecution::updateStateOnCmp(const CmpStmt* cmp) {
-	const ICFGNode* node = cmp->getICFGNode();
-	AbstractState& as = getAbsStateFromTrace(node);
-	u32_t op0 = cmp->getOpVarID(0);
-	u32_t op1 = cmp->getOpVarID(1);
-	u32_t res = cmp->getResID();
-	if (as.inVarToValTable(op0) && as.inVarToValTable(op1)) {
-		IntervalValue resVal;
-		IntervalValue &lhs = as[op0].getInterval(), &rhs = as[op1].getInterval();
-		// AbstractValue
-		auto predicate = cmp->getPredicate();
-		switch (predicate) {
-		case CmpStmt::ICMP_EQ:
-		case CmpStmt::FCMP_OEQ:
-		case CmpStmt::FCMP_UEQ: resVal = (lhs == rhs); break;
-		case CmpStmt::ICMP_NE:
-		case CmpStmt::FCMP_ONE:
-		case CmpStmt::FCMP_UNE: resVal = (lhs != rhs); break;
-		case CmpStmt::ICMP_UGT:
-		case CmpStmt::ICMP_SGT:
-		case CmpStmt::FCMP_OGT:
-		case CmpStmt::FCMP_UGT: resVal = (lhs > rhs); break;
-		case CmpStmt::ICMP_UGE:
-		case CmpStmt::ICMP_SGE:
-		case CmpStmt::FCMP_OGE:
-		case CmpStmt::FCMP_UGE: resVal = (lhs >= rhs); break;
-		case CmpStmt::ICMP_ULT:
-		case CmpStmt::ICMP_SLT:
-		case CmpStmt::FCMP_OLT:
-		case CmpStmt::FCMP_ULT: resVal = (lhs < rhs); break;
-		case CmpStmt::ICMP_ULE:
-		case CmpStmt::ICMP_SLE:
-		case CmpStmt::FCMP_OLE:
-		case CmpStmt::FCMP_ULE: resVal = (lhs <= rhs); break;
-		case CmpStmt::FCMP_FALSE: resVal = IntervalValue(0, 0); break;
-		case CmpStmt::FCMP_TRUE: resVal = IntervalValue(1, 1); break;
-		default: {
-			assert(false && "undefined compare: ");
-		}
-		}
-		as[res] = resVal;
-	}
-	else if (as.inVarToAddrsTable(op0) && as.inVarToAddrsTable(op1)) {
-		IntervalValue resVal;
-		AbstractValue &lhs = as[op0], &rhs = as[op1];
-		auto predicate = cmp->getPredicate();
-		switch (predicate) {
-		case CmpStmt::ICMP_EQ:
-		case CmpStmt::FCMP_OEQ:
-		case CmpStmt::FCMP_UEQ: {
-			if (lhs.getAddrs().size() == 1 && rhs.getAddrs().size() == 1) {
-				resVal = IntervalValue(lhs.equals(rhs));
-			}
-			else {
-				if (lhs.getAddrs().hasIntersect(rhs.getAddrs())) {
-					resVal = IntervalValue::top();
-				}
-				else {
-					resVal = IntervalValue(0);
-				}
-			}
-			break;
-		}
-		case CmpStmt::ICMP_NE:
-		case CmpStmt::FCMP_ONE:
-		case CmpStmt::FCMP_UNE: {
-			if (lhs.getAddrs().size() == 1 && rhs.getAddrs().size() == 1) {
-				resVal = IntervalValue(!lhs.equals(rhs));
-			}
-			else {
-				if (lhs.getAddrs().hasIntersect(rhs.getAddrs())) {
-					resVal = IntervalValue::top();
-				}
-				else {
-					resVal = IntervalValue(1);
-				}
-			}
-			break;
-		}
-		case CmpStmt::ICMP_UGT:
-		case CmpStmt::ICMP_SGT:
-		case CmpStmt::FCMP_OGT:
-		case CmpStmt::FCMP_UGT: {
-			if (lhs.getAddrs().size() == 1 && rhs.getAddrs().size() == 1) {
-				resVal = IntervalValue(*lhs.getAddrs().begin() > *rhs.getAddrs().begin());
-			}
-			else {
-				resVal = IntervalValue::top();
-			}
-			break;
-		}
-		case CmpStmt::ICMP_UGE:
-		case CmpStmt::ICMP_SGE:
-		case CmpStmt::FCMP_OGE:
-		case CmpStmt::FCMP_UGE: {
-			if (lhs.getAddrs().size() == 1 && rhs.getAddrs().size() == 1) {
-				resVal = IntervalValue(*lhs.getAddrs().begin() >= *rhs.getAddrs().begin());
-			}
-			else {
-				resVal = IntervalValue::top();
-			}
-			break;
-		}
-		case CmpStmt::ICMP_ULT:
-		case CmpStmt::ICMP_SLT:
-		case CmpStmt::FCMP_OLT:
-		case CmpStmt::FCMP_ULT: {
-			if (lhs.getAddrs().size() == 1 && rhs.getAddrs().size() == 1) {
-				resVal = IntervalValue(*lhs.getAddrs().begin() < *rhs.getAddrs().begin());
-			}
-			else {
-				resVal = IntervalValue::top();
-			}
-			break;
-		}
-		case CmpStmt::ICMP_ULE:
-		case CmpStmt::ICMP_SLE:
-		case CmpStmt::FCMP_OLE:
-		case CmpStmt::FCMP_ULE: {
-			if (lhs.getAddrs().size() == 1 && rhs.getAddrs().size() == 1) {
-				resVal = IntervalValue(*lhs.getAddrs().begin() <= *rhs.getAddrs().begin());
-			}
-			else {
-				resVal = IntervalValue::top();
-			}
-			break;
-		}
-		case CmpStmt::FCMP_FALSE: resVal = IntervalValue(0, 0); break;
-		case CmpStmt::FCMP_TRUE: resVal = IntervalValue(1, 1); break;
-		default: {
-			assert(false && "undefined compare: ");
-		}
-		}
-		as[res] = resVal;
-	}
+void AbstractExecution::nullptrDerefDetection(const ICFGNode* node) {
+	// TODO: detect nullptr dereferences at `node`.
 }
 
-/// Abstract state updates on an CallPE (phi-like: formal = join(actual1@cs1, actual2@cs2, ...))
-void AbstractExecution::updateStateOnCall(const CallPE* callPE) {
-	const ICFGNode* node = callPE->getICFGNode();
-	AbstractState& as = getAbsStateFromTrace(node);
-	NodeID res = callPE->getResID();
-	AbstractValue rhs;
-	for (u32_t i = 0; i < callPE->getOpVarNum(); i++)
-	{
-		NodeID curId = callPE->getOpVarID(i);
-		const ICFGNode* opICFGNode = callPE->getOpCallICFGNode(i);
-		if (postAbsTrace().count(opICFGNode))
-		{
-			AbstractState& opAs = postAbsTrace()[opICFGNode];
-			rhs.join_with(opAs[curId]);
-		}
-	}
-	as[res] = rhs;
-}
-
-/// Abstract state updates on an RetPE
-void AbstractExecution::updateStateOnRet(const RetPE* retPE) {
-	const ICFGNode* node = retPE->getICFGNode();
-	AbstractState& as = getAbsStateFromTrace(node);
-	NodeID lhs = retPE->getLHSVarID();
-	NodeID rhs = retPE->getRHSVarID();
-	as[lhs] = as[rhs];
-}
-
-/// Abstract state updates on an SelectStmt
-void AbstractExecution::updateStateOnSelect(const SelectStmt* select) {
-	const ICFGNode* node = select->getICFGNode();
-	AbstractState& as = getAbsStateFromTrace(node);
-	u32_t res = select->getResID();
-	u32_t tval = select->getTrueValue()->getId();
-	u32_t fval = select->getFalseValue()->getId();
-	u32_t cond = select->getCondition()->getId();
-	if (as[cond].getInterval().is_numeral()) {
-		as[res] = as[cond].getInterval().is_zero() ? as[fval] : as[tval];
-	}
-	else {
-		as[res].join_with(as[tval]);
-		as[res].join_with(as[fval]);
-	}
-}
-
-void AbstractExecution::updateStateOnExtCall(const SVF::CallICFGNode* extCallNode) {
-	std::string funcName = extCallNode->getCalledFunction()->getName();
-	//TODO: handle external calls
-	// void mem_insert(void *buffer, const void *data, size_t data_size, size_t position);
-	if (funcName == "mem_insert") {
-		// check sizeof(buffer) > position + data_size
-		/// TODO: your code starts from here
-
-	}
-	// void str_insert(void *buffer, const void *data, size_t position);
-	else if (funcName == "str_insert") {
-		// check sizeof(buffer) > position + strlen(data)
-		/// TODO: your code starts from here
-
-	}
+void AbstractExecution::updateStateOnExtCall(const SVF::CallICFGNode* call) {
+	// TODO: model memory/string library calls and assignment-specific stubs.
 }

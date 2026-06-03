@@ -25,16 +25,17 @@
  * Created on: Feb 19, 2024
  */
 #include "Assignment_3_Helper.h"
-#include "AE/Svfexe/AbsExtAPI.h"
-#include "AE/Svfexe/AbstractInterpretation.h"
 #include "SVFIR/SVFIR.h"
+#include <ostream>
 
 namespace SVF {
+	class AndersenWaveDiff;
 	/// Abstract Execution class
 	class AbstractExecution {
 	 public:
 		/// Constructor
-		AbstractExecution() {
+		explicit AbstractExecution(const AssignmentCaseConfig& config = AssignmentCaseConfig())
+		    : caseConfig(config) {
 		}
 
 		virtual void runOnModule(ICFG* icfg);
@@ -55,70 +56,57 @@ namespace SVF {
 		virtual void updateAbsState(const SVFStmt* stmt);
 
 		/// Fuction used to implement buffer overflow detection
-		virtual void bufOverflowDetection(const SVFStmt* stmt);
+		virtual void bufOverflowDetection(const ICFGNode* node);
+		/// Function used to implement nullptr dereference detection
+		virtual void nullptrDerefDetection(const ICFGNode* node);
 
 		/// Report a buffer overflow for a given ICFG node
 		void reportBufOverflow(const ICFGNode* node);
+		/// Report a nullptr dereference for a given ICFG node
+		void reportNullDeref(const ICFGNode* node);
 
-		// handle SVF Statements
-		///@{
-		void updateStateOnAddr(const AddrStmt* addr);
-		void updateStateOnGep(const GepStmt* gep);
-		void updateStateOnStore(const StoreStmt* store);
-		void updateStateOnLoad(const LoadStmt* load);
-		void updateStateOnCmp(const CmpStmt* cmp);
-		void updateStateOnCall(const CallPE* call);
-		void updateStateOnRet(const RetPE* retPE);
-		void updateStateOnCopy(const CopyStmt* copy);
-		void updateStateOnPhi(const PhiStmt* phi);
-		void updateStateOnBinary(const BinaryOPStmt* binary);
-		void updateStateOnSelect(const SelectStmt* select);
+		/// External-API value summaries (student TODO).
 		void updateStateOnExtCall(const SVF::CallICFGNode* extCallNode);
-		///@}
 
 		/// Handle stub functions for verifying abstract interpretation results
 		void handleStubFunctions(const CallICFGNode* call);
 
-		/// Mark recursive functions in the call graph
+		/// Build the (interprocedural) WTO for each call-graph SCC entry.
 		void initWTO();
 
-		/// Path feasiblity handling
-		///@{
+		/// Merge predecessor states into the current node's pre-state.
 		bool mergeStatesFromPredecessors(const ICFGNode* curNode, AbstractState& as);
-
-		bool isCmpBranchFeasible(const CmpStmt* cmpStmt, s64_t succ, AbstractState& as);
-		bool isSwitchBranchFeasible(const SVFVar* var, s64_t succ, AbstractState& as);
-		bool isBranchFeasible(const IntraCFGEdge* intraEdge, AbstractState& as);
-		///@}
 
 		/// Handle a call site in the control flow graph
 		void handleCallSite(const CallICFGNode* callnode);
+		/// Validate the SAFE/UNSAFE checkpoint stub functions
+		void handleCheckpointStubs(const CallICFGNode* callnode);
 		bool isExternalCallForAssignment(const SVF::FunObjVar* func);
 
-		/// Handle a function in the ICFG 
+		/// Handle a function in the ICFG
 		void handleFunction(const ICFGNode* funEntry);
-
-		/// Get the next nodes of a node
-		std::vector<const ICFGNode*> getNextNodes(const ICFGNode* node) const;
-		/// Get the next nodes of a cycle
-		std::vector<const ICFGNode*> getNextNodesOfCycle(const ICFGCycleWTO* cycle) const;
 
 		bool handleICFGNode(const ICFGNode* node);
 
 		void handleICFGCycle(const ICFGCycleWTO* cycle);
 
-		/// Return its abstract state given an ICFGNode
-		AbstractState& getAbsStateFromTrace(const ICFGNode* node) {
-			return (*svfStateMgr)[node];
-		}
-
-		/// Update the offset of a GEP (GetElementPtr) object from its base address
-		void updateGepObjOffsetFromBase(AbstractState& as, AddressValue gepAddrs, AddressValue objAddrs, IntervalValue offset);
-
-		/// Return the accessing offset of an object at a GepStmt
-		IntervalValue getAccessOffset(NodeID objId, const GepStmt* gep);
+		/// Return its abstract state given an ICFGNode (defined in the helper).
+		AbstractState& getAbsStateFromTrace(const ICFGNode* node);
 
 		void ensureAllAssertsValidated();
+
+		/// Case-based grading/reporting helpers. These are intentionally
+		/// end-to-end: the grader should score TP/FP/time/coverage per case,
+		/// while module tags are only diagnosis hints.
+		void writeJsonSummary(std::ostream& os, double wallSeconds, int exitCode,
+		                      bool assertsValidated) const;
+		u32_t getAnalyzedNodeCount() const;
+		u32_t getTotalNodeCount() const;
+		double getICFGCoverage() const;
+		bool hasTargetReport() const;
+		const AssignmentCaseConfig& getCaseConfig() const {
+			return caseConfig;
+		}
 
 		/// Destructor
 		virtual ~AbstractExecution() {
@@ -129,31 +117,37 @@ namespace SVF {
 		/// SVFIR and ICFG
 		SVFIR* svfir;
 		ICFG* icfg;
-		/// Owns the abstract trace immediately after an ICFGNode (post trace).
-		/// AbsExtAPI and the GEP/load/store helpers (getGepByteOffset etc.)
-		/// read and write through this manager; we don't keep a separate
-		/// postAbsTrace map any more.
-		AbstractInterpretation* svfStateMgr = nullptr;
+		/// Narrow state-manager facade used by all student code: it forwards only
+		/// the whitelisted state read/write and GEP primitives and exposes no
+		/// path to the SVF external-API modeller (see Ass3StateManager).
+		Ass3StateManager* svfStateMgr = nullptr;
 
+		/// Andersen pointer analysis (owns the call graph + SCC used to drive
+		/// the interprocedural WTO); created in initWTO().
+		AndersenWaveDiff* ander = nullptr;
 		/// Map a function to its corresponding WTO
 		Map<const FunObjVar*, ICFGWTO*> funcToWTO;
-		/// A set of functions which are involved in recursions
-		Set<const FunObjVar*> recursiveFuns;
+		/// Functions whose WTO is currently being iterated; re-entry returns
+		/// early so the outer cycle drives the recursion to a fixpoint.
+		Set<const FunObjVar*> _funcsInFlight;
 		/// Abstract trace immediately before an ICFGNode.
 		Map<const ICFGNode*, AbstractState> preAbsTrace;
-		/// Convenience alias: the "post" trace lives inside svfStateMgr.
-		Map<const ICFGNode*, AbstractState>& postAbsTrace() {
-			return svfStateMgr->getTrace();
-		}
+		/// The "post" trace lives inside the manager (defined in the helper).
+		Map<const ICFGNode*, AbstractState>& postAbsTrace();
 
 	 private:
-		AbstractExecutionHelper bufOverflowHelper;
+		AssignmentCaseConfig caseConfig;
+
+		AbstractExecutionHelper bugReporter;
 
 		Set<const CallICFGNode*> assert_points;
+		Set<const ICFGNode*> analyzedNodes;
 
 		Map<const ICFGNode*, const ICFGCycleWTO*> cycleHeadToCycle;
 
-		AbsExtAPI* utils;
+		/// harness-only raw handle to the underlying state manager; never used by
+		/// student code (which only sees the svfStateMgr facade above).
+		AbstractInterpretation* ai = nullptr;
 	};
 
 } // namespace SVF

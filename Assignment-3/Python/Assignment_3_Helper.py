@@ -113,9 +113,18 @@ class ICFGWTO:
             self.node_to_wto_cycle_depth[node.getICFGNode()] = self.wto_cycle_depth
 
 
-    def __init__(self, graph: ICFG, entry: ICFGNode):
+    def __init__(self, graph: ICFG, entry: ICFGNode, scc=None):
         self.graph = graph
         self.entry = entry
+        # Interprocedural WTO: `scc` is the set of FunObjVar *ids* in this
+        # call-graph SCC.  Call edges into a callee in the same SCC are then
+        # followed (becoming back-edges), so a (mutually) recursive function's
+        # entry shows up as a WTO cycle head -- exactly like the C++ ICFGWTO.
+        # If no SCC is given, the SCC is the entry's own function.
+        if scc:
+            self.scc_fun_ids = set(scc)
+        else:
+            self.scc_fun_ids = {entry.getFun().getId()}
         self.components: List[ICFGWTOComp] = []
         self.all_components : Set[ICFGWTOComp] = set()
         self.head_ref_to_cycle: Dict[ICFGNode, ICFGWTOCycle] = {}
@@ -175,15 +184,24 @@ class ICFGWTO:
 
 
     def get_successors(self, node: ICFGNode) -> List[ICFGNode]:
+        # Interprocedural successor relation, mirroring C++ ICFGWTO::getSuccessors.
         successors = []
         if isinstance(node, pysvf.CallICFGNode):
-            return [node.getRetICFGNode()]
+            for e in node.getOutEdges():
+                callee_entry = e.getDstNode()
+                if callee_entry.getFun().getId() in self.scc_fun_ids:
+                    # caller & callee in the same SCC -> follow the call edge
+                    successors.append(callee_entry)
+                else:
+                    # different SCC -> shortcut to the local return node
+                    successors.append(node.getRetICFGNode())
         else:
             for e in node.getOutEdges():
-                if not e.isIntraCFGEdge() or node.getFun() != e.getDstNode().getFun():
-                    continue
-                else:
-                    successors.append(e.getDstNode())
+                succ = e.getDstNode()
+                # Only stay within the SCC (intra edges, and return edges back
+                # into an SCC function).
+                if succ.getFun().getId() in self.scc_fun_ids:
+                    successors.append(succ)
         return successors
 
 
@@ -208,11 +226,6 @@ class AbstractExecutionHelper:
         """
         Initialize member variables.
         """
-        # Map a GEP objVar to its offset from the base address
-        # Example: alloca [i32*10] x; lhs = gep x, 3
-        # gep_obj_offset_from_base[lhs] = [12, 12]
-        self.gep_obj_offset_from_base = {}
-
         # Map to store exception information for each ICFGNode
         self.node_to_bug_info = {}
         self.svfir = svfir
@@ -274,35 +287,8 @@ class AbstractExecutionHelper:
                 print(f"{node}: {msg}\n---------------------------------------------")
 
 
-    def updateGepObjOffsetFromBase(self, abstractState: pysvf.AbstractState, gepAddrs: pysvf.AddressValue, objAddrs: pysvf.AddressValue, offset: pysvf.IntervalValue):
-        """
-        Update the GEP object offset from the base address.
-
-        :param gepAddrs: List of GEP address values.
-        :param objAddrs: List of object address values.
-        :param offset: IntervalValue representing the offset.
-        """
-        for obj_addr in objAddrs:
-            obj_id = abstractState.getIDFromAddr(obj_addr)
-            obj = self.svfir.getGNode(obj_id)
-            if isinstance(obj, pysvf.BaseObjVar):
-                for gep_addr in gepAddrs:
-                    gep_obj = abstractState.getIDFromAddr(gep_addr)
-                    gep_obj_var = self.svfir.getGNode(gep_obj)
-                    self.addToGepObjOffsetFromBase(gep_obj_var, offset)
-            elif isinstance(obj, pysvf.GepObjVar):
-                obj_var = obj
-                for gep_addr in gepAddrs:
-                    gep_obj = abstractState.getIDFromAddr(gep_addr)
-                    gep_obj_var = self.svfir.getGNode(gep_obj)
-                    if self.hasGepObjOffsetFromBase(obj_var):
-                        obj_offset_from_base = self.getGepObjOffsetFromBase(obj_var)
-                        # Ensure gep_obj_var has not been written before
-                        if not self.hasGepObjOffsetFromBase(gep_obj_var):
-                            self.addToGepObjOffsetFromBase(gep_obj_var, obj_offset_from_base + offset)
-                    else:
-                        raise AssertionError("gepRhsObjVar has no gepObjOffsetFromBase")
-
+    # GEP-offset tracking (updateGepObjOffsetFromBase / has / get) was removed
+    # from the helper this year — students implement it in Assignment_3.py.
 
     def handleMemcpy(self, abstractState: pysvf.AbstractState, dst: pysvf.SVFVar, src: pysvf.SVFVar, len: pysvf.IntervalValue, start_idx: int):
         """
@@ -403,36 +389,9 @@ class AbstractExecutionHelper:
         else:
             return pysvf.IntervalValue(length * elem_size)
 
-    def addToGepObjOffsetFromBase(self, obj, offset):
-        """
-        Add a GEP object variable and its offset from the base address.
-
-        :param obj: The GEP object variable.
-        :param offset: The offset as an IntervalValue.
-        """
-        self.gep_obj_offset_from_base[obj] = offset
-
-    def hasGepObjOffsetFromBase(self, obj):
-        """
-        Check if a GEP object variable has an offset from the base address.
-
-        :param obj: The GEP object variable.
-        :return: True if the offset exists, False otherwise.
-        """
-        return obj in self.gep_obj_offset_from_base
-
-    def getGepObjOffsetFromBase(self, obj):
-        """
-        Get the offset of a GEP object variable from the base address.
-
-        :param obj: The GEP object variable.
-        :return: The offset as an IntervalValue.
-        :raises AssertionError: If the object is not found.
-        """
-        if obj not in self.gep_obj_offset_from_base:
-            raise AssertionError(f"Object {obj} not found in gep_obj_offset_from_base")
-        else:
-            return self.gep_obj_offset_from_base[obj]
+    # addToGepObjOffsetFromBase / hasGepObjOffsetFromBase / getGepObjOffsetFromBase
+    # are no longer part of the helper API; students manage their own
+    # GEP-offset-from-base state in Assignment_3.py.
 
 
 class AbstractExecution:
@@ -441,7 +400,11 @@ class AbstractExecution:
         self.icfg = pag.getICFG()
         self.call_site_stack = []
         self.func_to_wto = {}
-        self.recursive_funs = set()
+        # Functions whose WTO is currently being iterated; re-entry returns
+        # early so the outer cycle drives the recursion to a fixpoint.  This
+        # is the only mechanism for handling recursion — there is no separate
+        # "is recursive callsite?" check.
+        self._funcs_in_flight = set()
         self.pre_abs_trace = {}
         # Owns the post-trace and is the backing store for AbsExtAPI as well
         # as the GEP/load/store helpers (getGepByteOffset etc.). Replaces
@@ -463,24 +426,55 @@ class AbstractExecution:
 
 
     """
-    Initialize the WTO (Weak topological order) for each function.
+    Initialize the interprocedural WTO per call-graph SCC entry.
+
+    Each (mutually) recursive function's entry node becomes a WTO cycle head
+    because intra-SCC call edges are turned into back-edges.  The same
+    widening/narrowing machinery used for loops then drives recursion to a
+    fixpoint via handleICFGCycle; there is no separate "is recursive?" check.
     """
     def initWto(self):
         callgraphScc = pysvf.getCallGraphSCC()
-        for node in self.svfir.getCallGraph().getNodes():
-            if callgraphScc.isInCycle(node.getId()):
-                self.recursive_funs.add(node.getFunction())
+        callgraph = self.svfir.getCallGraph()
+
+        # SCC membership comes from pysvf: CallGraphSCC.subNodes(rep) returns
+        # the call-graph node IDs in the SCC represented by 'rep'.  We only
+        # need it to feed ICFGWTO so intra-SCC call edges become back-edges.
+        cgid_to_fun = {}
+        for node in callgraph.getNodes():
+            cgid_to_fun[node.getId()] = node.getFunction()
+
+        # Build one interprocedural WTO per call-graph-SCC entry function.  An
+        # SCC entry is a member with a caller outside the SCC (or no caller).
+        # Intra-SCC members are reached via the entry's interprocedural WTO.
+        self.func_to_wto = {}
+        for node in callgraph.getNodes():
             fun = node.getFunction()
-            assert isinstance(fun, pysvf.FunObjVar)
             if fun.isDeclaration():
                 continue
-            wto = ICFGWTO(self.icfg, self.icfg.getFunEntryICFGNode(fun))
+            cgid = node.getId()
+            rep = callgraphScc.repNode(cgid)
+            scc_cgids = set(callgraphScc.subNodes(rep))
+
+            in_edges = list(node.getInEdges())
+            is_entry = (len(in_edges) == 0)
+            for e in in_edges:
+                if e.getSrcID() not in scc_cgids:   # caller outside the SCC
+                    is_entry = True
+            if not is_entry:
+                continue
+
+            func_scc_ids = {cgid_to_fun[c].getId() for c in scc_cgids}
+            wto = ICFGWTO(self.icfg, self.icfg.getFunEntryICFGNode(fun), func_scc_ids)
             wto.init()
-            self.func_to_wto[fun] = wto
-            
+            # Key by function id: pybind FunObjVar wrappers are not guaranteed to
+            # hash consistently across calls, so don't use the object as a key.
+            self.func_to_wto[fun.getId()] = wto
+
         # Build mapping from cycle head nodes to their corresponding cycles
+        # (loop heads AND recursive-function entries).
         self.cycle_head_to_cycle = {}
-        for fun, wto in self.func_to_wto.items():
+        for wto in self.func_to_wto.values():
             for comp in wto.components:
                 if isinstance(comp, ICFGWTOCycle):
                     self.cycle_head_to_cycle[comp.head.node] = comp
@@ -510,112 +504,33 @@ class AbstractExecution:
 
 
     """
-    Handle a function in the ICFG using WTO components and worklist algorithm.
-    
-    This function processes a function by:
-    1. Building a set of WTO components for the function
-    2. Using a worklist algorithm to process nodes in topological order
-    3. Handling cycles and singleton nodes appropriately
-    4. Managing the flow between different components
+    Iterate a function's interprocedural WTO components.
+
+    Singletons are handled directly; cycles (loop heads AND recursive-function
+    entries) are driven to a fixpoint by handleICFGCycle.
+
+    `_funcs_in_flight` guards re-entry: if this WTO is already on the call
+    stack (i.e. a recursive callsite tried to inline back into us), return
+    immediately and let the outer cycle's widen/narrow iteration drive the
+    recursion to a fixpoint.  This is the only mechanism for handling
+    recursion — there is no separate "is recursive callsite?" check.
     """
     def handleFunction(self, funEntry: pysvf.ICFGNode):
-        # Use worklist algorithm to process nodes
-        worklist = [funEntry]  # FIFO worklist using list
-        
-        while worklist:
-            node = worklist.pop(0)  # FIFO: pop from front
-            
-            # Check if current node is a cycle head
-            if node in self.cycle_head_to_cycle:
-                cycle = self.cycle_head_to_cycle[node]
-                self.handleICFGCycle(cycle)
-                # Get next nodes of the cycle and add to worklist
-                cycle_next_nodes = self.getNextNodesOfCycle(cycle)
-                for next_node in cycle_next_nodes:
-                    worklist.append(next_node)
-            else:
-                # Handle singleton node
-                if not self.handleICFGNode(node):
-                    print(f"Fixpoint reached or infeasible for node {node.getId()}")
-                    continue
-                
-                # Get next nodes and add to worklist
-                next_nodes = self.getNextNodes(node)
-                for next_node in next_nodes:
-                    worklist.append(next_node)
-
-    """
-    Get the next nodes of a given ICFG node.
-    
-    This function returns the successor nodes of a given ICFG node by examining
-    its outgoing edges. It handles both intra-procedural edges and call-return edges.
-    
-    :param node: The ICFG node whose successors are to be found
-    :type node: pysvf.ICFGNode
-    :return: List of successor nodes
-    :rtype: List[pysvf.ICFGNode]
-    """
-    def getNextNodes(self, node: pysvf.ICFGNode) -> List[pysvf.ICFGNode]:
-        out_edges = []
-        for edge in node.getOutEdges():
-            dst = edge.getDstNode()
-            if dst.getFun() == node.getFun():
-                out_edges.append(dst)
-        
-        # Handle call-return edges
-        if isinstance(node, pysvf.CallICFGNode):
-            ret_node = node.getRetICFGNode()
-            out_edges.append(ret_node)
-        
-        return out_edges
-
-    """
-    Get the next nodes of a cycle.
-    
-    This function returns the next nodes of a cycle by iterating through the cycle's components.
-    The next nodes of a cycle are the next nodes of the cycle nodes (including cycle head and cycle components)
-    that are located outside the cycle.
-    
-    Inner cycles are skipped because their next nodes cannot be outside the outer cycle.
-    Only the next nodes of cycle nodes that point to nodes outside the cycle are included in cycleNext.
-    
-    :param cycle: The WTO cycle whose next nodes are to be found
-    :type cycle: ICFGWTOCycle
-    :return: List of next nodes that are outside the cycle
-    :rtype: List[pysvf.ICFGNode]
-    """
-    def getNextNodesOfCycle(self, cycle: ICFGWTOCycle) -> List[pysvf.ICFGNode]:
-        cycle_nodes = set()
-        cycle_nodes.add(cycle.head.node)
-        
-        for comp in cycle.components:
-            if isinstance(comp, ICFGWTONode):
-                cycle_nodes.add(comp.node)
-            elif isinstance(comp, ICFGWTOCycle):
-                cycle_nodes.add(comp.head.node)
-        
-        out_edges = []
-        
-        # Get next nodes of cycle head
-        next_nodes = self.getNextNodes(cycle.head.node)
-        for next_node in next_nodes:
-            if next_node not in cycle_nodes:
-                out_edges.append(next_node)
-        
-        # Get next nodes of cycle components
-        for comp in cycle.components:
-            if isinstance(comp, ICFGWTONode):
-                next_nodes = self.getNextNodes(comp.node)
-                for next_node in next_nodes:
-                    if next_node not in cycle_nodes:
-                        out_edges.append(next_node)
-            elif isinstance(comp, ICFGWTOCycle):
-                # Skip inner cycles inside the outer cycle
-                # because their next nodes won't be outside the outer cycle
-                continue
-        
-        return out_edges
-
+        fun = funEntry.getFun()
+        wto = self.func_to_wto.get(fun.getId())
+        if wto is None:
+            return
+        if fun.getId() in self._funcs_in_flight:
+            return
+        self._funcs_in_flight.add(fun.getId())
+        try:
+            for comp in wto.components:
+                if isinstance(comp, ICFGWTOCycle):
+                    self.handleICFGCycle(comp)
+                elif isinstance(comp, ICFGWTONode):
+                    self.handleICFGNode(comp.getICFGNode())
+        finally:
+            self._funcs_in_flight.discard(fun.getId())
 
     """
     Handle a singleton WTO
@@ -668,9 +583,10 @@ class AbstractExecution:
             self.updateStateOnExtCall(node)
         elif pysvf.isExtCall(node.getCalledFunction()):
             pass
-        elif node.getCalledFunction() in self.recursive_funs:
-            return
         else:
+            # Inline unconditionally; handleFunction's `_funcs_in_flight`
+            # guard short-circuits recursive re-entry, and the outer WTO
+            # cycle drives the recursion to a fixpoint.
             self.handleFunction(self.svfir.getICFG().getFunEntryICFGNode(node.getCalledFunction()))
 
 
@@ -717,7 +633,10 @@ class AbstractExecution:
                     assert False
 
         elif callNode.getCalledFunction().getName() == "OVERFLOW":
-            # If the condition is false, the program is infeasible
+            # Harness-only ground truth: read the GepObjVar's accumulated
+            # offset from base via SVF's native getConstantFieldIdx, so the
+            # stub verdict does not depend on the student's gep_obj_offset
+            # tracking.
             self.assert_points.add(callNode)
             arg0 = callNode.getArgument(0).getId()
             arg1 = callNode.getArgument(1).getId()
@@ -725,25 +644,19 @@ class AbstractExecution:
             abstract_state = self.post_abs_trace[callNode]
             gep_rhs_val = abstract_state[arg0]
 
-            # Check if the RHS value is an address
             if gep_rhs_val.isAddr():
                 overflow = False
+                access_offset = int(abstract_state[arg1].getInterval().ub())
                 for addr in gep_rhs_val.getAddrs():
-                    access_offset = abstract_state[arg1].getInterval().getIntNumeral()
                     obj_id = abstract_state.getIDFromAddr(addr)
-                    gep_lhs_obj_var = self.svfir.getGNode(obj_id).asGepObjVar()
-                    size = self.svfir.getBaseObject(obj_id).getByteSizeOfObj()
-
-                    if self.buf_overflow_helper.hasGepObjOffsetFromBase(gep_lhs_obj_var):
-                        overflow = (
-                                int(self.buf_overflow_helper.getGepObjOffsetFromBase(gep_lhs_obj_var).ub())
-                                + access_offset >= size
-                        )
-                        if overflow:
-                            print("obj len: {}, you want to access: {}.".format(size, access_offset))
-                    else:
-                        raise AssertionError("Pointer not found in gepObjOffsetFromBase")
-
+                    base_obj = self.svfir.getBaseObject(obj_id)
+                    if base_obj is None or not base_obj.isConstantByteSize():
+                        continue
+                    size = base_obj.getByteSizeOfObj()
+                    gnode = self.svfir.getGNode(obj_id)
+                    base_offset = gnode.getConstantFieldIdx() if isinstance(gnode, pysvf.GepObjVar) else 0
+                    if base_offset + access_offset >= size:
+                        overflow = True
                 if overflow:
                     print("Your implementation successfully detected the buffer overflow")
                 else:
@@ -754,56 +667,8 @@ class AbstractExecution:
                 assert False
 
 
-    """
-    Merge abstract states from the predecessors of a given ICFG node.
-
-    This function collects and combines the abstract states from all incoming edges
-    of the specified ICFG node. It ensures that the abstract state of the current node
-    is consistent with the states of its predecessors. The merging process involves
-    joining the abstract states from all valid incoming edges.
-
-    Steps:
-    1. Initialize an empty abstract state and a counter for valid incoming edges.
-    2. Iterate through all incoming edges of the given block:
-       - If the source node of the edge has a post-abstract state, process the edge.
-       - For intra-procedural edges with conditions, check branch feasibility.
-       - If the branch is feasible, join the source's abstract state with the current state.
-       - For inter-procedural or unconditional edges, directly join the source's state.
-    3. If no valid incoming edges are found, print an error and return failure.
-    4. Return a tuple indicating whether the merge was successful and the merged abstract state.
-
-    :param block: The ICFG node whose predecessors' states are to be merged.
-    :type block: pysvf.ICFGNode
-    :return: A tuple (is_feasible, merged_state), where:
-             - is_feasible (bool): True if at least one predecessor exists, False otherwise.
-             - merged_state (AbstractState): The resulting merged abstract state.
-    """
-    def mergeStatesFromPredecessors(self, block: pysvf.ICFGNode):
-        in_edge_num = 0
-        abstract_state = pysvf.AbstractState()
-        for edge in block.getInEdges():
-            if edge.getSrcNode() in self.post_abs_trace:
-                if isinstance(edge, pysvf.IntraCFGEdge):
-                    if edge.getCondition():
-                        tmp_es = self.post_abs_trace[edge.getSrcNode()].clone()
-                        if self.isBranchFeasible(edge, tmp_es):
-                            abstract_state.joinWith(tmp_es)
-                            in_edge_num += 1
-                        else:
-                            pass
-                    else:
-                        abstract_state.joinWith(self.post_abs_trace[edge.getSrcNode()])
-                        in_edge_num += 1
-                else:
-                    abstract_state.joinWith(self.post_abs_trace[edge.getSrcNode()])
-                    in_edge_num += 1
-            else:
-                pass
-        if in_edge_num == 0:
-            print(f"Error: No predecessors for block {block.getId()}")
-            return (False, None)
-        return (True, abstract_state)
-
+    # mergeStatesFromPredecessors is a student TODO this year and lives in
+    # Assignment_3.py.
 
     def isBranchFeasible(self, intraEdge: pysvf.IntraCFGEdge, abstractState:  pysvf.AbstractState) -> bool :
         cmp_var = intraEdge.getCondition()
@@ -882,41 +747,7 @@ class AbstractExecution:
         self.buf_overflow_helper.printReport()
 
 
-    """
-    Update the abstract state based on the given statement.
-    This function updates the abstract state based on the given statement.
-    """
-    def updateAbsState(self, stmt:pysvf.SVFStmt):
-        if isinstance(stmt, pysvf.AddrStmt):
-            self.updateStateOnAddr(stmt)
-        elif isinstance(stmt, pysvf.BinaryOPStmt):
-            self.updateStateOnBinary(stmt)
-        elif isinstance(stmt, pysvf.CmpStmt):
-            self.updateStateOnCmp(stmt)
-        elif isinstance(stmt, pysvf.LoadStmt):
-            self.updateStateOnLoad(stmt)
-        elif isinstance(stmt, pysvf.StoreStmt):
-            self.updateStateOnStore(stmt)
-        elif isinstance(stmt, pysvf.CopyStmt):
-            self.updateStateOnCopy(stmt)
-        elif isinstance(stmt, pysvf.GepStmt):
-            self.updateStateOnGep(stmt)
-        #phi
-        elif isinstance(stmt, pysvf.PhiStmt):
-            self.updateStateOnPhi(stmt)
-        # callpe
-        elif isinstance(stmt, pysvf.CallPE):
-            self.updateStateOnCall(stmt)
-        # retpe
-        elif isinstance(stmt, pysvf.RetPE):
-            self.updateStateOnRet(stmt)
-        #select
-        elif isinstance(stmt, pysvf.SelectStmt):
-            self.updateStateOnSelect(stmt)
-        elif isinstance(stmt, pysvf.UnaryOPStmt) or isinstance(stmt, pysvf.BranchStmt):
-            pass
-        else:
-            assert False , "Unhandled statement type"
+    # updateAbsState is a student TODO this year and lives in Assignment_3.py.
 
     """
     Initialize an object variable in the abstract state.
@@ -1103,39 +934,4 @@ class AbstractExecution:
 
 
 
-    """
-    Calculate the access offset for a given object ID and GEP statement.
-
-    This function determines the offset of a memory access relative to the base address
-    of an object. It handles different types of objects, including base objects, sub-objects
-    of aggregate objects, and dummy objects. The offset is calculated using the abstract
-    state and helper functions.
-
-    :param obj_id: The ID of the object being accessed.
-    :type obj_id: int
-    :param gep: The GEP (GetElementPtr) statement representing the memory access.
-    :type gep: pysvf.GepStmt
-    :return: The calculated access offset as an IntervalValue.
-    :rtype: pysvf.IntervalValue
-    """
-    def getAccessOffset(self, objId: int, gep: pysvf.GepStmt) -> pysvf.IntervalValue:
-        obj = self.svfir.getGNode(objId)
-        abstract_state = self.post_abs_trace[gep.getICFGNode()]
-
-        # Field-insensitive base object
-        if isinstance(obj, pysvf.BaseObjVar):
-            # Get base size
-            access_offset = self.buf_overflow_helper.getByteOffset(abstract_state, gep)
-            return access_offset
-
-        # A sub-object of an aggregate object
-        elif isinstance(obj, pysvf.GepObjVar):
-            access_offset = (
-                    self.buf_overflow_helper.getGepObjOffsetFromBase(obj)
-                    + self.buf_overflow_helper.getByteOffset(abstract_state, gep)
-            )
-            return access_offset
-
-        else:
-            assert isinstance(obj, pysvf.DummyObjVar), "What other types of object?"
-            return pysvf.IntervalValue.top()
+    # getAccessOffset is a student TODO this year and lives in Assignment_3.py.

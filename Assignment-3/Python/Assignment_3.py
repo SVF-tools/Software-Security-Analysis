@@ -1,118 +1,40 @@
 from Assignment_3_Helper import *
 import pysvf
 
+
 class Assignment3(AbstractExecution):
     def __init__(self, pag: pysvf.SVFIR) -> None:
         super().__init__(pag)
 
-
-    """
-    Handle ICFG nodes in a cycle using widening and narrowing operators.
-    
-    This function implements abstract interpretation for cycles in the ICFG using widening and narrowing
-    operators to ensure termination. It processes all ICFG nodes within a cycle and implements
-    widening-narrowing iteration to reach fixed points twice: once for widening (to ensure termination)
-    and once for narrowing (to improve precision).
-    
-    :param cycle: The WTO cycle containing ICFG nodes to be processed
-    :type cycle: ICFGWTOCycle
-    """
-    def handleICFGCycle(self, cycle: ICFGWTOCycle):
-        head = cycle.head.node
-        increasing = True
-        iteration = 0
-        widen_delay = self.widen_delay  # Use class member for widen delay
-
-        while True:
-            # TODO: your code starts from here
-            pass
-
-    #TODO : Implement the state updates for Copy, Binary, Store, Load, Gep, Phi
-    # TODO: your code starts from here
-    def updateStateOnGep(self, gep: pysvf.GepStmt):
+    # Dispatch a single SVF statement to the matching transfer function.
+    def updateAbsState(self, stmt: pysvf.SVFStmt):
+        # TODO: dispatch on statement subtype and update the abstract state.
         pass
 
-    #TODO: your code starts from here
-    def updateStateOnStore(self, store: pysvf.StoreStmt):
+    # Join predecessor post-states (with branch refinement) into the
+    # current node's pre-state.
+    def mergeStatesFromPredecessors(self, block: pysvf.ICFGNode,
+                                    abstract_state: pysvf.AbstractState) -> bool:
+        # TODO
+        return False
+
+    # Iterate the cycle body to a fixpoint (widening optional).
+    def handleICFGCycle(self, cycle):
+        # TODO
         pass
 
-    #TODO: your code starts from here
-    # Find the comparison predicates in "class BinaryOPStmt:OpCode" under SVF/svf/include/SVFIR/SVFStatements.h
-    # You are required to handle predicates (The program is assumed to have signed ints and also interger-overflow-free),
-    # including Add, FAdd, Sub, FSub, Mul, FMul, SDiv, FDiv, UDiv, SRem, FRem, URem, Xor, And, Or, AShr, Shl, LShr
-    def updateStateOnBinary(self, binary: pysvf.BinaryOPStmt):
+    # Detect out-of-bounds memory accesses at `node`.
+    def bufOverflowDetection(self, node: pysvf.ICFGNode):
+        # TODO
         pass
 
-
-    #TODO: your code starts from here
-    def updateStateOnLoad(self, load: pysvf.LoadStmt):
+    # Model external library calls (memory/string families and
+    # assignment-specific stubs).
+    def updateStateOnExtCall(self, call: pysvf.CallICFGNode):
+        # TODO
         pass
 
-    #TODO: your code starts from here
-    def updateStateOnCopy(self, copy: pysvf.CopyStmt):
+    # Handle a call site in the control-flow graph.
+    def handleCallSite(self, node: pysvf.CallICFGNode):
+        # TODO
         pass
-
-    # TODO: your code starts from here
-    def updateStateOnPhi(self, phi: pysvf.PhiStmt):
-        pass
-
-    """
-    Detect buffer overflows in the given statement.
-
-    TODO: handle GepStmt `lhs = rhs + off` and detect buffer overflow
-    Step 1: For each `obj \in pts(rhs)`, get the size of allocated baseobj (entire mem object) via `obj_size = svfir->getBaseObj(objId)->getByteSizeOfObj();`
-    There is a buffer overflow if `accessOffset.ub() >= obj_size`, where accessOffset is obtained via `getAccessOffset`
-    Step 2: invoke `reportBufOverflow` with the current ICFGNode if an overflow is detected
-
-    :param stmt: The statement to analyze for buffer overflows.
-    :type stmt: pysvf.SVFStmt
-    """
-    def bufOverflowDetection(self, stmt: pysvf.SVFStmt):
-        if not isinstance(stmt.getICFGNode(), pysvf.CallICFGNode):
-            if isinstance(stmt, pysvf.GepStmt):
-                abstract_state = self.post_abs_trace[stmt.getICFGNode()]
-                lhs = stmt.getLHSVarID()
-                rhs = stmt.getRHSVarID()
-
-                # Update GEP object offset from base
-                self.buf_overflow_helper.updateGepObjOffsetFromBase(abstract_state,
-                    abstract_state[lhs].getAddrs(),  abstract_state[rhs].getAddrs(),
-                    self.buf_overflow_helper.getByteOffset(abstract_state, stmt)
-                )
-
-                # TODO: your code starts from here
-                # Check for buffer overflow
-                pass
-
-    """
-    Handle external function calls and update the abstract state.
-
-    This function processes specific external function calls, such as `mem_insert` and `str_insert`,
-    to ensure that buffer overflows are detected and prevented. It checks the constraints on the
-    buffer size and access offsets based on the function arguments.
-
-    TODO: Steps:
-    1. For `mem_insert`:
-       - Validate that the buffer size is greater than or equal to the sum of the position and data size.
-    2. For `str_insert`:
-       - Validate that the buffer size is greater than or equal to the sum of the position and the length of the string.
-
-    :param ext_call_node: The call node representing the external function call.
-    :type ext_call_node: pysvf.CallICFGNode
-    """
-    def updateStateOnExtCall(self, extCallNode: pysvf.CallICFGNode):
-        func_name = extCallNode.getCalledFunction().getName()
-
-        # Handle external calls
-        # TODO: handle external calls
-        # void mem_insert(void *buffer, const void *data, size_t data_size, size_t position);
-        if func_name == "mem_insert":
-            # void mem_insert(void *buffer, const void *data, size_t data_size, size_t position);
-            # Check sizeof(buffer) >= position + data_size
-            pass
-        # TODO: handle external calls
-        # void str_insert(void *buffer, const void *data, size_t position);
-        elif func_name == "str_insert":
-            # void str_insert(void *buffer, const void *data, size_t position);
-            # Check sizeof(buffer) >= position + strlen(data)
-            pass

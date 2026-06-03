@@ -31,13 +31,74 @@
 #include "SVFIR/SVFStatements.h"
 #include "Util/Options.h"
 #include "Util/SVFBugReport.h"
+#include <ostream>
+#include <string>
+#include <vector>
 namespace SVF {
+	class AbstractInterpretation;
+
+	/// Narrow facade over the SVF abstract-interpretation state manager.
+	///
+	/// Students interact with the abstract state *only* through this object
+	/// (the `svfStateMgr` member of AbstractExecution).  It forwards exactly the
+	/// state read/write and GEP primitives the assignment is allowed to use, and
+	/// deliberately exposes no path to the SVF external-API modeller
+	/// (AbsExtAPI / handleExtAPI / getRangeLimitFromType / getUtils), so the
+	/// memory/string library summaries and the cast-range logic must be written
+	/// by hand.  Method bodies live in Assignment_3_Helper.cpp.
+	class Ass3StateManager {
+	 public:
+		explicit Ass3StateManager(AbstractInterpretation* ai = nullptr) : ai(ai) {}
+
+		const AbstractValue& getAbsValue(const ValVar* var, const ICFGNode* node);
+		const AbstractValue& getAbsValue(const ObjVar* var, const ICFGNode* node);
+		const AbstractValue& getAbsValue(const SVFVar* var, const ICFGNode* node);
+
+		void updateAbsValue(const ValVar* var, const AbstractValue& val, const ICFGNode* node);
+		void updateAbsValue(const ObjVar* var, const AbstractValue& val, const ICFGNode* node);
+		void updateAbsValue(const SVFVar* var, const AbstractValue& val, const ICFGNode* node);
+
+		AbstractValue loadValue(const ValVar* pointer, const ICFGNode* node);
+		void storeValue(const ValVar* pointer, const AbstractValue& val, const ICFGNode* node);
+
+		AddressValue getGepObjAddrs(const ValVar* pointer, IntervalValue offset);
+		IntervalValue getGepElementIndex(const GepStmt* gep);
+		IntervalValue getGepByteOffset(const GepStmt* gep);
+		u32_t getAllocaInstByteSize(const AddrStmt* addr);
+
+	 private:
+		// harness-only: AbstractExecution reaches the underlying manager for the
+		// post-trace; never exposed to student code.
+		friend class AbstractExecution;
+		AbstractInterpretation* ai;
+	};
+
+	struct AssignmentCaseConfig {
+		std::string caseId;
+		std::string targetLoc;
+		std::string tags;
+		bool emitJson = false;
+	};
+
+	struct AssignmentBugReport {
+		std::string kind;
+		std::string location;
+		std::string message;
+		NodeID nodeId = 0;
+	};
+
+	std::string ass3JsonEscape(const std::string& input);
+
 	class AbstractExecutionHelper {
 	 public:
 
 		/// Add a detected bug to the bug reporter and print the report
 		///@{
 		void addBugToReporter(const AEException& e, const ICFGNode* node) {
+			addBugToReporter("buffer-overflow", e, node);
+		}
+
+		void addBugToReporter(const std::string& kind, const AEException& e, const ICFGNode* node) {
 
 			GenericBug::EventStack eventStack;
 			SVFBugEvent sourceInstEvent(SVFBugEvent::EventType::SourceInst, node);
@@ -50,16 +111,18 @@ namespace SVF {
 			std::string loc = eventStack.back().getEventLoc(); // Get the location of the last event in the stack
 
 			// Check if the bug at this location has already been reported
-			if (_bugLoc.find(loc) != _bugLoc.end()) {
+			const std::string dedupKey = kind + ":" + loc;
+			if (_bugLoc.find(dedupKey) != _bugLoc.end()) {
 				return; // If the bug location is already reported, return early
 			}
 			else {
-				_bugLoc.insert(loc); // Otherwise, mark this location as reported
+				_bugLoc.insert(dedupKey); // Otherwise, mark this location as reported
 			}
 
 			// Add the bug to the recorder with details from the event stack
 			_recoder.addAbsExecBug(GenericBug::FULLBUFOVERFLOW, eventStack, 0, 0, 0, 0);
 			_nodeToBugInfo[node] = e.what(); // Record the exception information for the node
+			_reports.push_back({kind, loc, e.what(), node ? node->getId() : 0});
 		}
 
 		void printReport() {
@@ -74,34 +137,23 @@ namespace SVF {
 		}
 		///@}
 
-		void addToGepObjOffsetFromBase(const GepObjVar* obj, const IntervalValue& offset) {
-			gepObjOffsetFromBase[obj] = offset;
+		const std::vector<AssignmentBugReport>& getReports() const {
+			return _reports;
 		}
 
-		bool hasGepObjOffsetFromBase(const GepObjVar* obj) const {
-			return gepObjOffsetFromBase.find(obj) != gepObjOffsetFromBase.end();
+		u32_t getReportCount() const {
+			return static_cast<u32_t>(_reports.size());
 		}
 
-		IntervalValue getGepObjOffsetFromBase(const GepObjVar* obj) const {
-			if (hasGepObjOffsetFromBase(obj))
-				return gepObjOffsetFromBase.at(obj);
-			else {
-				assert(false && "GepObjVar not found in gepObjOffsetFromBase");
-				abort();
-			}
-		}
 		SVFBugReport& getBugReporter() {
 			return _recoder;
 		}
 
 	 private:
-		/// Map a GEP objVar to its offset from the base address
-		/// e.g. alloca [i32*10] x; lhs = gep x, 3
-		/// gepObjOffsetFromBase[lhs] = [12, 12]
-		Map<const GepObjVar*, IntervalValue> gepObjOffsetFromBase;
 		/// Bug reporter
 		Set<std::string> _bugLoc;
 		SVFBugReport _recoder;
 		Map<const ICFGNode*, std::string> _nodeToBugInfo;
+		std::vector<AssignmentBugReport> _reports;
 	};
 }

@@ -35,6 +35,20 @@ foreach(filename ${buf_files})
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )
 endforeach()
+
+# Categorised abstract-execution corpus (Tests/cases). Each case self-validates
+# via svf_assert / UNSAFE_* checkpoints, so a clean exit means pass. Only the
+# passing corpus lives under Tests/cases; known-failing cases are kept under
+# Tests/cases-unpass and are intentionally NOT registered.
+file(GLOB_RECURSE case_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/../Tests "${CMAKE_CURRENT_SOURCE_DIR}/../Tests/cases/*.ll")
+foreach(filename ${case_files})
+    add_test(
+            NAME ass3-cases-cpp/${filename}
+            COMMAND ass3 ${CMAKE_CURRENT_SOURCE_DIR}/../Tests/${filename}
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+    )
+    set_tests_properties(ass3-cases-cpp/${filename} PROPERTIES TIMEOUT 120)
+endforeach()
 include(CTest)
 
 
