@@ -1,4 +1,4 @@
-//===- Assignment-3-Helper.h -- Abstract Interpretation Helper funcs --//
+//===- AEReporter.h -- Abstract Interpretation bug reporter --//
 //
 //                     SVF: Static Value-Flow Analysis
 //
@@ -19,11 +19,9 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 //===----------------------------------------------------------------------===//
-/*
- * Abstract Interpretation Helper Functions
- *
- * Created on: Feb 19, 2024
- */
+
+#ifndef ASSIGNMENT_3_AE_REPORTER_H
+#define ASSIGNMENT_3_AE_REPORTER_H
 
 #include "AE/Core/AbstractState.h"
 #include "AE/Svfexe/AEDetector.h"
@@ -34,44 +32,11 @@
 #include <ostream>
 #include <string>
 #include <vector>
+
 namespace SVF {
-	class AbstractInterpretation;
 
-	/// Narrow facade over the SVF abstract-interpretation state manager.
-	///
-	/// Students interact with the abstract state *only* through this object
-	/// (the `svfStateMgr` member of AbstractExecution).  It forwards exactly the
-	/// state read/write and GEP primitives the assignment is allowed to use, and
-	/// deliberately exposes no path to the SVF external-API modeller
-	/// (AbsExtAPI / handleExtAPI / getRangeLimitFromType / getUtils), so the
-	/// memory/string library summaries and the cast-range logic must be written
-	/// by hand.  Method bodies live in Assignment_3_Helper.cpp.
-	class Ass3StateManager {
-	 public:
-		explicit Ass3StateManager(AbstractInterpretation* ai = nullptr) : ai(ai) {}
-
-		const AbstractValue& getAbsValue(const ValVar* var, const ICFGNode* node);
-		const AbstractValue& getAbsValue(const ObjVar* var, const ICFGNode* node);
-		const AbstractValue& getAbsValue(const SVFVar* var, const ICFGNode* node);
-
-		void updateAbsValue(const ValVar* var, const AbstractValue& val, const ICFGNode* node);
-		void updateAbsValue(const ObjVar* var, const AbstractValue& val, const ICFGNode* node);
-		void updateAbsValue(const SVFVar* var, const AbstractValue& val, const ICFGNode* node);
-
-		AbstractValue loadValue(const ValVar* pointer, const ICFGNode* node);
-		void storeValue(const ValVar* pointer, const AbstractValue& val, const ICFGNode* node);
-
-		AddressValue getGepObjAddrs(const ValVar* pointer, IntervalValue offset);
-		IntervalValue getGepElementIndex(const GepStmt* gep);
-		IntervalValue getGepByteOffset(const GepStmt* gep);
-		u32_t getAllocaInstByteSize(const AddrStmt* addr);
-
-	 private:
-		// harness-only: AbstractExecution reaches the underlying manager for the
-		// post-trace; never exposed to student code.
-		friend class AbstractExecution;
-		AbstractInterpretation* ai;
-	};
+	class ICFG;
+	class CallICFGNode;
 
 	struct AssignmentCaseConfig {
 		std::string caseId;
@@ -89,8 +54,39 @@ namespace SVF {
 
 	std::string ass3JsonEscape(const std::string& input);
 
-	class AbstractExecutionHelper {
+	/// Bug reporter and harness bookkeeper for the Assignment-3
+	/// abstract-interpretation pipeline.  Owns the bug list plus the
+	/// harness-only state (analysed ICFG nodes, validated assertion
+	/// call sites, case config) and renders the human / JSON summary
+	/// consumed by the grader.
+	class AEReporter {
 	 public:
+		AEReporter() = default;
+		explicit AEReporter(const AssignmentCaseConfig& config) : caseConfig(config) {}
+
+		const AssignmentCaseConfig& getCaseConfig() const { return caseConfig; }
+		void setCaseConfig(const AssignmentCaseConfig& config) { caseConfig = config; }
+
+		/// Coverage tracking: harness records every ICFG node it processed.
+		void noteAnalyzed(const ICFGNode* node) { analyzedNodes.insert(node); }
+		u32_t getAnalyzedNodeCount() const {
+			return static_cast<u32_t>(analyzedNodes.size());
+		}
+		u32_t getTotalNodeCount(const ICFG* icfg) const;
+		double getICFGCoverage(const ICFG* icfg) const;
+
+		/// Assertion-point tracking: harness records every stub call site it
+		/// actually reached so `ensureAllAssertsValidated` can detect missed
+		/// ones.
+		void noteAssertionPoint(const CallICFGNode* call) { assert_points.insert(call); }
+		bool isAssertionPoint(const CallICFGNode* call) const {
+			return assert_points.find(call) != assert_points.end();
+		}
+
+		bool hasTargetReport() const;
+		void writeJsonSummary(std::ostream& os, const ICFG* icfg,
+		                      double wallSeconds, int exitCode,
+		                      bool assertsValidated) const;
 
 		/// Add a detected bug to the bug reporter and print the report
 		///@{
@@ -155,5 +151,14 @@ namespace SVF {
 		SVFBugReport _recoder;
 		Map<const ICFGNode*, std::string> _nodeToBugInfo;
 		std::vector<AssignmentBugReport> _reports;
+
+		/// Harness bookkeeping (moved here from AbstractExecution so
+		/// Assignment_3.h stays focused on student-facing surface).
+		AssignmentCaseConfig caseConfig;
+		Set<const ICFGNode*> analyzedNodes;
+		Set<const CallICFGNode*> assert_points;
 	};
-}
+
+} // namespace SVF
+
+#endif // ASSIGNMENT_3_AE_REPORTER_H

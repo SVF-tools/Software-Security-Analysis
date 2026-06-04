@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
 	double wallSeconds = std::chrono::duration<double>(finished - started).count();
 	if (config.emitJson) {
 		std::cout << "ASS3_JSON_BEGIN\n";
-		ae.writeJsonSummary(std::cout, wallSeconds, 0, true);
+		ae.getReporter().writeJsonSummary(std::cout, pag->getICFG(), wallSeconds, 0, true);
 		std::cout << "ASS3_JSON_END\n";
 	}
 

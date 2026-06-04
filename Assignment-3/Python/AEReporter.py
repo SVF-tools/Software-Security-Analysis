@@ -216,43 +216,30 @@ class ICFGWTO:
 
 
 
-class AbstractExecutionHelper:
+class AEReporter:
     """
-    A helper class for abstract execution, providing functionality for bug reporting,
-    managing GEP object offsets, and other utilities.
+    Bug reporter and shared helper utilities for the Assignment-3
+    abstract-interpretation harness.
     """
 
     def __init__(self, svfir: pysvf.SVFIR, svf_state_mgr: 'pysvf.AbstractInterpretation' = None):
-        """
-        Initialize member variables.
-        """
-        # Map to store exception information for each ICFGNode
+        # Map ICFGNode -> diagnostic message for each detected bug.
         self.node_to_bug_info = {}
         self.svfir = svfir
-        # Optional: if a stateMgr is provided, getByteOffset delegates to its
-        # getGepByteOffset (the C++ side does the same via svfStateMgr->...).
         self.svf_state_mgr = svf_state_mgr
+        # Harness bookkeeping: stub call sites the analysis actually reached.
+        self.assert_points = set()
 
-    # ------------------------------------------------------------------
-    # Helpers that used to live as instance methods on `pysvf.AbstractState`.
-    # Upstream (Semi-Sparse refactor) moved them to `AbstractInterpretation`
-    # (formerly `AbstractStateManager`, whose public header was removed),
-    # which requires a sparsity-aware trace we don't keep here. We re-implement
-    # the dense-mode behavior using only public AbstractState surface so the
-    # Python side mirrors the C++ side (`AbstractExecutionHelper::getByteOffset`).
-    # ------------------------------------------------------------------
+    def noteAssertionPoint(self, call):
+        self.assert_points.add(call)
+
+    def isAssertionPoint(self, call) -> bool:
+        return call in self.assert_points
+
     def getByteOffset(self, abstract_state: pysvf.AbstractState, gep: pysvf.GepStmt) -> pysvf.IntervalValue:
-        # Delegates to the stateMgr's upstream impl, mirroring the C++ side
-        # `svfStateMgr->getGepByteOffset(gep)`. The `abstract_state` argument
-        # is kept in the signature for symmetry with the call-site shape but
-        # is not consulted here -- the mgr reads non-constant indices from
-        # its own trace, which is the same trace this helper writes to.
         return self.svf_state_mgr.getGepByteOffset(gep)
 
     def getGepObjAddrs(self, abstract_state: pysvf.AbstractState, var_id: int, offset: pysvf.IntervalValue) -> pysvf.AddressValue:
-        # Delegates to the stateMgr's upstream impl. mgr.getGepObjAddrs takes
-        # a ValVar* (and infers the ICFGNode from it), so we look the var up
-        # by id. Matches the C++ side `svfStateMgr->getGepObjAddrs(...)`.
         pointer = self.svfir.getGNode(var_id)
         return self.svf_state_mgr.getGepObjAddrs(pointer, offset)
 
@@ -268,15 +255,9 @@ class AbstractExecutionHelper:
         return None
 
     def getAllocaInstByteSize(self, abstract_state: pysvf.AbstractState, addr: pysvf.AddrStmt) -> int:
-        # Delegates to the stateMgr's upstream impl. mgr.getAllocaInstByteSize
-        # takes the AddrStmt directly (it derives node + sizes itself). Matches
-        # the C++ side `svfStateMgr->getAllocaInstByteSize(addr)`.
         return self.svf_state_mgr.getAllocaInstByteSize(addr)
 
     def reportBufOverflow(self, node, msg):
-        """
-        Record an overflow node and its associated exception.
-        """
         self.node_to_bug_info[node] = msg
 
     def printReport(self):
@@ -286,14 +267,7 @@ class AbstractExecutionHelper:
             for node, msg in self.node_to_bug_info.items():
                 print(f"{node}: {msg}\n---------------------------------------------")
 
-
-    # GEP-offset tracking (updateGepObjOffsetFromBase / has / get) was removed
-    # from the helper this year — students implement it in Assignment_3.py.
-
     def handleMemcpy(self, abstractState: pysvf.AbstractState, dst: pysvf.SVFVar, src: pysvf.SVFVar, len: pysvf.IntervalValue, start_idx: int):
-        """
-        Handle a memcpy operation in the abstract state.
-        """
         assert isinstance(abstractState, pysvf.AbstractState), "abstractState is not a pysvf.AbstractState"
         assert isinstance(dst, pysvf.SVFVar), "dst is not a pysvf.SVFVar"
         assert isinstance(src, pysvf.SVFVar), "src is not a pysvf.SVFVar"
@@ -314,7 +288,7 @@ class AbstractExecutionHelper:
             else:
                 raise AssertionError("Unsupported type")
         size = len.lb().getNumeral()
-        range_val = size/elemSize
+        range_val = size / elemSize
         if abstractState.inVarToAddrsTable(dstId) and abstractState.inVarToAddrsTable(srcId):
             for index in range(0, int(range_val)):
                 expr_src = self.getGepObjAddrs(abstractState, srcId, pysvf.IntervalValue(index))
@@ -326,23 +300,12 @@ class AbstractExecutionHelper:
                             lhs = abstractState.load(addr_src)
                             abstractState.store(addr_dst, lhs)
 
-
     def getStrlen(self, abstractState, strValue):
-        """
-        Calculate the length of a string in the abstract state.
-
-        :param abstractState: The abstract state containing variable information.
-        :param strValue: The SVF variable representing the string.
-        :return: An IntervalValue representing the string length.
-        """
         value_id = strValue.getId()
         dst_size = 0
-
-        # Determine the size of the destination object
         for addr in abstractState[value_id].getAddrs():
             obj_id = abstractState.getIDFromAddr(addr)
             base_object = self.svfir.getBaseObject(obj_id)
-
             if base_object.isConstantByteSize():
                 dst_size = base_object.getByteSizeOfObj()
             else:
@@ -350,25 +313,17 @@ class AbstractExecutionHelper:
                 for stmt in icfg_node.getSVFStmts():
                     if isinstance(stmt, pysvf.AddrStmt):
                         dst_size = self.getAllocaInstByteSize(abstractState, stmt)
-
         length = 0
         elem_size = 1
-
-        # Calculate the string length
         if abstractState.getVar(value_id).isAddr():
             for index in range(dst_size):
                 expr0 = self.getGepObjAddrs(abstractState, value_id, pysvf.IntervalValue(index))
                 val = pysvf.AbstractValue()
-
                 for addr in expr0:
                     val.join_with(abstractState.load(addr))
-
                 if val.isInterval() and chr(val.getInterval().getIntNumeral()) == '\0':
                     break
-
                 length += 1
-
-            # Determine the size of each element in the string
             if strValue.getType().isArrayTy():
                 elem_size = strValue.getType().getTypeOfElement().getByteSize()
             elif strValue.getType().isPointerTy():
@@ -382,16 +337,10 @@ class AbstractExecutionHelper:
                     elem_size = 1
             else:
                 raise AssertionError("Unsupported type")
-
-        # Return the calculated string length as an IntervalValue
         if length == 0:
             return pysvf.IntervalValue(0, pysvf.Options.max_field_limit())
         else:
             return pysvf.IntervalValue(length * elem_size)
-
-    # addToGepObjOffsetFromBase / hasGepObjOffsetFromBase / getGepObjOffsetFromBase
-    # are no longer part of the helper API; students manage their own
-    # GEP-offset-from-base state in Assignment_3.py.
 
 
 class AbstractExecution:
@@ -400,11 +349,6 @@ class AbstractExecution:
         self.icfg = pag.getICFG()
         self.call_site_stack = []
         self.func_to_wto = {}
-        # Functions whose WTO is currently being iterated; re-entry returns
-        # early so the outer cycle drives the recursion to a fixpoint.  This
-        # is the only mechanism for handling recursion — there is no separate
-        # "is recursive callsite?" check.
-        self._funcs_in_flight = set()
         self.pre_abs_trace = {}
         # Owns the post-trace and is the backing store for AbsExtAPI as well
         # as the GEP/load/store helpers (getGepByteOffset etc.). Replaces
@@ -418,8 +362,8 @@ class AbstractExecution:
         # Alias preserved so existing call-sites `self.post_abs_trace[node]`
         # keep working. The mgr supports __getitem__/__setitem__/__contains__.
         self.post_abs_trace = self.svf_state_mgr
-        self.buf_overflow_helper = AbstractExecutionHelper(self.svfir, self.svf_state_mgr)
-        self.assert_points = set()
+        self.buf_overflow_helper = AEReporter(self.svfir, self.svf_state_mgr)
+
         self.widen_delay = 3
         self.addressMask = 0x7f000000
         self.flippedAddressMask = (self.addressMask^0xffffffff)
@@ -435,7 +379,9 @@ class AbstractExecution:
     """
     def initWto(self):
         callgraphScc = pysvf.getCallGraphSCC()
+        self._callgraph_scc = callgraphScc
         callgraph = self.svfir.getCallGraph()
+        self._callgraph = callgraph
 
         # SCC membership comes from pysvf: CallGraphSCC.subNodes(rep) returns
         # the call-graph node IDs in the SCC represented by 'rep'.  We only
@@ -471,13 +417,6 @@ class AbstractExecution:
             # hash consistently across calls, so don't use the object as a key.
             self.func_to_wto[fun.getId()] = wto
 
-        # Build mapping from cycle head nodes to their corresponding cycles
-        # (loop heads AND recursive-function entries).
-        self.cycle_head_to_cycle = {}
-        for wto in self.func_to_wto.values():
-            for comp in wto.components:
-                if isinstance(comp, ICFGWTOCycle):
-                    self.cycle_head_to_cycle[comp.head.node] = comp
 
 
     """
@@ -507,30 +446,20 @@ class AbstractExecution:
     Iterate a function's interprocedural WTO components.
 
     Singletons are handled directly; cycles (loop heads AND recursive-function
-    entries) are driven to a fixpoint by handleICFGCycle.
-
-    `_funcs_in_flight` guards re-entry: if this WTO is already on the call
-    stack (i.e. a recursive callsite tried to inline back into us), return
-    immediately and let the outer cycle's widen/narrow iteration drive the
-    recursion to a fixpoint.  This is the only mechanism for handling
-    recursion — there is no separate "is recursive callsite?" check.
+    entries) are driven to a fixpoint by handleICFGCycle.  Recursive callsites
+    are filtered out earlier in handleCallSite via ``inSameCallGraphSCC``, so
+    handleFunction never re-enters itself.
     """
     def handleFunction(self, funEntry: pysvf.ICFGNode):
         fun = funEntry.getFun()
         wto = self.func_to_wto.get(fun.getId())
         if wto is None:
             return
-        if fun.getId() in self._funcs_in_flight:
-            return
-        self._funcs_in_flight.add(fun.getId())
-        try:
-            for comp in wto.components:
-                if isinstance(comp, ICFGWTOCycle):
-                    self.handleICFGCycle(comp)
-                elif isinstance(comp, ICFGWTONode):
-                    self.handleICFGNode(comp.getICFGNode())
-        finally:
-            self._funcs_in_flight.discard(fun.getId())
+        for comp in wto.components:
+            if isinstance(comp, ICFGWTOCycle):
+                self.handleICFGCycle(comp)
+            elif isinstance(comp, ICFGWTONode):
+                self.handleICFGNode(comp.getICFGNode())
 
     """
     Handle a singleton WTO
@@ -574,8 +503,11 @@ class AbstractExecution:
     def handleCallSite(self, node: pysvf.CallICFGNode):
         fun_name = node.getCalledFunction().getName()
         print(fun_name)
-        if fun_name == "OVERFLOW" or fun_name == "svf_assert" or fun_name == "svf_assert_eq":
+        if fun_name == "svf_assert" or fun_name == "svf_assert_eq":
             self.handleStubFunction(node)
+        elif fun_name in ("UNSAFE_BUFACCESS", "SAFE_BUFACCESS",
+                          "UNSAFE_PTRDEREF", "SAFE_PTRDEREF"):
+            self.handleCheckpointStubs(node)
         elif fun_name == "nd" or fun_name == "rand":
             lhs_id = node.getRetICFGNode().getActualRet().getId()
             self.post_abs_trace[node][lhs_id] = AbstractValue(IntervalValue.top())
@@ -584,10 +516,27 @@ class AbstractExecution:
         elif pysvf.isExtCall(node.getCalledFunction()):
             pass
         else:
-            # Inline unconditionally; handleFunction's `_funcs_in_flight`
-            # guard short-circuits recursive re-entry, and the outer WTO
-            # cycle drives the recursion to a fixpoint.
-            self.handleFunction(self.svfir.getICFG().getFunEntryICFGNode(node.getCalledFunction()))
+            # Skip recursive callsites (within the same call-graph SCC): the
+            # interprocedural WTO built in initWto already encoded this as a
+            # back-edge, so the outer cycle's widen/narrow iteration in
+            # handleICFGCycle drives the recursion to a fixpoint.  Mirrors
+            # SVF's AbstractInterpretation::skipRecursiveCall.
+            callee = node.getCalledFunction()
+            caller = node.getCaller()
+            if caller is not None and self.inSameCallGraphSCC(caller, callee):
+                return
+            self.handleFunction(self.svfir.getICFG().getFunEntryICFGNode(callee))
+
+    def inSameCallGraphSCC(self, fun1, fun2) -> bool:
+        scc = getattr(self, "_callgraph_scc", None)
+        cg = getattr(self, "_callgraph", None)
+        if scc is None or cg is None:
+            return False
+        n1 = cg.getCallGraphNodeByFunObj(fun1)
+        n2 = cg.getCallGraphNodeByFunObj(fun2)
+        if n1 is None or n2 is None:
+            return False
+        return scc.repNode(n1.getId()) == scc.repNode(n2.getId())
 
 
     """
@@ -615,7 +564,7 @@ class AbstractExecution:
     def handleStubFunction(self, callNode: pysvf.CallICFGNode):
         # Get the callee function associated with the call site
         if callNode.getCalledFunction().getName() == "svf_assert":
-            self.assert_points.add(callNode)
+            self.buf_overflow_helper.noteAssertionPoint(callNode)
             # If the condition is false, the program is infeasible
             arg0 = callNode.getArgument(0).getId()
             abstract_state = self.post_abs_trace[callNode]
@@ -632,39 +581,69 @@ class AbstractExecution:
                     print(f"The assertion ({callNode}) is unsatisfiable!!")
                     assert False
 
-        elif callNode.getCalledFunction().getName() == "OVERFLOW":
-            # Harness-only ground truth: read the GepObjVar's accumulated
-            # offset from base via SVF's native getConstantFieldIdx, so the
-            # stub verdict does not depend on the student's gep_obj_offset
-            # tracking.
-            self.assert_points.add(callNode)
-            arg0 = callNode.getArgument(0).getId()
-            arg1 = callNode.getArgument(1).getId()
 
-            abstract_state = self.post_abs_trace[callNode]
-            gep_rhs_val = abstract_state[arg0]
+    def handleCheckpointStubs(self, callNode: pysvf.CallICFGNode):
+        """SAFE_/UNSAFE_ checkpoints: ground-truth bug markers.
 
-            if gep_rhs_val.isAddr():
-                overflow = False
-                access_offset = int(abstract_state[arg1].getInterval().ub())
-                for addr in gep_rhs_val.getAddrs():
-                    obj_id = abstract_state.getIDFromAddr(addr)
-                    base_obj = self.svfir.getBaseObject(obj_id)
-                    if base_obj is None or not base_obj.isConstantByteSize():
-                        continue
-                    size = base_obj.getByteSizeOfObj()
-                    gnode = self.svfir.getGNode(obj_id)
-                    base_offset = gnode.getConstantFieldIdx() if isinstance(gnode, pysvf.GepObjVar) else 0
-                    if base_offset + access_offset >= size:
-                        overflow = True
-                if overflow:
-                    print("Your implementation successfully detected the buffer overflow")
-                else:
-                    print(f"Your implementation failed to detect the buffer overflow! {callNode}")
-                    assert False
-            else:
-                print(f"Your implementation failed to detect the buffer overflow! {callNode}")
-                assert False
+        Records the call site in ``assert_points`` so
+        :py:meth:`ensureAllAssertsValidated` can verify the student's control
+        flow reached it.  The harness reports a bug iff its independent
+        ground-truth check (bypassing the student's predicates) sees one.
+        """
+        self.buf_overflow_helper.noteAssertionPoint(callNode)
+        fun_name = callNode.getCalledFunction().getName()
+        abstract_state = self.post_abs_trace[callNode]
+        if fun_name in ("SAFE_BUFACCESS", "UNSAFE_BUFACCESS"):
+            if callNode.arg_size() < 2:
+                return
+            length = abstract_state[callNode.getArgument(1).getId()].getInterval()
+            if length.isBottom():
+                length = IntervalValue(0)
+            ptr = callNode.getArgument(0)
+            if not self._harnessSafeAccess(abstract_state, ptr, length - IntervalValue(1)):
+                self.buf_overflow_helper.reportBufOverflow(
+                    callNode, f"buffer-overflow at {callNode}")
+        elif fun_name in ("SAFE_PTRDEREF", "UNSAFE_PTRDEREF"):
+            if callNode.arg_size() < 1:
+                return
+            ptr = callNode.getArgument(0)
+            if not self._harnessSafeDeref(abstract_state, ptr):
+                self.buf_overflow_helper.reportBufOverflow(
+                    callNode, f"nullptr-deref at {callNode}")
+
+    def _harnessSafeAccess(self, abstract_state, value, length: IntervalValue) -> bool:
+        ptr_val = abstract_state[value.getId()]
+        if not ptr_val.isAddr():
+            return True
+        for addr in ptr_val.getAddrs():
+            if pysvf.AbstractState.isBlackHoleObjAddr(addr) or pysvf.AbstractState.isNullMem(addr):
+                continue
+            obj_id = abstract_state.getIDFromAddr(addr)
+            base_obj = self.svfir.getBaseObject(obj_id)
+            if base_obj is None or base_obj.isBlackHoleObj() or not base_obj.isConstantByteSize():
+                continue
+            size = base_obj.getByteSizeOfObj()
+            gnode = self.svfir.getGNode(obj_id)
+            base_offset = IntervalValue(gnode.getConstantFieldIdx()) if isinstance(gnode, pysvf.GepObjVar) else IntervalValue(0)
+            offset = base_offset + length
+            if int(offset.ub()) >= size:
+                return False
+        return True
+
+    def _harnessSafeDeref(self, abstract_state, value) -> bool:
+        if value is None or isinstance(value, pysvf.ConstNullPtrValVar):
+            return False
+        abs_val = abstract_state[value.getId()]
+        if not abs_val.isAddr():
+            return True
+        for addr in abs_val.getAddrs():
+            if pysvf.AbstractState.isBlackHoleObjAddr(addr):
+                continue
+            if pysvf.AbstractState.isNullMem(addr):
+                return False
+            if abstract_state.isFreedMem(addr):
+                return False
+        return True
 
 
     # mergeStatesFromPredecessors is a student TODO this year and lives in
@@ -687,29 +666,39 @@ class AbstractExecution:
 
 
     def ensureAllAssertsValidated(self):
-        svf_assert_to_be_verified = 0
-        overflow_assert_to_be_verified = 0
+        """Verify the student's control flow reached every ground-truth stub.
 
+        Recognised stubs:
+          * ``svf_assert`` / ``svf_assert_eq`` -- abstract-state assertions
+          * ``UNSAFE_PTRDEREF`` / ``SAFE_PTRDEREF`` -- null-deref ground truth
+          * ``UNSAFE_BUFACCESS`` / ``SAFE_BUFACCESS`` -- buffer-access ground truth
+
+        A missed stub site means the student's control-flow logic skipped a
+        place the grader cares about.  Additionally requires that the number
+        of reported bugs is at least the number of ``UNSAFE_*`` stubs.
+        """
+        assert_stubs = {"svf_assert", "svf_assert_eq"}
+        checkpoint_stubs = {"UNSAFE_PTRDEREF", "SAFE_PTRDEREF",
+                            "UNSAFE_BUFACCESS", "SAFE_BUFACCESS"}
+        unsafe_to_be_verified = 0
         for node in self.svfir.getICFG().getNodes():
-            if isinstance(node, pysvf.CallICFGNode):
-                called_function = node.getCalledFunction()
-                if called_function:
-                    function_name = called_function.getName()
-                    if function_name in ["svf_assert", "OVERFLOW"]:
-                        if function_name == "svf_assert":
-                            svf_assert_to_be_verified += 1
-                        elif function_name == "OVERFLOW":
-                            overflow_assert_to_be_verified += 1
-                        else:
-                            pass
-
-                        if node not in self.assert_points:
-                            raise AssertionError(
-                                f"The stub function callsite (svf_assert or OVERFLOW) has not been checked: {node}"
-                            )
-                        
-        assert overflow_assert_to_be_verified <= len(self.buf_overflow_helper.node_to_bug_info), \
-            "The number of stub asserts (ground truth) should <= the number of overflow reported"
+            if not isinstance(node, pysvf.CallICFGNode):
+                continue
+            called_function = node.getCalledFunction()
+            if not called_function:
+                continue
+            name = called_function.getName()
+            if name not in assert_stubs and name not in checkpoint_stubs:
+                continue
+            if name.startswith("UNSAFE_"):
+                unsafe_to_be_verified += 1
+            if not self.buf_overflow_helper.isAssertionPoint(node):
+                raise AssertionError(
+                    f"The stub function callsite ({name}) was not reached by "
+                    f"the student's control flow: {node}"
+                )
+        assert unsafe_to_be_verified <= len(self.buf_overflow_helper.node_to_bug_info), \
+            "The number of UNSAFE_* stubs (ground truth) should <= the number of bugs reported"
 
 
 

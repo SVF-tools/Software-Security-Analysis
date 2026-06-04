@@ -20,7 +20,7 @@
 //
 //===----------------------------------------------------------------------===//
 /*
- * Abstract Interpretation and buffer overflow detection
+ * Abstract Interpretation and bug detection
  *
  * Created on: Feb 19, 2024
  */
@@ -33,9 +33,11 @@ using namespace SVFUtil;
 // ===========================================================================
 // Student TODOs
 // ===========================================================================
-// Implement abstract interpretation for the assignment cases. The harness
-// (Assignment_3_Helper.cpp) drives the analysis and only calls into the six
-// entry points below; design and add any internal helpers you need.
+// Implement abstract interpretation for verification and bug detection. The
+// harness (AEReporter.cpp) drives the analysis and calls into the six entry
+// points below (please do not delete); You are free to add any internal
+// classes and helper methods you need within Assignment_3.h and
+// Assignment_3.cpp.
 // ===========================================================================
 
 void AbstractExecution::updateAbsState(const SVFStmt* stmt) {

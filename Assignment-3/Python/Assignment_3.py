@@ -1,5 +1,15 @@
-from Assignment_3_Helper import *
+from AEReporter import *
 import pysvf
+
+
+# =============================================================================
+# Student TODOs
+# =============================================================================
+# Implement abstract interpretation for verification and bug detection. The
+# harness (AEReporter.py) drives the analysis and calls into the entry points
+# below (please do not delete); You are free to add any internal classes and
+# helper methods you need within Assignment_3.py.
+# =============================================================================
 
 
 class Assignment3(AbstractExecution):

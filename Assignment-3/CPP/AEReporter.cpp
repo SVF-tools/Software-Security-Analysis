@@ -1,4 +1,4 @@
-//===- Assignment_3_Helper.cpp -- Abstract Interpretation --//
+//===- AEReporter.cpp -- Abstract Interpretation harness --//
 //
 //                     SVF: Static Value-Flow Analysis
 //
@@ -133,15 +133,11 @@ void AbstractExecution::runOnModule(SVF::ICFG* _icfg) {
 	svfir = PAG::getPAG();
 	icfg = _icfg;
 	analyse();
-	if (!caseConfig.emitJson)
+	if (!bugReporter.getCaseConfig().emitJson)
 		bugReporter.printReport();
 }
 
-u32_t AbstractExecution::getAnalyzedNodeCount() const {
-	return static_cast<u32_t>(analyzedNodes.size());
-}
-
-u32_t AbstractExecution::getTotalNodeCount() const {
+u32_t AEReporter::getTotalNodeCount(const ICFG* icfg) const {
 	if (!icfg)
 		return 0;
 	u32_t total = 0;
@@ -150,29 +146,29 @@ u32_t AbstractExecution::getTotalNodeCount() const {
 	return total;
 }
 
-double AbstractExecution::getICFGCoverage() const {
-	u32_t total = getTotalNodeCount();
+double AEReporter::getICFGCoverage(const ICFG* icfg) const {
+	u32_t total = getTotalNodeCount(icfg);
 	if (total == 0)
 		return 0.0;
 	return 100.0 * static_cast<double>(getAnalyzedNodeCount()) / static_cast<double>(total);
 }
 
-bool AbstractExecution::hasTargetReport() const {
+bool AEReporter::hasTargetReport() const {
 	if (caseConfig.targetLoc.empty())
 		return false;
-	for (const AssignmentBugReport& report : bugReporter.getReports()) {
+	for (const AssignmentBugReport& report : _reports) {
 		if (ass3ReportMatchesTarget(report, caseConfig.targetLoc))
 			return true;
 	}
 	return false;
 }
 
-void AbstractExecution::writeJsonSummary(std::ostream& os, double wallSeconds,
-                                         int exitCode, bool assertsValidated) const {
-	const auto& reports = bugReporter.getReports();
+void AEReporter::writeJsonSummary(std::ostream& os, const ICFG* icfg,
+                                  double wallSeconds, int exitCode,
+                                  bool assertsValidated) const {
 	const bool targetHit = hasTargetReport();
 	const u32_t tp = caseConfig.targetLoc.empty() ? 0 : (targetHit ? 1 : 0);
-	const u32_t fp = reports.size() > tp ? static_cast<u32_t>(reports.size() - tp) : 0;
+	const u32_t fp = _reports.size() > tp ? static_cast<u32_t>(_reports.size() - tp) : 0;
 
 	os << "{\n";
 	os << "  \"case_id\": \"" << ass3JsonEscape(caseConfig.caseId) << "\",\n";
@@ -182,21 +178,21 @@ void AbstractExecution::writeJsonSummary(std::ostream& os, double wallSeconds,
 	os << "  \"asserts_validated\": " << (assertsValidated ? "true" : "false") << ",\n";
 	os << "  \"tp\": " << tp << ",\n";
 	os << "  \"fp\": " << fp << ",\n";
-	os << "  \"reports\": " << reports.size() << ",\n";
+	os << "  \"reports\": " << _reports.size() << ",\n";
 	os << "  \"wall_sec\": " << std::fixed << std::setprecision(3) << wallSeconds << ",\n";
-	os << "  \"icfg_nodes\": " << getTotalNodeCount() << ",\n";
+	os << "  \"icfg_nodes\": " << getTotalNodeCount(icfg) << ",\n";
 	os << "  \"analyzed_icfg_nodes\": " << getAnalyzedNodeCount() << ",\n";
-	os << "  \"icfg_coverage\": " << std::fixed << std::setprecision(2) << getICFGCoverage() << ",\n";
+	os << "  \"icfg_coverage\": " << std::fixed << std::setprecision(2) << getICFGCoverage(icfg) << ",\n";
 	os << "  \"report_list\": [";
-	for (size_t i = 0; i < reports.size(); ++i) {
-		const AssignmentBugReport& report = reports[i];
+	for (size_t i = 0; i < _reports.size(); ++i) {
+		const AssignmentBugReport& report = _reports[i];
 		os << (i == 0 ? "\n" : ",\n");
 		os << "    {\"kind\": \"" << ass3JsonEscape(report.kind)
 		   << "\", \"node\": " << report.nodeId
 		   << ", \"location\": \"" << ass3JsonEscape(report.location)
 		   << "\", \"message\": \"" << ass3JsonEscape(report.message) << "\"}";
 	}
-	if (!reports.empty())
+	if (!_reports.empty())
 		os << "\n  ";
 	os << "]\n";
 	os << "}\n";
@@ -250,15 +246,6 @@ void AbstractExecution::initWTO() {
 		funcToWTO[fun] = wto;
 	}
 
-	// Record every cycle head (loop heads and recursive-function entries) so
-	// handleFunction can dispatch them to handleICFGCycle.
-	for (auto fun : funcToWTO) {
-		for (const ICFGWTOComp* comp : fun.second->getWTOComponents()) {
-			if (const ICFGCycleWTO* cycle = SVFUtil::dyn_cast<ICFGCycleWTO>(comp)) {
-				cycleHeadToCycle[cycle->head()->getICFGNode()] = cycle;
-			}
-		}
-	}
 }
 
 // updateGepObjOffsetFromBase / hasGepObjOffsetFromBase / getGepObjOffsetFromBase
@@ -271,7 +258,7 @@ void AbstractExecution::initWTO() {
 void AbstractExecution::handleGlobalNode() {
 	AbstractState as;
 	const ICFGNode* node = icfg->getGlobalICFGNode();
-	analyzedNodes.insert(node);
+	bugReporter.noteAnalyzed(node);
 	postAbsTrace()[node] = preAbsTrace[node];
 	// The null pointer carries the dedicated null memory address so that
 	// pointer-vs-null comparisons and null dereferences can be detected.
@@ -282,36 +269,51 @@ void AbstractExecution::handleGlobalNode() {
 	}
 }
 
-/// If we have stub calls as ground truths in the program, including svf_assert and OVERFLOW, 
-/// make sure they are fully verified/checked.
+/// Verify that every ground-truth stub call site in the program was reached
+/// by the student's analysis (added to `assert_points` via handleCallSite ->
+/// handleStubFunctions / handleCheckpointStubs).  A missed stub site means
+/// the student's control-flow logic skipped a place the grader cares about.
+///
+/// Recognised stubs:
+///   - svf_assert / svf_assert_eq         : abstract-state assertion checks
+///   - UNSAFE_PTRDEREF / SAFE_PTRDEREF    : null-deref ground truth
+///   - UNSAFE_BUFACCESS / SAFE_BUFACCESS  : buffer-access ground truth
+///
+/// Additionally requires that the number of reported bugs is at least the
+/// number of UNSAFE_* stubs in the program.
 void AbstractExecution::ensureAllAssertsValidated() {
-	u32_t svf_assert_to_be_verified = 0;
-	u32_t overflow_assert_to_be_verified = 0;
+	static const Set<std::string> kAssertStubs = {"svf_assert", "svf_assert_eq"};
+	static const Set<std::string> kCheckpointStubs = {
+	    "UNSAFE_PTRDEREF", "SAFE_PTRDEREF",
+	    "UNSAFE_BUFACCESS", "SAFE_BUFACCESS"};
+	u32_t unsafe_to_be_verified = 0;
 	for (auto it = svfir->getICFG()->begin(); it != svfir->getICFG()->end(); ++it) {
 		const ICFGNode* node = it->second;
-		if (const CallICFGNode* call = SVFUtil::dyn_cast<CallICFGNode>(node)) {
-			if (const FunObjVar* fun = call->getCalledFunction()) {
-				if (fun->getName() == "svf_assert" || fun->getName() == "OVERFLOW") {
-					if (fun->getName() == "svf_assert") {
-						svf_assert_to_be_verified++;
-					}
-					else {
-						overflow_assert_to_be_verified++;
-					}
-					if (assert_points.find(call) == assert_points.end()) {
-						std::stringstream ss;
-						ss << "The stub function calliste (svf_assert or OVERFLOW) has not been checked: "
-						   << call->toString();
-						std::cerr << ss.str() << std::endl;
-						assert(false);
-					}
-				}
-			}
+		const CallICFGNode* call = SVFUtil::dyn_cast<CallICFGNode>(node);
+		if (!call)
+			continue;
+		const FunObjVar* fun = call->getCalledFunction();
+		if (!fun)
+			continue;
+		const std::string& name = fun->getName();
+		const bool isAssertStub = kAssertStubs.count(name) > 0;
+		const bool isCheckpointStub = kCheckpointStubs.count(name) > 0;
+		if (!isAssertStub && !isCheckpointStub)
+			continue;
+		if (name.rfind("UNSAFE_", 0) == 0)
+			unsafe_to_be_verified++;
+		if (!bugReporter.isAssertionPoint(call)) {
+			std::stringstream ss;
+			ss << "The stub function callsite (" << name
+			   << ") was not reached by the student's control flow: "
+			   << call->toString();
+			std::cerr << ss.str() << std::endl;
+			assert(false);
 		}
 	}
 
-	assert(overflow_assert_to_be_verified <= bugReporter.getBugReporter().getBugSet().size() &&
-		       "The number of stub asserts (ground truth) should <= the number of overflow reported");
+	assert(unsafe_to_be_verified <= bugReporter.getBugReporter().getBugSet().size() &&
+		       "The number of UNSAFE_* stubs (ground truth) should <= the number of bugs reported");
 }
 
 
@@ -330,7 +332,6 @@ void AbstractExecution::analyse() {
 	// AbstractInterpretation; it pulls SVFIR from PAG::getPAG() internally and
 	// does not need an explicit Andersen analysis to be passed in.
 	ai = &AbstractInterpretation::getAEInstance();
-	svfStateMgr = new Ass3StateManager(ai);
 
 	// Handle the global node
 	handleGlobalNode();
@@ -368,7 +369,7 @@ bool AbstractExecution::handleICFGNode(const ICFGNode* node) {
 		SVFUtil::errs() << "Infeasible for node " << node->getId() << "\n";
 		return false;
 	}
-	analyzedNodes.insert(node);
+	bugReporter.noteAnalyzed(node);
 	preAbsTrace[node] = tmpEs;
 	// Store the last abstract state, used to check if the abstract state has reached a fixpoint
 	AbstractState last_as = postAbsTrace()[node]; 
@@ -457,7 +458,7 @@ void AbstractExecution::handleCallSite(const CallICFGNode* callNode) {
 	if (!callee)
 		return;
 	std::string fun_name = callee->getName();
-	if (fun_name == "OVERFLOW" || fun_name == "svf_assert" || fun_name == "svf_assert_eq") {
+	if (fun_name == "svf_assert" || fun_name == "svf_assert_eq") {
 		handleStubFunctions(callNode);
 	}
 	else if (fun_name == "SAFE_BUFACCESS" || fun_name == "UNSAFE_BUFACCESS" ||
@@ -481,9 +482,14 @@ void AbstractExecution::handleCallSite(const CallICFGNode* callNode) {
 		bufOverflowDetection(callNode);
 	}
 	else {
-		// Inline the callee body unconditionally.  handleFunction guards
-		// against re-entering a WTO that is already on the stack, so
-		// recursive callsites just fall back to the outer WTO cycle.
+		// Skip recursive callsites (within the same call-graph SCC): the
+		// interprocedural WTO built in initWTO() already encoded this as a
+		// back-edge, so the outer cycle's widen/narrow iteration in
+		// handleICFGCycle drives the recursion to a fixpoint.  Mirrors
+		// SVF's `AbstractInterpretation::skipRecursiveCall`.
+		const FunObjVar* caller = callNode->getCaller();
+		if (caller && ander && ander->inSameCallGraphSCC(caller, callee))
+			return;
 		handleFunction(svfir->getICFG()->getFunEntryICFGNode(callee));
 		const RetICFGNode* retNode = callNode->getRetICFGNode();
 		if (postAbsTrace().count(callNode))
@@ -500,6 +506,7 @@ void AbstractExecution::handleCallSite(const CallICFGNode* callNode) {
  * stub verdict cannot be biased by student bugs.
  */
 void AbstractExecution::handleCheckpointStubs(const CallICFGNode* callNode) {
+	bugReporter.noteAssertionPoint(callNode);
 	const std::string fun_name = callNode->getCalledFunction()->getName();
 	if (fun_name == "SAFE_BUFACCESS" || fun_name == "UNSAFE_BUFACCESS") {
 		if (callNode->arg_size() < 2)
@@ -526,17 +533,11 @@ void AbstractExecution::handleFunction(const ICFGNode* funEntry) {
 	// Iterate the function's interprocedural WTO components in WTO order.
 	// Singletons are handled directly; cycles (loop heads and recursive
 	// function entries) are driven to a fixpoint by handleICFGCycle.
-	//
-	// `_funcsInFlight` guards re-entry: if this WTO is already on the call
-	// stack (i.e. a recursive callsite tried to inline back into us), return
-	// immediately and let the outer cycle's widen/narrow iteration drive the
-	// recursion to a fixpoint.  This is the only mechanism for handling
-	// recursion — there is no separate "is recursive callsite?" check.
+	// Recursive callsites are filtered out earlier in handleCallSite via
+	// `inSameCallGraphSCC`, so handleFunction never re-enters itself.
 	const FunObjVar* fun = funEntry->getFun();
 	auto it = funcToWTO.find(fun);
 	if (it == funcToWTO.end())
-		return;
-	if (!_funcsInFlight.insert(fun).second)
 		return;
 	for (const ICFGWTOComp* comp : it->second->getWTOComponents()) {
 		if (const ICFGSingletonWTO* singleton = SVFUtil::dyn_cast<ICFGSingletonWTO>(comp)) {
@@ -546,7 +547,6 @@ void AbstractExecution::handleFunction(const ICFGNode* funEntry) {
 			handleICFGCycle(cycle);
 		}
 	}
-	_funcsInFlight.erase(fun);
 }
 
 /**
@@ -554,7 +554,7 @@ void AbstractExecution::handleFunction(const ICFGNode* funEntry) {
  *
  * This function handles specific stub functions (`svf_assert` and `OVERFLOW`) to check whether
  * the abstract interpretation results are as expected. For `svf_assert(expr)`, the expression must hold true.
- * For `OVERFLOW(object, offset_access)`, the size of the object must be less than or equal to the offset access.
+ * For `svf_assert_eq(a, b)`, the two intervals must be equal.
  *
  * @param callnode The call node representing the stub function to be handled
  */
@@ -562,7 +562,7 @@ void AbstractExecution::handleFunction(const ICFGNode* funEntry) {
 void AbstractExecution::handleStubFunctions(const SVF::CallICFGNode* callNode) {
 	// Handle the 'svf_assert' stub function
 	if (callNode->getCalledFunction()->getName() == "svf_assert") {
-		assert_points.insert(callNode);
+		bugReporter.noteAssertionPoint(callNode);
 		// If the condition is false, the program is infeasible
 		u32_t arg0 = callNode->getArgument(0)->getId();
 		AbstractState& as = getAbsStateFromTrace(callNode);
@@ -604,92 +604,49 @@ void AbstractExecution::handleStubFunctions(const SVF::CallICFGNode* callNode) {
 		}
 		return;
 	}
-	// Handle the 'OVERFLOW' stub function.  Ground truth is computed from SVF
-	// primitives only — `GepObjVar::getConstantFieldIdx()` gives the accumulated
-	// offset of the sub-object from its base — so the verdict does not depend
-	// on the student's gepObjOffsetFromBase map.
-	else if (callNode->getCalledFunction()->getName() == "OVERFLOW") {
-		assert_points.insert(callNode);
-		u32_t arg0 = callNode->getArgument(0)->getId();
-		u32_t arg1 = callNode->getArgument(1)->getId();
-
-		AbstractState& as = getAbsStateFromTrace(callNode);
-		AbstractValue gepRhsVal = as[arg0];
-
-		if (gepRhsVal.isAddr()) {
-			bool overflow = false;
-			s64_t access_offset = as[arg1].getInterval().ub().getIntNumeral();
-			for (const auto& addr : gepRhsVal.getAddrs()) {
-				NodeID objId = as.getIDFromAddr(addr);
-				const BaseObjVar* baseObj = svfir->getBaseObject(objId);
-				if (!baseObj || !baseObj->isConstantByteSize())
-					continue;
-				s64_t size = (s64_t)baseObj->getByteSizeOfObj();
-				s64_t baseOffset = 0;
-				if (auto* gepObj = SVFUtil::dyn_cast<GepObjVar>(svfir->getGNode(objId)))
-					baseOffset = (s64_t)gepObj->getConstantFieldIdx();
-				if (baseOffset + access_offset >= size)
-					overflow = true;
-			}
-			if (overflow) {
-				reportBufOverflow(callNode);
-				std::cerr << "Your implementation successfully detected the buffer overflow\n";
-			}
-			else {
-				SVFUtil::errs() << "Your implementation failed to detect the buffer overflow!"
-				                << callNode->toString() << "\n";
-				assert(false);
-			}
-		}
-		else {
-			SVFUtil::errs() << "Your implementation failed to detect the buffer overflow!"
-			                << callNode->toString() << "\n";
-			assert(false);
-		}
-	}
 }
 
 // ===========================================================================
-// Ass3StateManager — narrow facade forwarding only the whitelisted state and
-// GEP primitives to the underlying AbstractInterpretation.  Defined here (not
-// in the header) so student code never sees AbstractInterpretation/AbsExtAPI.
+// State-manager primitives — thin forwarders to the underlying
+// AbstractInterpretation singleton.  Defined here (not in the header) so
+// student code never sees AbstractInterpretation/AbsExtAPI directly.
 // ===========================================================================
 namespace SVF {
 
-const AbstractValue& Ass3StateManager::getAbsValue(const ValVar* var, const ICFGNode* node) {
+const AbstractValue& AbstractExecution::getAbsValue(const ValVar* var, const ICFGNode* node) {
 	return ai->getAbsValue(var, node);
 }
-const AbstractValue& Ass3StateManager::getAbsValue(const ObjVar* var, const ICFGNode* node) {
+const AbstractValue& AbstractExecution::getAbsValue(const ObjVar* var, const ICFGNode* node) {
 	return ai->getAbsValue(var, node);
 }
-const AbstractValue& Ass3StateManager::getAbsValue(const SVFVar* var, const ICFGNode* node) {
+const AbstractValue& AbstractExecution::getAbsValue(const SVFVar* var, const ICFGNode* node) {
 	return ai->getAbsValue(var, node);
 }
-void Ass3StateManager::updateAbsValue(const ValVar* var, const AbstractValue& val, const ICFGNode* node) {
+void AbstractExecution::updateAbsValue(const ValVar* var, const AbstractValue& val, const ICFGNode* node) {
 	ai->updateAbsValue(var, val, node);
 }
-void Ass3StateManager::updateAbsValue(const ObjVar* var, const AbstractValue& val, const ICFGNode* node) {
+void AbstractExecution::updateAbsValue(const ObjVar* var, const AbstractValue& val, const ICFGNode* node) {
 	ai->updateAbsValue(var, val, node);
 }
-void Ass3StateManager::updateAbsValue(const SVFVar* var, const AbstractValue& val, const ICFGNode* node) {
+void AbstractExecution::updateAbsValue(const SVFVar* var, const AbstractValue& val, const ICFGNode* node) {
 	ai->updateAbsValue(var, val, node);
 }
-AbstractValue Ass3StateManager::loadValue(const ValVar* pointer, const ICFGNode* node) {
+AbstractValue AbstractExecution::loadValue(const ValVar* pointer, const ICFGNode* node) {
 	return ai->loadValue(pointer, node);
 }
-void Ass3StateManager::storeValue(const ValVar* pointer, const AbstractValue& val, const ICFGNode* node) {
+void AbstractExecution::storeValue(const ValVar* pointer, const AbstractValue& val, const ICFGNode* node) {
 	ai->storeValue(pointer, val, node);
 }
-AddressValue Ass3StateManager::getGepObjAddrs(const ValVar* pointer, IntervalValue offset) {
+AddressValue AbstractExecution::getGepObjAddrs(const ValVar* pointer, IntervalValue offset) {
 	return ai->getGepObjAddrs(pointer, offset);
 }
-IntervalValue Ass3StateManager::getGepElementIndex(const GepStmt* gep) {
+IntervalValue AbstractExecution::getGepElementIndex(const GepStmt* gep) {
 	return ai->getGepElementIndex(gep);
 }
-IntervalValue Ass3StateManager::getGepByteOffset(const GepStmt* gep) {
+IntervalValue AbstractExecution::getGepByteOffset(const GepStmt* gep) {
 	return ai->getGepByteOffset(gep);
 }
-u32_t Ass3StateManager::getAllocaInstByteSize(const AddrStmt* addr) {
+u32_t AbstractExecution::getAllocaInstByteSize(const AddrStmt* addr) {
 	return ai->getAllocaInstByteSize(addr);
 }
 

@@ -1,7 +1,7 @@
-extern void UNSAFE_LOAD(void *);
+extern void UNSAFE_PTRDEREF(void *);
 
 int main(void) {
     int *p = (int *)0;
-    UNSAFE_LOAD(p);
+    UNSAFE_PTRDEREF(p);
     return 0;
 }
