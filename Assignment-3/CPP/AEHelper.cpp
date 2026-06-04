@@ -20,16 +20,25 @@
 //
 //===----------------------------------------------------------------------===//
 /*
- * Harness driver for Assignment-3 abstract interpretation.
+ * Harness for Assignment-3 abstract interpretation.
  *
- * Owns all `AbstractExecution::*` method bodies that are not student TODOs:
- * the analysis driver (analyse / runOnModule), ICFG / WTO traversal
- * (handleFunction / handleICFGNode), call-site dispatch (handleCallSite /
- * handleStubFunctions / handleCheckpointStubs), the abstract-state helpers
- * forwarding to AbstractInterpretation, and the validators.
+ * Owns the harness-side `AbstractExecution::*` methods that students don't
+ * design:
+ *   - Interprocedural WTO construction   (initWTO)
+ *   - Stub / checkpoint sub-dispatch     (handleStubFunctions /
+ *                                         handleCheckpointStubs) — invoked
+ *                                         from the student's handleCallSite
+ *                                         in Assignment_3.cpp.
+ *   - External-API whitelist             (isExternalCallForAssignment)
+ *   - Abstract-state helpers             (getAbsValue / updateAbsValue /
+ *                                         loadValue / storeValue / GEP* /
+ *                                         getAbsStateFromTrace / postAbsTrace)
+ *   - Validator                          (ensureAllAssertsValidated)
  *
- * Pure bug-reporting concerns (AEReporter class + JSON summary) live in
- * AEReporter.cpp.  Student TODOs live in Assignment_3.cpp.
+ * Pure bug-reporting concerns (AEReporter class + JSON / coverage summary)
+ * live in AEReporter.cpp.  The analysis driver (runOnModule / analyse /
+ * handleCallSite / reportBufOverflow / reportNullDeref) and the six student
+ * tasks live in Assignment_3.cpp.
  */
 
 #include "Assignment_3.h"
@@ -41,21 +50,6 @@
 #include <sstream>
 
 using namespace SVF;
-
-// ---------------------------------------------------------------------------
-// Bug-reporter thin wrappers — turn an ICFG node into an AEException and
-// dispatch through the AEReporter facade.
-// ---------------------------------------------------------------------------
-
-void AbstractExecution::reportBufOverflow(const ICFGNode* node) {
-	AEException bug(node->toString());
-	bugReporter.addBugToReporter("buffer-overflow", bug, node);
-}
-
-void AbstractExecution::reportNullDeref(const ICFGNode* node) {
-	AEException bug(node->toString());
-	bugReporter.addBugToReporter("nullptr-deref", bug, node);
-}
 
 /// Whitelist of external-call names the assignment expects students to model
 /// in `updateStateOnExtCall`.  Covers:
@@ -86,14 +80,6 @@ bool AbstractExecution::isExternalCallForAssignment(const SVF::FunObjVar* func) 
 			return true;
 	}
 	return false;
-}
-
-void AbstractExecution::runOnModule(SVF::ICFG* _icfg) {
-	svfir = PAG::getPAG();
-	icfg = _icfg;
-	analyse();
-	if (!bugReporter.getCaseConfig().emitJson)
-		bugReporter.printReport();
 }
 
 // ---------------------------------------------------------------------------
@@ -182,28 +168,6 @@ void AbstractExecution::ensureAllAssertsValidated() {
 		       "The number of UNSAFE_* stubs (ground truth) should <= the number of bugs reported");
 }
 
-void AbstractExecution::analyse() {
-	initWTO();
-	// AbstractStateManager was folded into AbstractInterpretation upstream
-	// (the AE/Svfexe/AbstractStateManager.h header was removed).  Use the
-	// AbstractInterpretation singleton; it pulls SVFIR from PAG::getPAG()
-	// internally and does not need an explicit Andersen analysis to be passed
-	// in.
-	ai = &AbstractInterpretation::getAEInstance();
-
-	handleGlobalNode();
-
-	if (const FunObjVar* fun = svfir->getFunObjVar("main")) {
-		// arguments of main are initialised as \top to represent all possible inputs
-		for (u32_t i = 0; i < fun->arg_size(); ++i) {
-			AbstractState& as = getAbsStateFromTrace(icfg->getGlobalICFGNode());
-			as[fun->getArg(i)->getId()] = IntervalValue::top();
-		}
-		assert(svfir->getFunObjVar("main") != nullptr && "Main function not found");
-		handleFunction(svfir->getICFG()->getFunEntryICFGNode(svfir->getFunObjVar("main")));
-	}
-}
-
 // ---------------------------------------------------------------------------
 // Ground-truth helpers used by handleCheckpointStubs.  Computed from SVF
 // primitives only so the stub verdict cannot be biased by student bugs.
@@ -251,48 +215,6 @@ bool harnessSafeDeref(AbstractState& as, const ValVar* value) {
 	return true;
 }
 } // namespace
-
-void AbstractExecution::handleCallSite(const CallICFGNode* callNode) {
-	const FunObjVar* callee = callNode->getCalledFunction();
-	if (!callee)
-		return;
-	std::string fun_name = callee->getName();
-	if (fun_name == "svf_assert" || fun_name == "svf_assert_eq") {
-		handleStubFunctions(callNode);
-	}
-	else if (fun_name == "SAFE_BUFACCESS" || fun_name == "UNSAFE_BUFACCESS" ||
-	         fun_name == "SAFE_PTRDEREF" || fun_name == "UNSAFE_PTRDEREF") {
-		// Ground-truth checkpoints for the buffer/nullptr checkers.
-		handleCheckpointStubs(callNode);
-	}
-	else if (fun_name == "nd" || fun_name == "rand") {
-		NodeID lhsId = callNode->getRetICFGNode()->getActualRet()->getId();
-		postAbsTrace()[callNode][lhsId] = AbstractValue(IntervalValue::top());
-	}
-	else if (SVFUtil::isExtCall(callee)) {
-		// External API value summaries.  Student implements the memory and
-		// string families plus assignment-specific stubs in updateStateOnExtCall;
-		// unmodelled functions fall back to SVF inside that dispatcher.  Run the
-		// bug checkers on the API's pointer/length arguments afterwards.
-		updateStateOnExtCall(callNode);
-		nullptrDerefDetection(callNode);
-		bufOverflowDetection(callNode);
-	}
-	else {
-		// Skip recursive callsites (within the same call-graph SCC): the
-		// interprocedural WTO built in initWTO() already encoded this as a
-		// back-edge, so the outer cycle's widen/narrow iteration in
-		// handleICFGCycle drives the recursion to a fixpoint.  Mirrors
-		// SVF's `AbstractInterpretation::skipRecursiveCall`.
-		const FunObjVar* caller = callNode->getCaller();
-		if (caller && ander && ander->inSameCallGraphSCC(caller, callee))
-			return;
-		handleFunction(svfir->getICFG()->getFunEntryICFGNode(callee));
-		const RetICFGNode* retNode = callNode->getRetICFGNode();
-		if (postAbsTrace().count(callNode))
-			postAbsTrace()[retNode] = postAbsTrace()[callNode];
-	}
-}
 
 /// Validate the SAFE/UNSAFE checkpoint stub functions.  Validation uses the
 /// harness-only `harnessSafeAccess` / `harnessSafeDeref` helpers, NOT the

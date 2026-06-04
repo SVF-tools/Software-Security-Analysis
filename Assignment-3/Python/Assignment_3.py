@@ -16,7 +16,7 @@ import pysvf
 #     1. Statement transfer functions       (updateAbsState)
 #     2. Branch refinement                  (mergeStatesFromPredecessors)
 #     3. Cycle and recursion fixpoint       (handleICFGCycle + driver entry points)
-#     4. External-API value summaries       (updateStateOnExtCall, handleCallSite override)
+#     4. External-API value summaries       (updateStateOnExtCall)
 #
 #   Bug checkers
 #     5. Buffer-overflow checker            (bufOverflowDetection)
@@ -31,7 +31,7 @@ class Assignment3(AbstractExecution):
     # =========================================================================
     # Driver entry points
     #
-    # `analyse()` (in AEHelper.py) calls `handleGlobalNode()` once for the
+    # `analyse()` (defined below) calls `handleGlobalNode()` once for the
     # SVFModule's global ICFG node and `handleFunction(main_entry)` to start
     # the per-function analysis.  A typical design has `handleFunction`
     # iterate the function's interprocedural WTO components, dispatching
@@ -110,14 +110,40 @@ class Assignment3(AbstractExecution):
         # TODO
         pass
 
-    # The Python harness's default handleCallSite drops every external call
-    # (other than mem_insert / str_insert) on the `pysvf.isExtCall(...) ->
-    # pass` branch.  Override it here so the memory / string summaries
-    # registered in updateStateOnExtCall actually run, and so the bug
-    # checkers see the post-call state.
+    # Dispatch a call ICFG node.  Pre-implemented so the harness's stub /
+    # checkpoint sub-dispatchers (handleStubFunction / handleCheckpointStubs
+    # in AEHelper.py) are reached, every external call flows into the
+    # student-implemented updateStateOnExtCall, and non-extern callees are
+    # inlined with the same `inSameCallGraphSCC` recursion skip the C++ port
+    # uses.  You may rewrite if your design needs a different shape.
     def handleCallSite(self, node: pysvf.CallICFGNode):
-        # TODO
-        pass
+        fun = node.getCalledFunction()
+        if fun is None:
+            return
+        fun_name = fun.getName()
+        if fun_name in ("svf_assert", "svf_assert_eq"):
+            self.handleStubFunction(node)
+        elif fun_name in ("UNSAFE_BUFACCESS", "SAFE_BUFACCESS",
+                          "UNSAFE_PTRDEREF", "SAFE_PTRDEREF"):
+            self.handleCheckpointStubs(node)
+        elif fun_name in ("nd", "rand"):
+            lhs_id = node.getRetICFGNode().getActualRet().getId()
+            self.post_abs_trace[node][lhs_id] = AbstractValue(IntervalValue.top())
+        elif fun_name == "mem_insert" or fun_name == "str_insert" or pysvf.isExtCall(fun):
+            self.updateStateOnExtCall(node)
+        else:
+            # Skip recursive callsites (within the same call-graph SCC): the
+            # interprocedural WTO built in initWto already encoded this as a
+            # back-edge, so the outer cycle's widen/narrow iteration in
+            # handleICFGCycle drives the recursion to a fixpoint.  Mirrors
+            # SVF's AbstractInterpretation::skipRecursiveCall.
+            caller = node.getCaller()
+            if caller is not None and self.inSameCallGraphSCC(caller, fun):
+                return
+            self.handleFunction(self.svfir.getICFG().getFunEntryICFGNode(fun))
+            ret_node = node.getRetICFGNode()
+            if node in self.post_abs_trace:
+                self.post_abs_trace[ret_node] = self.post_abs_trace[node]
 
     # =========================================================================
     # STUDENT TODO — Task 5: Buffer-overflow checker
@@ -138,3 +164,36 @@ class Assignment3(AbstractExecution):
     def nullptrDerefDetection(self, node: pysvf.ICFGNode):
         # TODO
         pass
+
+    # =========================================================================
+    # Analysis driver.  Pre-implemented so a working pipeline is in place from
+    # day one; you may rewrite if your design needs a different shape.
+    # =========================================================================
+
+    # `test-ae.py` calls `ass3.analyse()` directly — there is no separate
+    # `runOnModule` in the Python port.  Builds the WTO, replays the global
+    # ICFG node, kicks off the analysis at main, validates the assertion
+    # coverage, and prints the bug-reporter summary.
+    def analyse(self):
+        self.initWto()
+        self.handleGlobalNode()
+        main_fun = self.svfir.getFunObjVar("main")
+        if main_fun:
+            for i in range(main_fun.arg_size()):
+                as_state = self.pre_abs_trace[self.icfg.getGlobalICFGNode()]
+                as_state[main_fun.getArg(i).getId()] = IntervalValue.top()
+            self.handleFunction(self.icfg.getFunEntryICFGNode(main_fun))
+        else:
+            assert False, "Main function not found"
+        self.ensureAllAssertsValidated()
+        self.buf_overflow_helper.printReport()
+
+    # Bug-reporter forwarders.  Mirrors the C++ AbstractExecution::report*
+    # helpers; routes through the AEReporter instance owned by the harness.
+    def reportBufOverflow(self, node, msg=None):
+        self.buf_overflow_helper.reportBufOverflow(
+            node, msg if msg is not None else f"buffer-overflow at {node}")
+
+    def reportNullDeref(self, node, msg=None):
+        self.buf_overflow_helper.reportBufOverflow(
+            node, msg if msg is not None else f"nullptr-deref at {node}")

@@ -1,9 +1,17 @@
-"""Harness driver for Assignment-3 abstract interpretation.
+"""Harness for Assignment-3 abstract interpretation.
 
-Owns the AbstractExecution class — the analysis driver, ICFG / WTO
-traversal, call-site dispatch, ground-truth checkpoint stubs, and the
-abstract-state helpers.  The AEReporter class (pure bug reporting +
-GEP / strlen / memcpy helpers) lives in AEReporter.py.
+Owns the AbstractExecution class's harness-side methods — interprocedural
+WTO construction (initWto), stub / checkpoint sub-dispatchers
+(handleStubFunction, handleCheckpointStubs) invoked from the student's
+handleCallSite override in Assignment_3.py, the external-API whitelist
+(isExternalCallForAssignment), the abstract-state helpers that wrap
+AbstractInterpretation, and the validator (ensureAllAssertsValidated).
+
+The AEReporter class (pure bug reporting + JSON / coverage summary plus
+the GEP / strlen / memcpy helpers used by the bug checkers) lives in
+AEReporter.py.  The analysis driver (analyse / handleCallSite /
+reportBufOverflow / reportNullDeref) and the six student tasks live in
+Assignment_3.py.
 """
 
 from AEReporter import AEReporter
@@ -318,39 +326,8 @@ class AbstractExecution:
     # handleGlobalNode / handleFunction / handleICFGNode are student TODOs
     # this year and live in Assignment_3.py.
 
-    """
-    Handle a call site in the control flow graph
-    
-    This function processes a call site by updating the abstract state, handling the called function,
-    and managing the call stack. It resumes the execution state after the function call.
-    return void
-    """
-    def handleCallSite(self, node: pysvf.CallICFGNode):
-        fun_name = node.getCalledFunction().getName()
-        print(fun_name)
-        if fun_name == "svf_assert" or fun_name == "svf_assert_eq":
-            self.handleStubFunction(node)
-        elif fun_name in ("UNSAFE_BUFACCESS", "SAFE_BUFACCESS",
-                          "UNSAFE_PTRDEREF", "SAFE_PTRDEREF"):
-            self.handleCheckpointStubs(node)
-        elif fun_name == "nd" or fun_name == "rand":
-            lhs_id = node.getRetICFGNode().getActualRet().getId()
-            self.post_abs_trace[node][lhs_id] = AbstractValue(IntervalValue.top())
-        elif fun_name == "mem_insert" or fun_name == "str_insert": #isExternalCallForAssignment
-            self.updateStateOnExtCall(node)
-        elif pysvf.isExtCall(node.getCalledFunction()):
-            pass
-        else:
-            # Skip recursive callsites (within the same call-graph SCC): the
-            # interprocedural WTO built in initWto already encoded this as a
-            # back-edge, so the outer cycle's widen/narrow iteration in
-            # handleICFGCycle drives the recursion to a fixpoint.  Mirrors
-            # SVF's AbstractInterpretation::skipRecursiveCall.
-            callee = node.getCalledFunction()
-            caller = node.getCaller()
-            if caller is not None and self.inSameCallGraphSCC(caller, callee):
-                return
-            self.handleFunction(self.svfir.getICFG().getFunEntryICFGNode(callee))
+    # handleCallSite is part of the analysis driver and lives in
+    # Assignment_3.py.
 
     def inSameCallGraphSCC(self, fun1, fun2) -> bool:
         scc = getattr(self, "_callgraph_scc", None)
@@ -549,40 +526,8 @@ class AbstractExecution:
 
 
 
-    """
-    Perform the main analysis of the program.
-
-    This function initializes the Weak Topological Order (WTO) for all functions,
-    processes the global ICFG node, and analyzes the main function if it exists.
-    It ensures that the abstract states are properly initialized and updated
-    throughout the analysis.
-
-    Steps:
-    1. Initialize the WTO for all functions in the program.
-    2. Process the global ICFG node to initialize its abstract state.
-    3. If the main function exists:
-       - Initialize its arguments as top to represent all possible inputs.
-       - Process its WTO components to analyze its control flow.
-    """
-    def analyse(self):
-        self.initWto()
-        self.handleGlobalNode()
-        # # Process the main function if it exists
-        main_fun = self.svfir.getFunObjVar("main")
-        if main_fun:
-            # Arguments of main are initialized as top to represent all possible inputs
-            for i in range(main_fun.arg_size()):
-                as_state = self.pre_abs_trace[self.icfg.getGlobalICFGNode()]
-                as_state[main_fun.getArg(i).getId()] = IntervalValue.top()
-
-            self.handleFunction(self.icfg.getFunEntryICFGNode(main_fun))
-        else:
-            assert False, "Main function not found"
-        self.ensureAllAssertsValidated()
-        self.buf_overflow_helper.printReport()
-
-
-    # updateAbsState is a student TODO this year and lives in Assignment_3.py.
+    # analyse / updateAbsState / handleCallSite / reportBufOverflow /
+    # reportNullDeref live on the student side in Assignment_3.py.
 
     """
     Initialize an object variable in the abstract state.
