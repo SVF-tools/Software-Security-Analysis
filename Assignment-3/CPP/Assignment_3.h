@@ -41,14 +41,14 @@ namespace SVF {
 	/// this class:
 	///
 	///   General analysis engine
-	///     1. Statement transfer functions       (updateAbsState + updateStateOn*)
-	///     2. Branch refinement                  (mergeStatesFromPredecessors + isBranchFeasible)
+	///     1. Statement transfer functions       (updateAbsState)
+	///     2. Branch refinement                  (mergeStatesFromPredecessors)
 	///     3. Cycle and recursion fixpoint       (handleICFGCycle and the per-node driver)
 	///     4. External-API value summaries       (updateStateOnExtCall)
 	///
 	///   Bug checkers
-	///     5. Buffer-overflow checker            (bufOverflowDetection + canSafelyAccessMemory)
-	///     6. Nullptr-dereference checker        (nullptrDerefDetection + canSafelyDerefPtr)
+	///     5. Buffer-overflow checker            (bufOverflowDetection)
+	///     6. Nullptr-dereference checker        (nullptrDerefDetection)
 	class AbstractExecution {
 	 public:
 		// ====================================================================
@@ -167,36 +167,21 @@ namespace SVF {
 		// --------------------------------------------------------------------
 		// Task 1 — Statement transfer functions
 		//
-		// `updateAbsState` dispatches on the SVFStmt subtype; the
-		// `updateStateOn*` helpers implement the actual abstract transfer for
-		// each kind.  Unary and branch statements have no value-flow effect
-		// and are intentionally absent.
+		// Dispatch on the SVFStmt subtype and update the abstract state.
+		// Unary and branch statements have no value-flow effect.  Per-kind
+		// transfer helpers are yours to design as private methods.
 		// --------------------------------------------------------------------
 		virtual void updateAbsState(const SVFStmt* stmt);
-		void updateStateOnAddr(const AddrStmt* addr);
-		void updateStateOnGep(const GepStmt* gep);
-		void updateStateOnStore(const StoreStmt* store);
-		void updateStateOnLoad(const LoadStmt* load);
-		void updateStateOnCmp(const CmpStmt* cmp);
-		void updateStateOnCall(const CallPE* call);
-		void updateStateOnRet(const RetPE* retPE);
-		void updateStateOnCopy(const CopyStmt* copy);
-		void updateStateOnPhi(const PhiStmt* phi);
-		void updateStateOnBinary(const BinaryOPStmt* binary);
-		void updateStateOnSelect(const SelectStmt* select);
 
 		// --------------------------------------------------------------------
 		// Task 2 — Branch refinement
 		//
 		// Join predecessor post-states into `as` and report whether at least
 		// one incoming edge produced a feasible state.  Conditional intra-CFG
-		// edges should be filtered by per-edge feasibility (Cmp / Switch) so
-		// that infeasible paths are pruned during the join.
+		// edges should be filtered by per-edge branch feasibility so that
+		// infeasible paths are pruned during the join.
 		// --------------------------------------------------------------------
 		bool mergeStatesFromPredecessors(const ICFGNode* curNode, AbstractState& as);
-		bool isCmpBranchFeasible(const CmpStmt* cmpStmt, s64_t succ, AbstractState& as);
-		bool isSwitchBranchFeasible(const SVFVar* var, s64_t succ, AbstractState& as);
-		bool isBranchFeasible(const IntraCFGEdge* intraEdge, AbstractState& as);
 
 		// --------------------------------------------------------------------
 		// Task 3 — Cycle and recursion fixpoint
@@ -228,22 +213,20 @@ namespace SVF {
 		// STUDENT TODO — Task 5: Buffer-overflow checker
 		//
 		// Detect out-of-bounds accesses on GEP statements and on the
-		// pointer/length arguments of external-API calls.
-		// `canSafelyAccessMemory` is the shared memory-bounds predicate; the
-		// GEP-offset bookkeeping (private, below) tracks the accumulated byte
-		// offset of each derived pointer from its base object.
+		// pointer/length arguments of external-API calls.  Memory-bounds
+		// predicates and any GEP-offset bookkeeping you need are yours to
+		// design as private helpers.
 		// ====================================================================
 		virtual void bufOverflowDetection(const ICFGNode* node);
-		bool canSafelyAccessMemory(const SVF::ValVar* value, const IntervalValue& len, const ICFGNode* node);
 
 		// ====================================================================
 		// STUDENT TODO — Task 6: Nullptr-dereference checker
 		//
 		// Detect dereferences whose pointer may resolve to the null memory
-		// address.  `canSafelyDerefPtr` is the shared null-safety predicate.
+		// address.  Null-safety predicates are yours to design as private
+		// helpers.
 		// ====================================================================
 		virtual void nullptrDerefDetection(const ICFGNode* node);
-		bool canSafelyDerefPtr(const SVF::ValVar* value, const ICFGNode* node);
 
 	 protected:
 		// Harness state shared with student methods.
