@@ -257,6 +257,28 @@ class AbstractExecution:
         self.addressMask = 0x7f000000
         self.flippedAddressMask = (self.addressMask^0xffffffff)
 
+    # ------------------------------------------------------------------
+    # Optional hooks for Tasks 1, 2, 4, 5, 6.  The pre-implemented
+    # handleCallSite (in Assignment_3.py) routes ordinary external-API
+    # calls through updateStateOnExtCall and then nullptrDerefDetection /
+    # bufOverflowDetection.  Override these on your Assignment3 subclass
+    # if you want your value-summary modelling and bug checkers to run.
+    # ------------------------------------------------------------------
+    def updateAbsState(self, stmt):
+        pass
+
+    def mergeStatesFromPredecessors(self, block):
+        return False, AbstractState()
+
+    def updateStateOnExtCall(self, call):
+        pass
+
+    def bufOverflowDetection(self, node):
+        pass
+
+    def nullptrDerefDetection(self, node):
+        pass
+
 
     """
     Initialize the interprocedural WTO per call-graph SCC entry.

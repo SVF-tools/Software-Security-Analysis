@@ -32,23 +32,32 @@ namespace SVF {
 	class AbstractInterpretation;
 	class AndersenWaveDiff;
 
-	/// Driver class for the Assignment-3 abstract-interpretation pipeline.
+	/// Student-facing AbstractExecution class.
 	///
-	/// The harness (AEHelper.cpp / AEReporter.cpp) owns construction, the
-	/// analysis driver, the stub dispatch, the bug-reporting facade, and the
-	/// abstract-state helpers that wrap the underlying AbstractInterpretation
-	/// singleton.  Students implement the six tasks declared at the bottom of
-	/// this class:
+	/// The harness (AEHelper.cpp / AEReporter.cpp) provides interprocedural
+	/// WTO construction, stub / checkpoint sub-dispatch, the external-API
+	/// whitelist, the abstract-state helpers wrapping the underlying
+	/// AbstractInterpretation singleton, and the assertion-coverage
+	/// validator.  Assignment_3.cpp owns the analysis driver
+	/// (runOnModule / analyse / report* forwarders, all pre-implemented)
+	/// plus five student TODOs: the four driver entry points
+	/// (handleGlobalNode / handleFunction / handleICFGNode /
+	/// handleICFGCycle) and `handleCallSite`.  You design the rest of the
+	/// six tasks and have your handleICFGNode dispatch into them however
+	/// you see fit — override the matching no-op virtuals (updateAbsState,
+	/// mergeStatesFromPredecessors, updateStateOnExtCall,
+	/// bufOverflowDetection, nullptrDerefDetection) if you want your
+	/// handleCallSite to call into your code.
 	///
 	///   General analysis engine
-	///     1. Statement transfer functions       (updateAbsState)
-	///     2. Branch refinement                  (mergeStatesFromPredecessors)
-	///     3. Cycle and recursion fixpoint       (handleICFGCycle and the per-node driver)
-	///     4. External-API value summaries       (updateStateOnExtCall)
+	///     1. Statement transfer functions       -- typically inside handleICFGNode
+	///     2. Branch refinement                  -- typically inside handleICFGNode
+	///     3. Cycle and recursion fixpoint       -- typically inside handleICFGCycle
+	///     4. External-API value summaries       -- typically inside handleCallSite
 	///
 	///   Bug checkers
-	///     5. Buffer-overflow checker            (bufOverflowDetection)
-	///     6. Nullptr-dereference checker        (nullptrDerefDetection)
+	///     5. Buffer-overflow checker
+	///     6. Nullptr-dereference checker
 	class AbstractExecution {
 	 public:
 		// ====================================================================
@@ -139,94 +148,41 @@ namespace SVF {
 		AbstractState& getAbsStateFromTrace(const ICFGNode* node);
 
 		// ====================================================================
-		// STUDENT TODOs — General analysis engine (Tasks 1–4)
+		// STUDENT TODOs — Driver entry points
 		// ====================================================================
 		// The harness's `analyse()` calls `handleGlobalNode()` once and then
-		// `handleFunction(main_entry)`.  From there the per-function /
-		// per-node flow, the per-statement transfer functions, the branch
-		// refinement, the cycle / recursion fixpoint, and the external-API
-		// summaries are all your responsibility.
-		//
-		// A typical layering is:
-		//   handleFunction       walks the interprocedural WTO components
-		//                        and dispatches singletons to handleICFGNode
-		//                        / cycles to handleICFGCycle.
-		//   handleICFGNode       merges predecessor states (Task 2), runs
-		//                        the per-statement transfer functions (Task
-		//                        1), routes call sites via handleCallSite,
-		//                        and runs the bug checkers (Tasks 5 / 6).
-		// You are free to deviate from this layering as long as the test
-		// driver's expectations (covered stubs, reported bugs) hold.
+		// `handleFunction(main_entry)`.  From there the per-function flow,
+		// per-node merging + transfer, and cycle / recursion fixpoint are
+		// your responsibility.  A typical layering: handleFunction walks the
+		// interprocedural WTO, handleICFGNode merges predecessor states and
+		// runs the per-statement transfer functions, handleICFGCycle drives
+		// loops / recursion to a fixpoint with widening / narrowing.  You
+		// are free to deviate as long as the test driver's expectations
+		// (covered stubs, reported bugs) hold.
 		// ====================================================================
-
-		/// Driver entry points (called from analyse() / handleICFGNode).
 		void handleGlobalNode();
 		void handleFunction(const ICFGNode* funEntry);
 		bool handleICFGNode(const ICFGNode* node);
-
-		// --------------------------------------------------------------------
-		// Task 1 — Statement transfer functions
-		//
-		// Dispatch on the SVFStmt subtype and update the abstract state.
-		// Unary and branch statements have no value-flow effect.  Per-kind
-		// transfer helpers are yours to design as private methods.
-		// --------------------------------------------------------------------
-		virtual void updateAbsState(const SVFStmt* stmt);
-
-		// --------------------------------------------------------------------
-		// Task 2 — Branch refinement
-		//
-		// Join predecessor post-states into `as` and report whether at least
-		// one incoming edge produced a feasible state.  Conditional intra-CFG
-		// edges should be filtered by per-edge branch feasibility so that
-		// infeasible paths are pruned during the join.
-		// --------------------------------------------------------------------
-		bool mergeStatesFromPredecessors(const ICFGNode* curNode, AbstractState& as);
-
-		// --------------------------------------------------------------------
-		// Task 3 — Cycle and recursion fixpoint
-		//
-		// Drive WTO cycles (loop heads and recursive-function entries) to a
-		// fixpoint with widening / narrowing.  Recursive callsites are
-		// filtered earlier by handleCallSite via `inSameCallGraphSCC`, so a
-		// recursive function's WTO is iterated from its outer entry only.
-		// --------------------------------------------------------------------
 		void handleICFGCycle(const ICFGCycleWTO* cycle);
 
-		// --------------------------------------------------------------------
-		// Task 4 — External-API value summaries
+		// ====================================================================
+		// Optional hooks for the rest of the six tasks (no-op by default).
 		//
-		// Model the call's effect on the abstract state for each external
-		// function the harness recognises (see `isExternalCallForAssignment`).
-		// The full set is:
-		//     * memory family    : memcpy, memmove, memset
-		//     * string family    : strcpy, strncpy, strcat, strncat,
-		//                          strlen, wcslen
-		//     * assignment stubs : mem_insert, str_insert
-		// Unmodelled functions should conservatively leave the state
-		// unchanged.  Length-of-string and related shared primitives are
-		// yours to design as private helpers.
-		// --------------------------------------------------------------------
-		void updateStateOnExtCall(const SVF::CallICFGNode* extCallNode);
-
+		// The pre-implemented handleCallSite (in Assignment_3.cpp) routes
+		// ordinary external-API calls through updateStateOnExtCall and then
+		// nullptrDerefDetection / bufOverflowDetection.  Override these
+		// virtuals if you want your value-summary modelling (Task 4) and
+		// your bug checkers (Tasks 5 / 6) to run during the analysis.  How
+		// you structure them internally — per-statement transfer helpers
+		// for Task 1, predecessor join with branch refinement for Task 2,
+		// memory-safety predicates for Tasks 5 / 6, length-of-string
+		// helpers shared across summaries and checker — is your design.
 		// ====================================================================
-		// STUDENT TODO — Task 5: Buffer-overflow checker
-		//
-		// Detect out-of-bounds accesses on GEP statements and on the
-		// pointer/length arguments of external-API calls.  Memory-bounds
-		// predicates and any GEP-offset bookkeeping you need are yours to
-		// design as private helpers.
-		// ====================================================================
-		virtual void bufOverflowDetection(const ICFGNode* node);
-
-		// ====================================================================
-		// STUDENT TODO — Task 6: Nullptr-dereference checker
-		//
-		// Detect dereferences whose pointer may resolve to the null memory
-		// address.  Null-safety predicates are yours to design as private
-		// helpers.
-		// ====================================================================
-		virtual void nullptrDerefDetection(const ICFGNode* node);
+		virtual void updateAbsState(const SVFStmt* stmt) {}
+		virtual bool mergeStatesFromPredecessors(const ICFGNode* curNode, AbstractState& as) { return false; }
+		virtual void updateStateOnExtCall(const SVF::CallICFGNode* extCallNode) {}
+		virtual void bufOverflowDetection(const ICFGNode* node) {}
+		virtual void nullptrDerefDetection(const ICFGNode* node) {}
 
 	 protected:
 		// Harness state shared with student methods.
