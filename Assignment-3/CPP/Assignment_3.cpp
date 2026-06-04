@@ -64,3 +64,35 @@ void AbstractExecution::nullptrDerefDetection(const ICFGNode* node) {
 void AbstractExecution::updateStateOnExtCall(const SVF::CallICFGNode* call) {
 	// TODO: model memory/string library calls and assignment-specific stubs.
 }
+
+
+// ===========================================================================
+// Analysis driver entry points (student TODO this year).
+//
+// `analyse()` (in AEHelper.cpp) calls `handleGlobalNode()` once for the
+// SVFModule's global ICFG node and `handleFunction(main_entry)` to start the
+// per-function analysis.  From there it is up to you: a typical design has
+// `handleFunction` iterate the function's interprocedural WTO components,
+// dispatching singletons to `handleICFGNode` and cycles to `handleICFGCycle`.
+// `handleICFGNode` then merges predecessor states, runs the per-statement
+// transfer functions, and dispatches call sites via `handleCallSite`.  You
+// are free to deviate from this skeleton as long as the test driver's
+// expectations hold.
+// ===========================================================================
+
+void AbstractExecution::handleGlobalNode() {
+	// TODO: initialise the global ICFG node's state and replay the global
+	// statements through updateAbsState.
+}
+
+void AbstractExecution::handleFunction(const ICFGNode* funEntry) {
+	// TODO: walk the function's interprocedural WTO components (singletons
+	// vs. cycles) and dispatch to handleICFGNode / handleICFGCycle.
+}
+
+bool AbstractExecution::handleICFGNode(const ICFGNode* node) {
+	// TODO: merge predecessor states, run the per-statement transfer
+	// functions, handle call sites (delegating to handleCallSite for call
+	// nodes), and return whether the post-state changed.
+	return false;
+}

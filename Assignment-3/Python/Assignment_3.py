@@ -1,4 +1,4 @@
-from AEReporter import *
+from AEHelper import *
 import pysvf
 
 
@@ -48,3 +48,31 @@ class Assignment3(AbstractExecution):
     def handleCallSite(self, node: pysvf.CallICFGNode):
         # TODO
         pass
+
+    # =========================================================================
+    # Analysis driver entry points (student TODO this year).
+    #
+    # `analyse()` (in AEHelper.py) calls `handleGlobalNode()` once for the
+    # SVFModule's global ICFG node and `handleFunction(main_entry)` to start
+    # the per-function analysis.  A typical design has `handleFunction`
+    # iterate the function's interprocedural WTO components, dispatching
+    # singletons to `handleICFGNode` and cycles to `handleICFGCycle`.
+    # `handleICFGNode` then merges predecessor states, runs the per-statement
+    # transfer functions, and dispatches call sites via `handleCallSite`.
+    # =========================================================================
+
+    def handleGlobalNode(self):
+        # TODO: initialise the global ICFG node's state and replay the global
+        # statements through updateAbsState.
+        pass
+
+    def handleFunction(self, funEntry: pysvf.ICFGNode):
+        # TODO: walk the function's interprocedural WTO components (singletons
+        # vs cycles) and dispatch to handleICFGNode / handleICFGCycle.
+        pass
+
+    def handleICFGNode(self, node: pysvf.ICFGNode):
+        # TODO: merge predecessor states, run the per-statement transfer
+        # functions, handle call sites (via handleCallSite for call nodes),
+        # and return whether the post-state changed.
+        return False

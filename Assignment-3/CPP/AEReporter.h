@@ -122,12 +122,21 @@ namespace SVF {
 		}
 
 		void printReport() {
-			if (_nodeToBugInfo.size() > 0) {
-				std::cerr << "######################Buffer Overflow (" + std::to_string(_nodeToBugInfo.size())
-				                 + " found)######################\n";
-				std::cerr << "---------------------------------------------\n";
-				for (auto& it : _nodeToBugInfo) {
-					std::cerr << it.second << "\n---------------------------------------------\n";
+			if (_reports.empty())
+				return;
+			// Group by kind so buffer-overflow and nullptr-deref reports
+			// are clearly distinguished in the terminal output.
+			Map<std::string, std::vector<const AssignmentBugReport*>> grouped;
+			for (const auto& r : _reports)
+				grouped[r.kind].push_back(&r);
+			std::cerr << "###################### Bug Reports ("
+			          << _reports.size() << " total) ######################\n";
+			for (const auto& kv : grouped) {
+				std::cerr << "--- " << kv.first
+				          << " (" << kv.second.size() << ") ---\n";
+				for (const auto* r : kv.second) {
+					std::cerr << r->message
+					          << "\n---------------------------------------------\n";
 				}
 			}
 		}
