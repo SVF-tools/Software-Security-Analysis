@@ -66,7 +66,7 @@ s32_t Z3Mgr::z3Expr2NumValue(z3::expr e) {
 
 /// It checks if the constraints added to the Z3 solver are satisfiable.
 /// If they are, it retrieves the model that satisfies these constraints
-/// and evaluates the given complex expression e within this model, returning the evaluated result
+/// and evaluates the given complex expression e within this model, returning a fitting result
 z3::expr Z3Mgr::getEvalExpr(z3::expr e) {
 	z3::check_result res = solver.check();
 	assert(res != z3::unsat && "unsatisfied constraints! Check your contradictory constraints added to the solver");
