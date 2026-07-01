@@ -26,6 +26,7 @@
  */
 
 #include "Util/Options.h"
+#include "Util/SVFUtil.h"
 #include "Z3Examples.h"
 
 using namespace z3;
