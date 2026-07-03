@@ -10,13 +10,13 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     env:
-      XCODE_VERSION: '16.0.0'
+      XCODE_VERSION: 'latest-stable'
     steps:
       # checkout the repo
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
 
       # setup the mac/ubuntu environment
       - name: mac-setup
@@ -26,7 +26,9 @@ jobs:
           xcode-version: ${{ env.XCODE_VERSION }}
       - name: mac-setup-workaround
         if: runner.os == 'macOS'
-        run: ln -sfn /Applications/Xcode_${{ env.XCODE_VERSION }}.app /Applications/Xcode.app
+        run: |
+          XCODE_PATH=$(dirname "$(dirname "$(xcode-select -p)")")
+          sudo ln -sfn "$XCODE_PATH" /Applications/Xcode.app
       - name: ubuntu-setup
         if: runner.os == 'Linux'
         run: |
