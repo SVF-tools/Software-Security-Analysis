@@ -98,12 +98,10 @@ class Z3Mgr:
         if svf_var.isObjVar():
             return self.createExprForObjVar(svf_var.asObjVar())
         else:
-            if not isinstance(svf_var, pysvf.ConstIntValVar) and not isinstance(svf_var, pysvf.ConstIntObjVar):
-                pass
-                #print(self.callingCtx_to_str(callingCtx))
-            else:
-                pass
-            name = "ValVar" + str(idx)
+            name = ""
+            if not isinstance(svf_var, pysvf.ConstDataValVar) and not isinstance(svf_var, pysvf.ConstDataObjVar):
+                name += self.callingCtxToStr(callingCtx)
+            name += "ValVar" + str(idx)
             return z3.Int(name, self.ctx)
 
 
@@ -337,4 +335,3 @@ class SSE:
                 self.reachability(pysvf.IntraCFGEdge(None, src), sink)
                 self.resetSolver()
         assert assert_checked, "assertion checking is not done!"
-
