@@ -134,10 +134,10 @@ class Z3Mgr:
         assert isinstance(idx, int), "idx is not a valid integer, the type of idx is {}".format(type(idx))
         return self.addressMask + idx
 
-    def getMemobjAddress(self, addr: int) -> z3.ExprRef:
+    def getMemObjAddress(self, addr: int) -> z3.ExprRef:
         assert isinstance(addr, int), "addr is not a valid integer, the type of addr is {}".format(type(addr))
         obj_idx = self.getInternalId(addr)
-        assert(self.pag.getGNode(obj_idx).isObjVar()), "Invalid memory object index"
+        assert(self.pag.getGNode(obj_idx).isObjVar()), "Fail to get the MemObj!"
         return self.createExprForObjVar(self.pag.getGNode(obj_idx).asObjVar())
 
     def z3ExprToNumValue(self, expr: z3.ExprRef) -> int:
@@ -149,7 +149,7 @@ class Z3Mgr:
             assert False, "this expression is not numeral"
             sys.exit(1)
 
-    def getGepobjAddress(self, base_expr: z3.ExprRef, offset: int) -> z3.ExprRef:
+    def getGepObjAddress(self, base_expr: z3.ExprRef, offset: int) -> z3.ExprRef:
         assert isinstance(base_expr, z3.ExprRef), "base_expr is not a valid z3 expression, the type of base_expr is {}".format(type(base_expr))
         assert isinstance(offset, int), "offset is not a valid integer, the type of offset is {}".format(type(offset))
 
@@ -206,9 +206,7 @@ class Z3Mgr:
             else:
                 if self.isVirtualMemAddress(e.as_long()):
                     stored_value = self.getEvalExpr(self.loadValue(e))
-                    if z3.is_int_value(stored_value) == False:
-                        continue
-                    if isinstance(stored_value, z3.ExprRef):
+                    if z3.is_int_value(stored_value):
                         if self.isVirtualMemAddress(stored_value.as_long()):
                             valstr = "\t Value: " + hex(stored_value.as_long()) + "\n"
                         else:
