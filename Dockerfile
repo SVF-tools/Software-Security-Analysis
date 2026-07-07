@@ -38,7 +38,7 @@ RUN echo "Building SVF ..."
 RUN bash ./build.sh debug
 
 # Export SVF, llvm, z3 paths
-ENV PATH=${HOME}/SVF/Release-build/bin:$PATH
+ENV PATH=${HOME}/SVF/Debug-build/bin:$PATH
 ENV PATH=${HOME}/SVF/llvm-$llvm_version.obj/bin:$PATH
 ENV SVF_DIR=${HOME}/SVF
 ENV LLVM_DIR=${HOME}/SVF/llvm-$llvm_version.obj
@@ -53,3 +53,6 @@ RUN echo "Building Software-Security-Analysis ..."
 RUN sed -i 's/lldb/gdb/g' ${HOME}/Software-Security-Analysis/.vscode/launch.json
 RUN cmake -DCMAKE_BUILD_TYPE=Debug .
 RUN make -j8
+
+# GDB inside Docker requires ptrace permissions at container runtime.
+LABEL devcontainer.metadata='[{"runArgs":["--cap-add=SYS_PTRACE","--security-opt=seccomp=unconfined"]}]'
