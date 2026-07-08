@@ -116,6 +116,22 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
 
+# Keep course oracle assertions active in optimized builds.
+foreach(_flag_var
+        CMAKE_C_FLAGS_RELEASE
+        CMAKE_C_FLAGS_RELWITHDEBINFO
+        CMAKE_C_FLAGS_MINSIZEREL
+        CMAKE_CXX_FLAGS_RELEASE
+        CMAKE_CXX_FLAGS_RELWITHDEBINFO
+        CMAKE_CXX_FLAGS_MINSIZEREL)
+    if(DEFINED ${_flag_var})
+        string(REPLACE "-DNDEBUG" "" ${_flag_var} "${${_flag_var}}")
+        string(REPLACE "/DNDEBUG" "" ${_flag_var} "${${_flag_var}}")
+        string(STRIP "${${_flag_var}}" ${_flag_var})
+        set(${_flag_var} "${${_flag_var}}" CACHE STRING "Release flags with assertions enabled." FORCE)
+    endif()
+endforeach()
+
 # Warning if CMAKE_BUILD_TYPE is Debug but SVF_BUILD_TYPE is Release
 if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND SVF_BUILD_TYPE STREQUAL "Release")
     message(WARNING "CMAKE_BUILD_TYPE=Debug but SVF_BUILD_TYPE=Release is not recommended.")
@@ -186,4 +202,3 @@ add_subdirectory(Assignment-2/CPP)
 add_subdirectory(Assignment-2/Python)
 add_subdirectory(Assignment-3/CPP)
 add_subdirectory(Assignment-3/Python)
-
