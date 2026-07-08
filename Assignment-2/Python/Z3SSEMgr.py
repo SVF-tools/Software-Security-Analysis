@@ -213,7 +213,7 @@ class Z3Mgr:
 
                 if self.isVirtualMemAddress(e.as_long()):
                     stored_value = self.getEvalExpr(self.loadValue(e))
-
+                    
                     if z3.is_int_value(stored_value):
                         if self.isVirtualMemAddress(stored_value.as_long()):
                             valstr = "\t Value: " + hex(stored_value.as_long()) + "\n"
