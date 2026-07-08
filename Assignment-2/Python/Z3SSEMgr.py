@@ -194,18 +194,26 @@ class Z3Mgr:
             idx = nIter[0]
             node = nIter[1]
             e = self.getEvalExpr(self.getZ3Expr(idx, callingCtx))
+
             if z3.is_int_value(e) == False:
                 continue
+
             if isinstance(node, pysvf.ValVar):
+                expr_name = "ValVar" + str(idx) + "(" + node.getName() +")"
+                
                 if self.isVirtualMemAddress(e.as_long()):
                     valstr = "\t Value: " + hex(e.as_long()) + "\n"
                 else:
                     valstr = "\t Value: " + str(e.as_long()) + "\n"
-                print_val_map["ValVar" + str(idx) + "("+ node.getName() +")" ] = valstr
-                val_key_map[idx] = "ValVar" + str(idx) + "("+ node.getName() +")"
+                
+                print_val_map[expr_name] = valstr
+                val_key_map[idx] = expr_name
             else:
+                expr_name = "ObjVar" + str(idx) + " (" + hex(self.getVirtualMemAddress(idx)) + ") "
+
                 if self.isVirtualMemAddress(e.as_long()):
                     stored_value = self.getEvalExpr(self.loadValue(e))
+
                     if z3.is_int_value(stored_value):
                         if self.isVirtualMemAddress(stored_value.as_long()):
                             valstr = "\t Value: " + hex(stored_value.as_long()) + "\n"
@@ -215,17 +223,18 @@ class Z3Mgr:
                         valstr = "\t Value: NULL" + "\n"
                 else:
                     valstr = "\t Value: NULL" + "\n"
-                print_val_map["ObjVar" + str(idx) + " (0x" + hex(idx) + ") "] = valstr
-                obj_key_map[idx] = "ObjVar" + str(idx) + " (0x" + hex(idx) + ") "
+
+                print_val_map[expr_name] = valstr
+                obj_key_map[idx] = expr_name
+                
         print("\n-----------SVFVar and Value-----------")
         for idx, key in obj_key_map.items():
             val = print_val_map[key].strip()
-            label = f"ObjVar{idx} (0x{idx:x})"
+            label = key
             print(f"{label:<30} {val}")
 
         for idx, key in val_key_map.items():
             val = print_val_map[key].strip()
-            #label = f"ValVar{idx}"
             label = key
             print(f"{label:<30} {val}")
         print("-----------------------------------------")
