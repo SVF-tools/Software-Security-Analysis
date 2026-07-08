@@ -1,6 +1,7 @@
 {
     "recommendations": [
         "ms-python.python",
-        "ms-toolsai.jupyter"
+        "ms-toolsai.jupyter",
+        "ms-vscode.cpptools-extension-pack",
     ]
 }
