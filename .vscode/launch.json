@@ -20,17 +20,17 @@
       "MIMode": "lldb"  // change to "gdb" if you are using non-macOS system
     },
     {
-        "name": "(debug) Launch Python",
-        "type": "python",
-        "request": "launch",
+      "name": "(debug) Launch Python",
+      "type": "debugpy",
+      "request": "launch",
       // Please change to the executable of your current assignment. Python version of the lab exercises are using Jupyter Notebook.
       // |  Assignment-1    | "${workspaceFolder}/Assignment-1/Python/test.py"      | "-icfg", "Assignment-1/Tests/testcases/icfg/test1.ll" |
       // |  Assignment-2    | "${workspaceFolder}/Assignment-2/Python/test-sse.py"      | "Assignment-2/Tests/testcases/sse/test1.ll" |
       // |  Assignment-3    | "${workspaceFolder}/Assignment-3/Python/test-ae.py"      | "Assignment-3/Tests/stmt.ll"  (or buf_overflow.ll / null_deref.ll) |
-        "program": "${workspaceFolder}/HelloWorld/hello.py",  
-        "args": [],
-        "cwd": "${workspaceFolder}",
-        "console": "integratedTerminal"
+      "program": "${workspaceFolder}/HelloWorld/hello.py",  
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
     }
   ]
 }
