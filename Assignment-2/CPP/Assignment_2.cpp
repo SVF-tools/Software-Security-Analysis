@@ -118,69 +118,17 @@ bool SSE::handleNonBranch(const IntraCFGEdge* edge) {
 		}
 		else if (const BinaryOPStmt *binary = SVFUtil::dyn_cast<BinaryOPStmt>(stmt))
 		{
-			expr op0 = getZ3Expr(binary->getOpVarID(0));
-			expr op1 = getZ3Expr(binary->getOpVarID(1));
-			expr res = getZ3Expr(binary->getResID());
-			switch (binary->getOpcode())
-			{
-			case BinaryOperator::Add:
-				addToSolver(res == op0 + op1);
-				break;
-			case BinaryOperator::Sub:
-				addToSolver(res == op0 - op1);
-				break;
-			case BinaryOperator::Mul:
-				addToSolver(res == op0 * op1);
-				break;
-			case BinaryOperator::SDiv:
-				addToSolver(res == op0 / op1);
-				break;
-			case BinaryOperator::SRem:
-				addToSolver(res == op0 % op1);
-				break;
-			case BinaryOperator::Xor:
-				addToSolver(res == bv2int(int2bv(32, op0) ^ int2bv(32, op1), 1));
-				break;
-			case BinaryOperator::And:
-				addToSolver(res == bv2int(int2bv(32, op0) & int2bv(32, op1), 1));
-				break;
-			case BinaryOperator::Or:
-				addToSolver(res == bv2int(int2bv(32, op0) | int2bv(32, op1), 1));
-				break;
-			case BinaryOperator::AShr:
-				addToSolver(res == bv2int(ashr(int2bv(32, op0), int2bv(32, op1)), 1));
-				break;
-			case BinaryOperator::Shl:
-				addToSolver(res == bv2int(shl(int2bv(32, op0), int2bv(32, op1)), 1));
-				break;
-			default:
-				assert(false && "implement this part");
-			}
+			// TODO: implement BinaryOPStmt handler here
 		}
 		else if (const BranchStmt *br = SVFUtil::dyn_cast<BranchStmt>(stmt))
 		{
 			DBOP(std::cout << "\t skip handled when traversal Conditional IntraCFGEdge \n");
 		}
 		else if (const SelectStmt *select = SVFUtil::dyn_cast<SelectStmt>(stmt)) {
-			expr res = getZ3Expr(select->getResID());
-			expr tval = getZ3Expr(select->getTrueValue()->getId());
-			expr fval = getZ3Expr(select->getFalseValue()->getId());
-			expr cond = getZ3Expr(select->getCondition()->getId());
-			addToSolver(res == ite(cond == getCtx().int_val(1), tval, fval));
+			// TODO: implement SelectStmt handler here
 		}
 		else if (const PhiStmt *phi = SVFUtil::dyn_cast<PhiStmt>(stmt)) {
-			expr res = getZ3Expr(phi->getResID());
-			bool opINodeFound = false;
-			for(u32_t i = 0; i < phi->getOpVarNum(); i++){
-				assert(srcNode && "we don't have a predecessor ICFGNode?");
-				if (srcNode->getFun()->postDominate(srcNode->getBB(),phi->getOpICFGNode(i)->getBB()))
-				{
-					expr ope = getZ3Expr(phi->getOpVar(i)->getId());
-					addToSolver(res == ope);
-					opINodeFound = true;
-				}
-			}
-			assert(opINodeFound && "predecessor ICFGNode of this PhiStmt not found?");
+			// TODO: implement PhiStmt handler here
 		}
 	}
 

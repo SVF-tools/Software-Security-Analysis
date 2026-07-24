@@ -54,13 +54,18 @@ z3::expr Z3SSEMgr::createExprForObjVar(const ObjVar* objVar) {
 	const BaseObjVar* obj = svfir->getBaseObject(objVar->getId());
 	/// constant data
 	if (obj->isConstDataOrAggData() || obj->isConstantArray() || obj->isConstantStruct()) {
-		if (const ConstIntObjVar* consInt = SVFUtil::dyn_cast<ConstIntObjVar>(objVar)) {
+		/// `objVar` can be a GepObjVar (e.g. indexing into a constant aggregate),
+		/// in which case it is not itself a ConstIntObjVar/ConstFPObjVar/GlobalObjVar
+		/// even though the aggregate it belongs to is constant data. The type checks
+		/// below must therefore be done against the resolved base object `obj`
+		/// (from getBaseObject), not against the original `objVar`.
+		if (const ConstIntObjVar* consInt = SVFUtil::dyn_cast<ConstIntObjVar>(obj)) {
 			e = ctx.int_val((s32_t)consInt->getSExtValue());
 		}
-		else if (const ConstFPObjVar* consFp = SVFUtil::dyn_cast<ConstFPObjVar>(objVar)) {
+		else if (const ConstFPObjVar* consFp = SVFUtil::dyn_cast<ConstFPObjVar>(obj)) {
 			e = ctx.int_val(static_cast<u32_t>(consFp->getFPValue()));
 		}
-		else if (SVFUtil::isa<GlobalObjVar>(objVar)) {
+		else if (SVFUtil::isa<GlobalObjVar>(obj)) {
 			e = ctx.int_val(getVirtualMemAddress(objVar->getId()));
 		}
 		else if (obj->isConstantArray() || obj->isConstantStruct()) {
