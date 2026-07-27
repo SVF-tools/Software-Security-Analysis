@@ -1,0 +1,2 @@
+localId,project,case_dir,selection_role,loc,original_source,asan_target,tp,fp,reports,icfg_coverage,func_coverage,source_policy,source_status,aligned_status,bitcode_bytes,bitcode_sha256
+42519094,curl,cases/42519094-curl-expanded-min-active-1k,zero_fp_baseline,2849,/src/curl/lib/curl_fnmatch.c,curl_fnmatch.c:389,1,0,1,99.99%,100.00%,expanded-minimal-tp-with-active-constant-index-driver,validated_expanded_min_active,cpp_python_exact_tp,183124,a86eb518a1733db752c58fe1914a9d6a7d2535e7fc78eb2dfe3da2a66053f88f
