@@ -8,6 +8,7 @@ in AEHelper.py.
 
 import pysvf
 from pysvf import IntervalValue, AddressValue, AbstractValue, AbstractState
+from AEState import AEState, unwrap_state
 
 
 class AEReporter:
@@ -16,11 +17,10 @@ class AEReporter:
     abstract-interpretation harness.
     """
 
-    def __init__(self, svfir: pysvf.SVFIR, ai: 'pysvf.AbstractInterpretation' = None):
+    def __init__(self, svfir: pysvf.SVFIR):
         # Map ICFGNode -> diagnostic message for each detected bug.
         self.node_to_bug_info = {}
         self.svfir = svfir
-        self.ai = ai
         # Harness bookkeeping: stub call sites the analysis actually reached.
         self.assert_points = set()
 
@@ -31,11 +31,11 @@ class AEReporter:
         return call in self.assert_points
 
     def getByteOffset(self, abstract_state: pysvf.AbstractState, gep: pysvf.GepStmt) -> pysvf.IntervalValue:
-        return self.ai.getGepByteOffset(gep)
+        return AEState(unwrap_state(abstract_state)).getGepByteOffset(gep)
 
     def getGepObjAddrs(self, abstract_state: pysvf.AbstractState, var_id: int, offset: pysvf.IntervalValue) -> pysvf.AddressValue:
         pointer = self.svfir.getGNode(var_id)
-        return self.ai.getGepObjAddrs(pointer, offset)
+        return AEState(unwrap_state(abstract_state)).getGepObjAddrs(pointer, offset)
 
     def getPointeeElement(self, abstract_state: pysvf.AbstractState, var_id: int):
         ptr_val = abstract_state[var_id]
@@ -49,7 +49,7 @@ class AEReporter:
         return None
 
     def getAllocaInstByteSize(self, abstract_state: pysvf.AbstractState, addr: pysvf.AddrStmt) -> int:
-        return self.ai.getAllocaInstByteSize(addr)
+        return AEState(unwrap_state(abstract_state)).getAllocaInstByteSize(addr)
 
     def reportBufOverflow(self, node, msg):
         self.node_to_bug_info[node] = msg
@@ -63,7 +63,23 @@ class AEReporter:
         for node, msg in self.node_to_bug_info.items():
             print(f"{node}: {msg}\n---------------------------------------------")
 
+    def getElementSize(self, var: pysvf.SVFVar) -> int:
+        if var.getType().isArrayTy():
+            return var.getType().getTypeOfElement().getByteSize()
+        return 1
+
+    def hasLocValue(self, abstractState: pysvf.AbstractState, objId: int) -> bool:
+        if hasattr(abstractState, "inAddrToValTable"):
+            return (abstractState.inAddrToValTable(objId) or
+                    abstractState.inAddrToAddrsTable(objId))
+        if abstractState.inAddrToAddrsTable(objId):
+            return True
+        locToVal = abstractState.getLocToVal()
+        val = locToVal.get(objId)
+        return val is not None and (val.isInterval() or val.isAddr())
+
     def handleMemcpy(self, abstractState: pysvf.AbstractState, dst: pysvf.SVFVar, src: pysvf.SVFVar, len: pysvf.IntervalValue, start_idx: int):
+        abstractState = unwrap_state(abstractState)
         assert isinstance(abstractState, pysvf.AbstractState), "abstractState is not a pysvf.AbstractState"
         assert isinstance(dst, pysvf.SVFVar), "dst is not a pysvf.SVFVar"
         assert isinstance(src, pysvf.SVFVar), "src is not a pysvf.SVFVar"
@@ -71,18 +87,9 @@ class AEReporter:
         assert isinstance(start_idx, int), "start_idx is not an integer"
         dstId = dst.getId()
         srcId = src.getId()
-        elemSize = 1
-        if isinstance(dst, pysvf.ValVar):
-            if dst.getType().isArrayTy():
-                elemSize = dst.getType().getTypeOfElement().getByteSize()
-            elif dst.getType().isPointerTy():
-                elemType = self.getPointeeElement(abstractState, dstId)
-                if elemType.isArrayTy():
-                    elemSize = elemType.getTypeOfElement().getByteSize()
-                else:
-                    elemSize = elemType.getByteSize()
-            else:
-                raise AssertionError("Unsupported type")
+        elemSize = self.getElementSize(dst)
+        if len.isBottom() or len.lb().is_minus_infinity:
+            return
         size = len.lb().getNumeral()
         range_val = size / elemSize
         if abstractState.inVarToAddrsTable(dstId) and abstractState.inVarToAddrsTable(srcId):
@@ -90,9 +97,15 @@ class AEReporter:
                 expr_src = self.getGepObjAddrs(abstractState, srcId, pysvf.IntervalValue(index))
                 expr_dst = self.getGepObjAddrs(abstractState, dstId, pysvf.IntervalValue(index + start_idx))
                 for addr_src in expr_src:
+                    if (pysvf.AbstractState.isNullMem(addr_src) or
+                            pysvf.AbstractState.isBlackHoleObjAddr(addr_src)):
+                        continue
                     for addr_dst in expr_dst:
+                        if (pysvf.AbstractState.isNullMem(addr_dst) or
+                                pysvf.AbstractState.isBlackHoleObjAddr(addr_dst)):
+                            continue
                         objId = abstractState.getIDFromAddr(addr_src)
-                        if objId in abstractState.getLocToVal():
+                        if self.hasLocValue(abstractState, objId):
                             lhs = abstractState.load(addr_src)
                             abstractState.store(addr_dst, lhs)
 
@@ -100,12 +113,19 @@ class AEReporter:
         value_id = strValue.getId()
         dst_size = 0
         for addr in abstractState[value_id].getAddrs():
+            if (pysvf.AbstractState.isNullMem(addr) or
+                    pysvf.AbstractState.isBlackHoleObjAddr(addr)):
+                continue
             obj_id = abstractState.getIDFromAddr(addr)
             base_object = self.svfir.getBaseObject(obj_id)
+            if base_object is None or base_object.isBlackHoleObj():
+                continue
             if base_object.isConstantByteSize():
                 dst_size = base_object.getByteSizeOfObj()
             else:
                 icfg_node = base_object.getICFGNode()
+                if icfg_node is None:
+                    continue
                 for stmt in icfg_node.getSVFStmts():
                     if isinstance(stmt, pysvf.AddrStmt):
                         dst_size = self.getAllocaInstByteSize(abstractState, stmt)
@@ -116,23 +136,14 @@ class AEReporter:
                 expr0 = self.getGepObjAddrs(abstractState, value_id, pysvf.IntervalValue(index))
                 val = pysvf.AbstractValue()
                 for addr in expr0:
+                    if (pysvf.AbstractState.isNullMem(addr) or
+                            pysvf.AbstractState.isBlackHoleObjAddr(addr)):
+                        continue
                     val.join_with(abstractState.load(addr))
                 if val.isInterval() and chr(val.getInterval().getIntNumeral()) == '\0':
                     break
                 length += 1
-            if strValue.getType().isArrayTy():
-                elem_size = strValue.getType().getTypeOfElement().getByteSize()
-            elif strValue.getType().isPointerTy():
-                elem_type = self.getPointeeElement(abstractState, value_id)
-                if elem_type:
-                    if elem_type.isArrayTy():
-                        elem_size = elem_type.getTypeOfElement().getByteSize()
-                    else:
-                        elem_size = elem_type.getByteSize()
-                else:
-                    elem_size = 1
-            else:
-                raise AssertionError("Unsupported type")
+            elem_size = self.getElementSize(strValue)
         if length == 0:
             return pysvf.IntervalValue(0, pysvf.Options.max_field_limit())
         else:

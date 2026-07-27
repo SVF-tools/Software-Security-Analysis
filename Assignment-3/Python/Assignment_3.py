@@ -1,4 +1,5 @@
 from AEHelper import *
+from AEState import AEState, unwrap_state
 import pysvf
 
 
@@ -38,6 +39,10 @@ class Assignment3(AbstractExecution):
     def __init__(self, pag: pysvf.SVFIR) -> None:
         super().__init__(pag)
 
+    def _storePostState(self, node: pysvf.ICFGNode,
+                        state: pysvf.AbstractState):
+        self.post_abs_trace[node] = AEState(unwrap_state(state).clone())
+
     # =========================================================================
     # Analysis driver (pre-implemented).
     # =========================================================================
@@ -51,10 +56,14 @@ class Assignment3(AbstractExecution):
         self.handleGlobalNode()
         main_fun = self.svfir.getFunObjVar("main")
         if main_fun:
+            entry = self.icfg.getFunEntryICFGNode(main_fun)
+            entry_state = self.getAEState(
+                self.icfg.getGlobalICFGNode()).clone()
             for i in range(main_fun.arg_size()):
-                as_state = self.pre_abs_trace[self.icfg.getGlobalICFGNode()]
-                as_state[main_fun.getArg(i).getId()] = IntervalValue.top()
-            self.handleFunction(self.icfg.getFunEntryICFGNode(main_fun))
+                entry_state[main_fun.getArg(i).getId()] = IntervalValue.top()
+            self.pre_abs_trace[entry] = AEState(entry_state.clone())
+            self._storePostState(entry, entry_state)
+            self.handleFunction(entry)
         else:
             assert False, "Main function not found"
         self.ensureAllAssertsValidated()
