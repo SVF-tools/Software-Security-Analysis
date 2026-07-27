@@ -5,7 +5,8 @@ WTO construction (initWto), stub / checkpoint sub-dispatchers
 (handleStubFunction, handleCheckpointStubs) invoked from the student's
 handleCallSite override in Assignment_3.py, the external-API whitelist
 (isExternalCallForAssignment), the abstract-state helpers that wrap
-AbstractInterpretation, and the validator (ensureAllAssertsValidated).
+the Assignment-3-owned abstract-state trace, and the validator
+(ensureAllAssertsValidated).
 
 The AEReporter class (pure bug reporting + JSON / coverage summary plus
 the GEP / strlen / memcpy helpers used by the bug checkers) lives in
@@ -15,6 +16,7 @@ Assignment_3.py.
 """
 
 from AEReporter import AEReporter
+from AEState import AEState
 
 from abc import abstractmethod
 
@@ -239,23 +241,17 @@ class AbstractExecution:
         self.call_site_stack = []
         self.func_to_wto = {}
         self.pre_abs_trace = {}
-        # Owns the post-trace and is the backing store for AbsExtAPI as well
-        # as the GEP/load/store helpers (getGepByteOffset etc.). Replaces
-        # the old `self.post_abs_trace` dict so reads/writes on
-        # `self.post_abs_trace[node]` go through the mgr's trace.
-        # AbstractStateManager was folded into AbstractInterpretation upstream
-        # (the AbstractStateManager.h header was removed).  Use the
-        # AbstractInterpretation singleton; it pulls SVFIR from PAG::getPAG()
-        # internally and does not need an explicit Andersen instance.
-        self.ai = pysvf.AbstractInterpretation.getAEInstance()
-        # Alias preserved so existing call-sites `self.post_abs_trace[node]`
-        # keep working. The mgr supports __getitem__/__setitem__/__contains__.
-        self.post_abs_trace = self.ai
-        self.buf_overflow_helper = AEReporter(self.svfir, self.ai)
+        self.post_abs_trace = {}
+        self.buf_overflow_helper = AEReporter(self.svfir)
 
         self.widen_delay = 3
         self.addressMask = 0x7f000000
         self.flippedAddressMask = (self.addressMask^0xffffffff)
+
+    def getAEState(self, node: pysvf.ICFGNode) -> AEState:
+        if node not in self.post_abs_trace:
+            self.post_abs_trace[node] = AEState()
+        return self.post_abs_trace[node]
 
     # ------------------------------------------------------------------
     # Optional hooks for Tasks 1, 2, 4, 5, 6.  The pre-implemented
@@ -425,6 +421,17 @@ class AbstractExecution:
                 else:
                     print(f"The assertion ({callNode}) is unsatisfiable!!")
                     assert False
+        elif callNode.getCalledFunction().getName() == "svf_assert_eq":
+            self.buf_overflow_helper.noteAssertionPoint(callNode)
+            arg0 = callNode.getArgument(0).getId()
+            arg1 = callNode.getArgument(1).getId()
+            abstract_state = self.post_abs_trace[callNode]
+            if abstract_state[arg0].getInterval().equals(
+                    abstract_state[arg1].getInterval()):
+                print("The assertion is successfully verified!!")
+            else:
+                print(f"svf_assert_eq Fail. {callNode}")
+                assert False
 
 
     def handleCheckpointStubs(self, callNode: pysvf.CallICFGNode):
@@ -601,7 +608,7 @@ class AbstractExecution:
     def updateStateOnAddr(self, addr: pysvf.AddrStmt):
         node = addr.getICFGNode()
         abstract_state = self.post_abs_trace[node]
-        assert isinstance(abstract_state, AbstractState)
+        assert isinstance(abstract_state, AEState)
         abstract_state[addr.getRHSVarID()] = AbstractValue(self.initObjVar(addr.getRHSVar().asObjVar()))
         abstract_state[addr.getLHSVarID()] = abstract_state[addr.getRHSVarID()]
 
@@ -614,7 +621,7 @@ class AbstractExecution:
     def updateStateOnCmp(self, cmp: pysvf.CmpStmt):
         node = cmp.getICFGNode()
         abstract_state = self.post_abs_trace[node]
-        assert isinstance(abstract_state, AbstractState)
+        assert isinstance(abstract_state, AEState)
         op0 = cmp.getOpVar(0)
         op1 = cmp.getOpVar(1)
         res = cmp.getResId()
@@ -704,9 +711,14 @@ class AbstractExecution:
     def updateStateOnCall(self, call: pysvf.CallPE):
         node = call.getICFGNode()
         abstract_state = self.post_abs_trace[node]
-        lhs = call.getLHSVarID()
-        rhs = call.getRHSVarID()
-        abstract_state[lhs] = abstract_state[rhs]
+        joined = AbstractValue()
+        for index in range(call.getOpVarNum()):
+            call_node = call.getOpCallICFGNode(index)
+            if call_node not in self.post_abs_trace:
+                continue
+            joined.join_with(
+                self.post_abs_trace[call_node][call.getOpVarId(index)])
+        abstract_state[call.getResId()] = joined
 
 
     def updateStateOnRet(self, ret: pysvf.RetPE):
@@ -719,7 +731,7 @@ class AbstractExecution:
     def updateStateOnSelect(self, select: pysvf.SelectStmt):
         node = select.getICFGNode()
         abstract_state = self.post_abs_trace[node]
-        assert isinstance(abstract_state, AbstractState)
+        assert isinstance(abstract_state, AEState)
         res = select.get_res_id()
         tval = select.get_true_value().getId()
         fval = select.get_false_value().getId()

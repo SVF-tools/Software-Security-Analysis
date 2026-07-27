@@ -26,10 +26,6 @@
  */
 
 #include "Assignment_3.h"
-// Needed by the analysis driver below (runOnModule / analyse reach
-// AbstractInterpretation::getAEInstance; handleCallSite uses Andersen's SCC
-// check).
-#include "AE/Svfexe/AbstractInterpretation.h"
 #include "WPA/Andersen.h"
 
 using namespace SVF;
@@ -50,24 +46,17 @@ void AbstractExecution::runOnModule(SVF::ICFG* _icfg) {
 		getReporter().printReport();
 }
 
-/// Build the interprocedural WTO, initialise the AbstractInterpretation
-/// singleton, replay the global ICFG node, then start the analysis at main.
+/// Build the interprocedural WTO, initialise the Assignment-3-owned trace,
+/// replay the global ICFG node, then start the analysis at main.
 void AbstractExecution::analyse() {
 	initWTO();
-	// AbstractStateManager was folded into AbstractInterpretation upstream
-	// (the AE/Svfexe/AbstractStateManager.h header was removed).  Use the
-	// AbstractInterpretation singleton; it pulls SVFIR from PAG::getPAG()
-	// internally and does not need an explicit Andersen analysis to be
-	// passed in.
-	ai = &AbstractInterpretation::getAEInstance();
-
 	handleGlobalNode();
 
 	if (const FunObjVar* fun = svfir->getFunObjVar("main")) {
 		// Arguments of main are initialised as \top to represent all
 		// possible inputs.
 		for (u32_t i = 0; i < fun->arg_size(); ++i) {
-			AbstractState& as = getAbsStateFromTrace(icfg->getGlobalICFGNode());
+			AEState& as = getAEState(icfg->getGlobalICFGNode());
 			as[fun->getArg(i)->getId()] = IntervalValue::top();
 		}
 		assert(svfir->getFunObjVar("main") != nullptr && "Main function not found");

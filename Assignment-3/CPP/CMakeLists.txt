@@ -51,4 +51,3 @@ foreach(filename ${case_files})
 endforeach()
 include(CTest)
 
-

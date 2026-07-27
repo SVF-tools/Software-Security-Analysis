@@ -25,20 +25,20 @@
  * Created on: Feb 19, 2024
  */
 #include "AEReporter.h"
+#include "AEState.h"
 #include "SVFIR/SVFIR.h"
 #include <ostream>
 
 namespace SVF {
-	class AbstractInterpretation;
 	class AndersenWaveDiff;
 
 	/// Student-facing AbstractExecution class.
 	///
 	/// The harness (AEHelper.cpp / AEReporter.cpp) provides interprocedural
 	/// WTO construction, stub / checkpoint sub-dispatch, the external-API
-	/// whitelist, the abstract-state helpers wrapping the underlying
-	/// AbstractInterpretation singleton, and the assertion-coverage
-	/// validator.  Assignment_3.cpp owns the analysis driver
+	/// whitelist, the abstract-state helpers backed by Assignment 3's
+	/// AEState trace, and the assertion-coverage validator.
+	/// Assignment_3.cpp owns the analysis driver
 	/// (runOnModule / analyse / report* forwarders, all pre-implemented)
 	/// plus five student TODOs: the four driver entry points
 	/// (handleGlobalNode / handleFunction / handleICFGNode /
@@ -68,7 +68,6 @@ namespace SVF {
 		}
 
 		virtual ~AbstractExecution() {
-			// `ai` is the AbstractInterpretation singleton; SVF owns its lifetime.
 		}
 
 		static AbstractExecution& getAEInstance()
@@ -123,9 +122,8 @@ namespace SVF {
 		// Pre-implemented operations on the abstract domain: reading / writing
 		// the abstract value of a variable, loading / storing through an
 		// abstract pointer, and computing GEP byte / element offsets and
-		// alloca byte sizes.  Use these from the transfer functions and the
-		// external-API summaries instead of touching the underlying
-		// AbstractInterpretation singleton directly.
+		// alloca byte sizes. Use these from the transfer functions and the
+		// external-API summaries instead of duplicating domain operations.
 		// ====================================================================
 		const AbstractValue& getAbsValue(const ValVar* var, const ICFGNode* node);
 		const AbstractValue& getAbsValue(const ObjVar* var, const ICFGNode* node);
@@ -143,9 +141,8 @@ namespace SVF {
 		IntervalValue getGepByteOffset(const GepStmt* gep);
 		u32_t getAllocaInstByteSize(const AddrStmt* addr);
 
-		/// Read-only access to the abstract state at an ICFG node (pulled from
-		/// AbstractInterpretation's owned trace).
-		AbstractState& getAbsStateFromTrace(const ICFGNode* node);
+		/// Access Assignment 3's abstract state at an ICFG node.
+		AEState& getAEState(const ICFGNode* node);
 
 		// ====================================================================
 		// STUDENT TODOs — Driver entry points
@@ -168,17 +165,12 @@ namespace SVF {
 		// ====================================================================
 		// Optional hooks for the rest of the six tasks (no-op by default).
 		//
-		// The pre-implemented handleCallSite (in Assignment_3.cpp) routes
-		// ordinary external-API calls through updateStateOnExtCall and then
-		// nullptrDerefDetection / bufOverflowDetection.  Override these
-		// virtuals if you want your value-summary modelling (Task 4) and
-		// your bug checkers (Tasks 5 / 6) to run during the analysis.  How
-		// you structure them internally — per-statement transfer helpers
-		// for Task 1, predecessor join with branch refinement for Task 2,
-		// memory-safety predicates for Tasks 5 / 6, length-of-string
-		// helpers shared across summaries and checker — is your design.
+		// Override these hooks if you want your driver and handleCallSite
+		// implementations to dispatch into separate task-specific methods.
+		// How you structure the six tasks internally is your design.
 		// ====================================================================
 		virtual void updateAbsState(const SVFStmt* stmt) {}
+		void updateStateOnCall(const CallPE* call);
 		virtual bool mergeStatesFromPredecessors(const ICFGNode* curNode, AbstractState& as) { return false; }
 		virtual void updateStateOnExtCall(const SVF::CallICFGNode* extCallNode) {}
 		virtual void bufOverflowDetection(const ICFGNode* node) {}
@@ -195,17 +187,12 @@ namespace SVF {
 		/// One interprocedural WTO per call-graph-SCC entry function.
 		Map<const FunObjVar*, ICFGWTO*> funcToWTO;
 		/// Abstract trace immediately before an ICFGNode.
-		Map<const ICFGNode*, AbstractState> preAbsTrace;
-		/// Post-trace lives inside the AbstractInterpretation singleton; this
-		/// accessor exposes it as a Map<ICFGNode*, AbstractState>.
-		Map<const ICFGNode*, AbstractState>& postAbsTrace();
+		Map<const ICFGNode*, AEState> preAbsTrace;
+		/// Assignment-3-owned post-state trace.
+		Map<const ICFGNode*, AEState> postAbsTrace;
 
 	 private:
 		AEReporter bugReporter;
-
-		/// Underlying AbstractInterpretation singleton — backs the
-		/// abstract-state helpers above and the post-trace accessor.
-		AbstractInterpretation* ai = nullptr;
 	};
 
 } // namespace SVF
