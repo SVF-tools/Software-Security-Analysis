@@ -19,17 +19,22 @@ foreach(filename ${buf_files})
     )
 endforeach()
 
-# Categorised abstract-execution corpus (Tests/cases). Each case self-validates
-# via svf_assert / UNSAFE_* checkpoints, so a clean exit means pass. Only the
-# passing corpus lives under Tests/cases; known-failing cases are kept under
-# Tests/cases-unpass and are intentionally NOT registered.
-file(GLOB_RECURSE case_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/../Tests "${CMAKE_CURRENT_SOURCE_DIR}/../Tests/cases/*.ll")
+set(ASS3_LEVEL1_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../Tests/level-1")
+
+# Level 1 contains the small, self-validating public cases. The public Level 2
+# fixture is run manually.
+file(GLOB case_files RELATIVE "${ASS3_LEVEL1_ROOT}"
+        "${ASS3_LEVEL1_ROOT}/*.ll")
+list(SORT case_files)
 foreach(filename ${case_files})
+    set(test_name "ass3-level-1-py/${filename}")
     add_test(
-            NAME ass3-cases-py/${filename}
-            COMMAND ${Python3_EXECUTABLE} test-ae.py ${CMAKE_CURRENT_SOURCE_DIR}/../Tests/${filename}
+            NAME ${test_name}
+            COMMAND ${Python3_EXECUTABLE} test-ae.py "${ASS3_LEVEL1_ROOT}/${filename}"
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
-    set_tests_properties(ass3-cases-py/${filename} PROPERTIES TIMEOUT 180)
+    set_tests_properties(${test_name} PROPERTIES
+            TIMEOUT 180
+            LABELS "ass3;ass3-level-1;python")
 endforeach()
 include(CTest)
