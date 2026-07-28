@@ -1,22 +1,26 @@
 # Assignment 3 Public Cases
 
-The repository includes public examples for Level 1 and Level 2:
+The repository includes public examples for two marking levels:
 
-- `level-1`: small, self-validating feature examples;
-- `level-2`: an active real-program example.
+- `level-1/`: small, self-validating feature examples;
+- `level-2/`: an active real-program example.
 
 These examples are not the complete marking suite. Additional hidden cases are
-used for marking, and their number and allocation are not published.
-
-The C and LLVM bitcode/IR inputs are both included so the tested behavior can
-be inspected. `GRADING.md` defines the score allocation, and
-`level-2/manifest.csv` defines the expected public large-program result.
-
-The manifest is authoritative. Per-case `notes.md` files record
-fixture provenance, the current commands, and validation results.
+used for marking. Level 1 provides each public case as a flat `.c`/`.ll` pair.
+Level 2 keeps the source, LLVM IR, bitcode, and notes for its single fixture
+directly in the level directory. `GRADING.md` defines the score allocation.
 Marking runs are subject to a timeout.
 
 ## Level 1
+
+The published examples are:
+
+| Case | Primary feature |
+| --- | --- |
+| `01-stmt-basic` | SVF statement transfer |
+| `02-branch-feasible` | Branch feasibility |
+| `03-buffer-overflow` | Buffer-overflow detection |
+| `04-nullptr-deref` | Null-pointer-dereference detection |
 
 After configuring and building the repository, run both implementations with:
 
@@ -28,10 +32,10 @@ Run one case directly:
 
 ```bash
 Release-build/bin/ass3 \
-  Assignment-3/Tests/level-1/cases/svf_statements/public/01-stmt-zext-byte/01-stmt-zext-byte.ll
+  Assignment-3/Tests/level-1/01-stmt-basic.ll
 
 python3 Assignment-3/Python/test-ae.py \
-  Assignment-3/Tests/level-1/cases/svf_statements/public/01-stmt-zext-byte/01-stmt-zext-byte.ll
+  Assignment-3/Tests/level-1/01-stmt-basic.ll
 ```
 
 ## Level 2
@@ -41,13 +45,11 @@ both implementations directly from the repository root:
 
 ```bash
 Release-build/bin/ass3 \
-  Assignment-3/Tests/level-2/cases/42519094-curl-expanded-min-active-1k/repro.bc
+  Assignment-3/Tests/level-2/repro.ll
 
 python3 Assignment-3/Python/test-ae.py \
-  Assignment-3/Tests/level-2/cases/42519094-curl-expanded-min-active-1k/repro.bc
+  Assignment-3/Tests/level-2/repro.ll
 ```
-
-## Level 3
 
 Level 3 assesses large-program execution and report precision. No Level-3
 fixture is published in this repository.

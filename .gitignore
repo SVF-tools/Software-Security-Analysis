@@ -18,6 +18,7 @@ doxygen/
 *.ll
 !Assignment-1/Tests/testcases/*/*.ll
 !Assignment-2/Tests/testcases/*.ll
+!Assignment-3/Tests/level-*/*.ll
 *.dot
 *.out
 *.bc

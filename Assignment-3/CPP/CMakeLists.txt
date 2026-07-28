@@ -38,10 +38,10 @@ endforeach()
 
 set(ASS3_LEVEL1_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../Tests/level-1")
 
-# Level 1 contains the small, self-validating public cases. The public Level-2
-# fixture is run manually; no Level-3 fixture is published.
+# Level 1 contains the small, self-validating public cases. The public Level 2
+# fixture is run manually.
 file(GLOB case_files RELATIVE "${ASS3_LEVEL1_ROOT}"
-        "${ASS3_LEVEL1_ROOT}/cases/*/public/*/*.ll")
+        "${ASS3_LEVEL1_ROOT}/*.ll")
 list(SORT case_files)
 foreach(filename ${case_files})
     set(test_name "ass3-level-1-cpp/${filename}")

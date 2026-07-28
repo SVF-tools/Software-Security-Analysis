@@ -18,9 +18,9 @@ Validation:
 
 - ASAN confirms the target at `curl_fnmatch.c:389`.
 - C++ command:
-  `Release-build/bin/ass3 Assignment-3/Tests/level-2/cases/42519094-curl-expanded-min-active-1k/repro.bc`
+  `Release-build/bin/ass3 Assignment-3/Tests/level-2/repro.ll`
 - Python command:
-  `python3 Assignment-3/Python/test-ae.py Assignment-3/Tests/level-2/cases/42519094-curl-expanded-min-active-1k/repro.bc`
+  `python3 Assignment-3/Python/test-ae.py Assignment-3/Tests/level-2/repro.ll`
 - ICFG coverage: 7938 / 7939 = 99.99%
 - Function coverage: 285 / 285 = 100.00%
 - Buffer-overflow reports: 1
