@@ -31,108 +31,31 @@
 using namespace SVF;
 using namespace SVFUtil;
 
-// ===========================================================================
-// Analysis driver entry points (pre-implemented).
-// ===========================================================================
-
-/// Entry point invoked from test-ae.cpp.  Records the SVFIR and the ICFG
-/// pointer, runs the analysis, and (unless the case is in JSON mode) prints
-/// the bug-reporter summary.
-void AbstractExecution::runOnModule(SVF::ICFG* _icfg) {
-	svfir = PAG::getPAG();
-	icfg = _icfg;
-	analyse();
-	if (!getReporter().getCaseConfig().emitJson)
-		getReporter().printReport();
-}
-
-/// Build the interprocedural WTO, initialise the Assignment-3-owned trace,
-/// replay the global ICFG node, then start the analysis at main.
-void AbstractExecution::analyse() {
-	initWTO();
-	handleGlobalNode();
-
-	if (const FunObjVar* fun = svfir->getFunObjVar("main")) {
-		// Arguments of main are initialised as \top to represent all
-		// possible inputs.
-		for (u32_t i = 0; i < fun->arg_size(); ++i) {
-			AEState& as = getAEState(icfg->getGlobalICFGNode());
-			as[fun->getArg(i)->getId()] = IntervalValue::top();
-		}
-		assert(svfir->getFunObjVar("main") != nullptr && "Main function not found");
-		handleFunction(svfir->getICFG()->getFunEntryICFGNode(svfir->getFunObjVar("main")));
-	}
-}
-
-/// Record a buffer-overflow bug.
-void AbstractExecution::reportBufOverflow(const ICFGNode* node) {
-	AEException bug(node->toString());
-	getReporter().addBugToReporter("buffer-overflow", bug, node);
-}
-
-/// Record a nullptr-dereference bug.
-void AbstractExecution::reportNullDeref(const ICFGNode* node) {
-	AEException bug(node->toString());
-	getReporter().addBugToReporter("nullptr-deref", bug, node);
-}
-
-// ===========================================================================
-// Student TODOs — driver entry points
-// ===========================================================================
-// The harness's `analyse()` (above) calls `handleGlobalNode()` once for the
-// SVFModule's global ICFG node and `handleFunction(main_entry)` to start the
-// per-function analysis. These entry points must collectively perform
-// statement transfer, predecessor-state merging and branch feasibility,
-// interprocedural call handling, cycle fixpoint iteration, and bug checking.
-// Their internal decomposition is up to you.
-// ===========================================================================
-
 void AbstractExecution::handleGlobalNode() {
-	// TODO: initialise the global ICFG node's state and replay the global
-	// statements through your statement transfer functions.
+	// TODO
 }
 
 void AbstractExecution::handleFunction(const ICFGNode* funEntry) {
-	// TODO: walk the function's interprocedural WTO components (singletons
-	// vs. cycles) and dispatch to handleICFGNode / handleICFGCycle.
+	// TODO
 }
 
 bool AbstractExecution::handleICFGNode(const ICFGNode* node) {
-	// TODO: merge predecessor states, run the per-statement transfer
-	// functions, handle call sites (delegating to handleCallSite for call
-	// nodes), and return whether the post-state changed.
+	// TODO
 	return false;
 }
 
 void AbstractExecution::handleICFGCycle(const ICFGCycleWTO* cycle) {
-	// TODO: iterate the cycle body to a fixpoint (widening / narrowing).
+	// TODO
 }
 
-// ===========================================================================
-// Student TODO — handleCallSite.
-//
-// Dispatch a call ICFG node based on its callee:
-//
-//   * svf_assert / svf_assert_eq                 -> handleStubFunctions(call)
-//   * SAFE_/UNSAFE_BUFACCESS, SAFE_/UNSAFE_PTRDEREF
-//                                                -> handleCheckpointStubs(call)
-//   * nd / rand                                  -> nondeterministic return:
-//                                                   set the actual-return
-//                                                   variable to TOP.
-//   * other external callees (SVFUtil::isExtCall)
-//                                                -> apply the required
-//                                                   external-call summaries
-//                                                   and bug checks.
-//   * non-extern callees                         -> skip recursive callsites
-//                                                   using Andersen's
-//                                                   inSameCallGraphSCC, then
-//                                                   inline by calling
-//                                                   handleFunction on the
-//                                                   callee's entry ICFG node
-//                                                   and forward the call
-//                                                   node's post-state to the
-//                                                   return ICFG node.
-// ===========================================================================
 void AbstractExecution::handleCallSite(const CallICFGNode* callNode) {
+	// TODO
+}
+
+void AbstractExecution::bufOverflowDetection(const ICFGNode* node) {
+	// TODO
+}
+
+void AbstractExecution::nullptrDerefDetection(const ICFGNode* node) {
 	// TODO
 }

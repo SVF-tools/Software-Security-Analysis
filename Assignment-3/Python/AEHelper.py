@@ -1,7 +1,7 @@
 """Harness for Assignment-3 abstract interpretation.
 
-Owns the AbstractExecution class's harness-side methods — interprocedural
-WTO construction (initWto), stub / checkpoint sub-dispatchers
+Owns the AbstractExecution class's harness-side methods — the analysis driver,
+interprocedural WTO construction (initWto), stub / checkpoint sub-dispatchers
 (handleStubFunction, handleCheckpointStubs) invoked from the student's
 handleCallSite override in Assignment_3.py, the external-API whitelist
 (isExternalCallForAssignment), access to the Assignment-3-owned
@@ -10,13 +10,11 @@ abstract-state trace, and the validator
 
 The AEReporter class (pure bug reporting + JSON / coverage summary plus
 the GEP / strlen / memcpy helpers used by the bug checkers) lives in
-AEReporter.py.  The analysis driver (analyse / handleCallSite /
-reportBufOverflow / reportNullDeref) and the six student tasks live in
-Assignment_3.py.
+AEReporter.py. The six assignment features live in Assignment_3.py.
 """
 
 from AEReporter import AEReporter
-from AEState import AEState
+from AEState import AEState, unwrap_state
 
 from abc import abstractmethod
 
@@ -253,14 +251,34 @@ class AbstractExecution:
             self.post_abs_trace[node] = AEState()
         return self.post_abs_trace[node]
 
-    # Stable checker extension points. The analysis may invoke these methods
-    # or perform equivalent checks directly in its driver.
-    def bufOverflowDetection(self, node):
-        pass
+    def _storePostState(self, node: pysvf.ICFGNode,
+                        state: pysvf.AbstractState):
+        self.post_abs_trace[node] = AEState(unwrap_state(state).clone())
 
-    def nullptrDerefDetection(self, node):
-        pass
+    def analyse(self):
+        self.initWto()
+        self.handleGlobalNode()
 
+        main_fun = self.svfir.getFunObjVar("main")
+        assert main_fun, "Main function not found"
+        entry = self.icfg.getFunEntryICFGNode(main_fun)
+        entry_state = self.getAEState(
+            self.icfg.getGlobalICFGNode()).clone()
+        for i in range(main_fun.arg_size()):
+            entry_state[main_fun.getArg(i).getId()] = IntervalValue.top()
+        self.pre_abs_trace[entry] = AEState(entry_state.clone())
+        self._storePostState(entry, entry_state)
+        self.handleFunction(entry)
+        self.ensureAllAssertsValidated()
+        self.buf_overflow_helper.printReport()
+
+    def reportBufOverflow(self, node, msg=None):
+        self.buf_overflow_helper.reportBufOverflow(
+            node, msg if msg is not None else f"buffer-overflow at {node}")
+
+    def reportNullDeref(self, node, msg=None):
+        self.buf_overflow_helper.reportBufOverflow(
+            node, msg if msg is not None else f"nullptr-deref at {node}")
 
     """
     Initialize the interprocedural WTO per call-graph SCC entry.

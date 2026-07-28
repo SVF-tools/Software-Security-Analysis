@@ -22,8 +22,8 @@
 /*
  * Harness for Assignment-3 abstract interpretation.
  *
- * Owns the harness-side `AbstractExecution::*` methods that students don't
- * design:
+ * Owns the harness-side `AEHelper::*` methods:
+ *   - Analysis driver                     (runOnModule / analyse)
  *   - Interprocedural WTO construction   (initWTO)
  *   - Stub / checkpoint sub-dispatch     (handleStubFunctions /
  *                                         handleCheckpointStubs) — invoked
@@ -34,17 +34,48 @@
  *   - Validator                          (ensureAllAssertsValidated)
  *
  * Pure bug-reporting concerns (AEReporter class + JSON / coverage summary)
- * live in AEReporter.cpp.  The analysis driver (runOnModule / analyse /
- * handleCallSite / reportBufOverflow / reportNullDeref) and the six student
- * tasks live in Assignment_3.cpp.
+ * live in AEReporter.cpp. The six assignment features live in
+ * Assignment_3.cpp.
  */
 
-#include "Assignment_3.h"
-#include "AEState.h"
+#include "AEHelper.h"
 #include "WPA/Andersen.h"
+#include <cassert>
 #include <sstream>
 
 using namespace SVF;
+
+void AEHelper::runOnModule(SVF::ICFG* moduleICFG) {
+	svfir = PAG::getPAG();
+	icfg = moduleICFG;
+	analyse();
+	if (!getReporter().getCaseConfig().emitJson)
+		getReporter().printReport();
+}
+
+void AEHelper::analyse() {
+	initWTO();
+	handleGlobalNode();
+
+	if (const FunObjVar* fun = svfir->getFunObjVar("main")) {
+		for (u32_t i = 0; i < fun->arg_size(); ++i) {
+			AEState& as = getAEState(icfg->getGlobalICFGNode());
+			as[fun->getArg(i)->getId()] = IntervalValue::top();
+		}
+		assert(svfir->getFunObjVar("main") != nullptr && "Main function not found");
+		handleFunction(icfg->getFunEntryICFGNode(fun));
+	}
+}
+
+void AEHelper::reportBufOverflow(const ICFGNode* node) {
+	AEException bug(node->toString());
+	getReporter().addBugToReporter("buffer-overflow", bug, node);
+}
+
+void AEHelper::reportNullDeref(const ICFGNode* node) {
+	AEException bug(node->toString());
+	getReporter().addBugToReporter("nullptr-deref", bug, node);
+}
 
 /// Whitelist of external-call names covered by the assignment. Covers:
 ///   - Assignment-specific stubs:        `mem_insert`, `str_insert`
@@ -57,7 +88,7 @@ using namespace SVF;
 /// The library APIs are matched by substring because Clang emits the memory
 /// family as LLVM intrinsics (e.g. `llvm.memcpy.p0.p0.i64`) and the substring
 /// is preserved in the mangled name.
-bool AbstractExecution::isExternalCallForAssignment(const SVF::FunObjVar* func) {
+bool AEHelper::isExternalCallForAssignment(const SVF::FunObjVar* func) {
 	const std::string& name = func->getName();
 	static const Set<std::string> exactStubs = {
 	    "mem_insert", "str_insert",
@@ -84,7 +115,7 @@ bool AbstractExecution::isExternalCallForAssignment(const SVF::FunObjVar* func) 
 // handleCallSite via `inSameCallGraphSCC`.
 // ---------------------------------------------------------------------------
 
-void AbstractExecution::initWTO() {
+void AEHelper::initWTO() {
 	ander = AndersenWaveDiff::createAndersenWaveDiff(svfir);
 	Andersen::CallGraphSCC* callGraphScc = ander->getCallGraphSCC();
 	callGraphScc->find();
@@ -127,7 +158,7 @@ void AbstractExecution::initWTO() {
 ///
 /// Additionally requires that the number of reported bugs is at least the
 /// number of UNSAFE_* stubs in the program.
-void AbstractExecution::ensureAllAssertsValidated() {
+void AEHelper::ensureAllAssertsValidated() {
 	static const Set<std::string> kAssertStubs = {"svf_assert", "svf_assert_eq"};
 	static const Set<std::string> kCheckpointStubs = {
 	    "UNSAFE_PTRDEREF", "SAFE_PTRDEREF",
@@ -214,7 +245,7 @@ bool harnessSafeDeref(AbstractState& as, const ValVar* value) {
 /// harness-only `harnessSafeAccess` / `harnessSafeDeref` helpers, NOT the
 /// student's `canSafelyAccessMemory` / `canSafelyDerefPtr` — so the stub
 /// verdict cannot be biased by student bugs.
-void AbstractExecution::handleCheckpointStubs(const CallICFGNode* callNode) {
+void AEHelper::handleCheckpointStubs(const CallICFGNode* callNode) {
 	bugReporter.noteAssertionPoint(callNode);
 	const std::string fun_name = callNode->getCalledFunction()->getName();
 	if (fun_name == "SAFE_BUFACCESS" || fun_name == "UNSAFE_BUFACCESS") {
@@ -242,7 +273,7 @@ void AbstractExecution::handleCheckpointStubs(const CallICFGNode* callNode) {
 /// expression to hold true; `svf_assert_eq(a, b)` requires the two intervals
 /// to be equal.  Both record the call site in `assert_points` so
 /// `ensureAllAssertsValidated` can verify coverage.
-void AbstractExecution::handleStubFunctions(const SVF::CallICFGNode* callNode) {
+void AEHelper::handleStubFunctions(const SVF::CallICFGNode* callNode) {
 	if (callNode->getCalledFunction()->getName() == "svf_assert") {
 		bugReporter.noteAssertionPoint(callNode);
 		u32_t arg0 = callNode->getArgument(0)->getId();
@@ -292,7 +323,7 @@ namespace SVF {
 
 /// CallPE is phi-like: the formal parameter joins the caller-side value from
 /// every call site represented by the statement.
-void AbstractExecution::updateStateOnCall(const CallPE* callPE) {
+void AEHelper::updateStateOnCall(const CallPE* callPE) {
 	AEState& state = getAEState(callPE->getICFGNode());
 	AbstractValue joined;
 	for (u32_t index = 0; index < callPE->getOpVarNum(); ++index) {
@@ -304,7 +335,7 @@ void AbstractExecution::updateStateOnCall(const CallPE* callPE) {
 }
 
 // Assignment-3-owned post-trace accessors.
-AEState& AbstractExecution::getAEState(const ICFGNode* node) {
+AEState& AEHelper::getAEState(const ICFGNode* node) {
 	return postAbsTrace[node];
 }
 
