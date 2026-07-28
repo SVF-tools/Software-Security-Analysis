@@ -8,20 +8,17 @@ import pysvf
 #
 # The harness (AEHelper.py / AEReporter.py) provides interprocedural WTO
 # construction, stub / checkpoint sub-dispatch, the external-API whitelist,
-# the abstract-state helpers wrapping the underlying AbstractInterpretation
-# singleton, and the assertion-coverage validator.  This file owns the
+# access to the Assignment-3 AEState trace, and the assertion-coverage
+# validator. This file owns the
 # analysis driver (analyse / report* forwarders, pre-implemented below) and
 # the five student TODOs:
 #   * the four driver entry points
 #       handleGlobalNode / handleFunction / handleICFGNode / handleICFGCycle
 #   * handleCallSite (the call-node dispatcher).
-# You design the rest of the six tasks (statement transfer, branch
-# refinement, external-API summaries, buffer-overflow checker,
-# nullptr-dereference checker) and have your handleICFGNode dispatch into
-# them however you see fit — override the matching no-op virtuals
-# (updateAbsState, mergeStatesFromPredecessors, updateStateOnExtCall,
-# bufOverflowDetection, nullptrDerefDetection) on AbstractExecution if you
-# want your handleCallSite to call into your code.
+# Implement the six features (statement transfer, branch feasibility,
+# fixpoint iteration, external-API summaries, buffer-overflow checking, and
+# nullptr-dereference checking) in these entry points or in helpers of your
+# own design.
 #
 #   General analysis engine
 #     1. Statement transfer functions       -- typically inside handleICFGNode
@@ -84,18 +81,10 @@ class Assignment3(AbstractExecution):
     #
     # `analyse()` (above) calls `handleGlobalNode()` once for the SVFModule's
     # global ICFG node and `handleFunction(main_entry)` to start the
-    # per-function analysis.  A typical layering is:
-    #   handleFunction  walks the interprocedural WTO components and
-    #                   dispatches singletons to handleICFGNode / cycles to
-    #                   handleICFGCycle.
-    #   handleICFGNode  merges predecessor states (Task 2), runs the
-    #                   per-statement transfer functions (Task 1), routes
-    #                   call sites via handleCallSite, and runs the bug
-    #                   checkers (Tasks 5 / 6).
-    #   handleICFGCycle iterates the cycle body to a fixpoint with widening
-    #                   / narrowing (Task 3).
-    # You are free to deviate as long as the test driver's expectations
-    # (covered stubs, reported bugs) hold.
+    # per-function analysis. These entry points must collectively perform
+    # statement transfer, predecessor-state merging and branch feasibility,
+    # interprocedural call handling, cycle fixpoint iteration, and bug
+    # checking. Their internal decomposition is up to you.
     # =========================================================================
 
     def handleGlobalNode(self):
@@ -130,11 +119,9 @@ class Assignment3(AbstractExecution):
     #                                           the actual-return variable to
     #                                           TOP on the call node's
     #                                           post-state.
-    #   * other external callees             -> updateStateOnExtCall, then run
-    #     (mem_insert / str_insert /            the bug checkers
-    #     pysvf.isExtCall(...))                 (nullptrDerefDetection +
-    #                                           bufOverflowDetection) on the
-    #                                           call's arguments.
+    #   * other external callees             -> apply the required
+    #     (mem_insert / str_insert /            external-call summaries and
+    #     pysvf.isExtCall(...))                 bug checks.
     #   * non-extern callees                 -> skip recursive callsites using
     #                                           self.inSameCallGraphSCC, then
     #                                           inline by calling

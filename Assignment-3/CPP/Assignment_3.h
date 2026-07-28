@@ -36,18 +36,14 @@ namespace SVF {
 	///
 	/// The harness (AEHelper.cpp / AEReporter.cpp) provides interprocedural
 	/// WTO construction, stub / checkpoint sub-dispatch, the external-API
-	/// whitelist, the abstract-state helpers backed by Assignment 3's
-	/// AEState trace, and the assertion-coverage validator.
+	/// whitelist, access to Assignment 3's AEState trace, and the
+	/// assertion-coverage validator.
 	/// Assignment_3.cpp owns the analysis driver
 	/// (runOnModule / analyse / report* forwarders, all pre-implemented)
 	/// plus five student TODOs: the four driver entry points
 	/// (handleGlobalNode / handleFunction / handleICFGNode /
-	/// handleICFGCycle) and `handleCallSite`.  You design the rest of the
-	/// six tasks and have your handleICFGNode dispatch into them however
-	/// you see fit — override the matching no-op virtuals (updateAbsState,
-	/// mergeStatesFromPredecessors, updateStateOnExtCall,
-	/// bufOverflowDetection, nullptrDerefDetection) if you want your
-	/// handleCallSite to call into your code.
+	/// handleICFGCycle) and `handleCallSite`. Implement the six features in
+	/// those entry points or in helper functions of your own design.
 	///
 	///   General analysis engine
 	///     1. Statement transfer functions       -- typically inside handleICFGNode
@@ -68,12 +64,6 @@ namespace SVF {
 		}
 
 		virtual ~AbstractExecution() {
-		}
-
-		static AbstractExecution& getAEInstance()
-		{
-			static AbstractExecution instance;
-			return instance;
 		}
 
 		/// Harness reporter accessor (used by test-ae.cpp for the JSON summary).
@@ -117,31 +107,12 @@ namespace SVF {
 		void reportNullDeref(const ICFGNode* node);
 
 		// ====================================================================
-		// Abstract-state helpers
+		// Abstract-state access
 		//
-		// Pre-implemented operations on the abstract domain: reading / writing
-		// the abstract value of a variable, loading / storing through an
-		// abstract pointer, and computing GEP byte / element offsets and
-		// alloca byte sizes. Use these from the transfer functions and the
-		// external-API summaries instead of duplicating domain operations.
+		// AEState provides the abstract-domain operations for values, memory,
+		// GEP offsets, and allocation sizes. This accessor selects the
+		// Assignment-3 post-state associated with an ICFG node.
 		// ====================================================================
-		const AbstractValue& getAbsValue(const ValVar* var, const ICFGNode* node);
-		const AbstractValue& getAbsValue(const ObjVar* var, const ICFGNode* node);
-		const AbstractValue& getAbsValue(const SVFVar* var, const ICFGNode* node);
-
-		void updateAbsValue(const ValVar* var, const AbstractValue& val, const ICFGNode* node);
-		void updateAbsValue(const ObjVar* var, const AbstractValue& val, const ICFGNode* node);
-		void updateAbsValue(const SVFVar* var, const AbstractValue& val, const ICFGNode* node);
-
-		AbstractValue loadValue(const ValVar* pointer, const ICFGNode* node);
-		void storeValue(const ValVar* pointer, const AbstractValue& val, const ICFGNode* node);
-
-		AddressValue getGepObjAddrs(const ValVar* pointer, IntervalValue offset);
-		IntervalValue getGepElementIndex(const GepStmt* gep);
-		IntervalValue getGepByteOffset(const GepStmt* gep);
-		u32_t getAllocaInstByteSize(const AddrStmt* addr);
-
-		/// Access Assignment 3's abstract state at an ICFG node.
 		AEState& getAEState(const ICFGNode* node);
 
 		// ====================================================================
@@ -163,16 +134,13 @@ namespace SVF {
 		void handleICFGCycle(const ICFGCycleWTO* cycle);
 
 		// ====================================================================
-		// Optional hooks for the rest of the six tasks (no-op by default).
+		// Pre-implemented call transfer and checker entry points.
 		//
-		// Override these hooks if you want your driver and handleCallSite
-		// implementations to dispatch into separate task-specific methods.
-		// How you structure the six tasks internally is your design.
+		// updateStateOnCall joins actual arguments at a CallPE. The two
+		// checker methods remain stable extension points; other helper
+		// decomposition is up to the implementation.
 		// ====================================================================
-		virtual void updateAbsState(const SVFStmt* stmt) {}
 		void updateStateOnCall(const CallPE* call);
-		virtual bool mergeStatesFromPredecessors(const ICFGNode* curNode, AbstractState& as) { return false; }
-		virtual void updateStateOnExtCall(const SVF::CallICFGNode* extCallNode) {}
 		virtual void bufOverflowDetection(const ICFGNode* node) {}
 		virtual void nullptrDerefDetection(const ICFGNode* node) {}
 

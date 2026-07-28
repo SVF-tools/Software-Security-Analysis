@@ -4,8 +4,8 @@ Owns the AbstractExecution class's harness-side methods — interprocedural
 WTO construction (initWto), stub / checkpoint sub-dispatchers
 (handleStubFunction, handleCheckpointStubs) invoked from the student's
 handleCallSite override in Assignment_3.py, the external-API whitelist
-(isExternalCallForAssignment), the abstract-state helpers that wrap
-the Assignment-3-owned abstract-state trace, and the validator
+(isExternalCallForAssignment), access to the Assignment-3-owned
+abstract-state trace, and the validator
 (ensureAllAssertsValidated).
 
 The AEReporter class (pure bug reporting + JSON / coverage summary plus
@@ -253,22 +253,8 @@ class AbstractExecution:
             self.post_abs_trace[node] = AEState()
         return self.post_abs_trace[node]
 
-    # ------------------------------------------------------------------
-    # Optional hooks for Tasks 1, 2, 4, 5, 6.  The pre-implemented
-    # handleCallSite (in Assignment_3.py) routes ordinary external-API
-    # calls through updateStateOnExtCall and then nullptrDerefDetection /
-    # bufOverflowDetection.  Override these on your Assignment3 subclass
-    # if you want your value-summary modelling and bug checkers to run.
-    # ------------------------------------------------------------------
-    def updateAbsState(self, stmt):
-        pass
-
-    def mergeStatesFromPredecessors(self, block):
-        return False, AbstractState()
-
-    def updateStateOnExtCall(self, call):
-        pass
-
+    # Stable checker extension points. The analysis may invoke these methods
+    # or perform equivalent checks directly in its driver.
     def bufOverflowDetection(self, node):
         pass
 
@@ -358,10 +344,10 @@ class AbstractExecution:
             return False
         return scc.repNode(n1.getId()) == scc.repNode(n2.getId())
 
-    # Whitelist of external-call names the assignment expects students to
-    # model in `updateStateOnExtCall`.  Mirrors the C++ side: exact match for
-    # assignment-specific and checkpoint stubs; substring match for library
-    # APIs whose Clang lowering yields LLVM intrinsics (e.g. `llvm.memcpy.*`).
+    # Whitelist of external-call names covered by the assignment. Mirrors the
+    # C++ side: exact match for assignment-specific and checkpoint stubs;
+    # substring match for library APIs whose Clang lowering yields LLVM
+    # intrinsics (e.g. `llvm.memcpy.*`).
     _EXT_EXACT_STUBS = frozenset({
         "mem_insert", "str_insert",
         "UNSAFE_BUFACCESS", "SAFE_BUFACCESS",
@@ -496,11 +482,6 @@ class AbstractExecution:
             if abstract_state.isFreedMem(addr):
                 return False
         return True
-
-
-    # mergeStatesFromPredecessors is a student TODO this year and lives in
-    # Assignment_3.py.
-
     def isBranchFeasible(self, intraEdge: pysvf.IntraCFGEdge, abstractState:  pysvf.AbstractState) -> bool :
         cmp_var = intraEdge.getCondition()
         cmp_in_edges = cmp_var.getInEdges()
@@ -555,8 +536,8 @@ class AbstractExecution:
 
 
 
-    # analyse / updateAbsState / handleCallSite / reportBufOverflow /
-    # reportNullDeref live on the student side in Assignment_3.py.
+    # The analysis entry points and reporting forwarders live on the student
+    # side in Assignment_3.py.
 
     """
     Initialize an object variable in the abstract state.

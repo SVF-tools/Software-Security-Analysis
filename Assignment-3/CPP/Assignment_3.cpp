@@ -81,19 +81,10 @@ void AbstractExecution::reportNullDeref(const ICFGNode* node) {
 // ===========================================================================
 // The harness's `analyse()` (above) calls `handleGlobalNode()` once for the
 // SVFModule's global ICFG node and `handleFunction(main_entry)` to start the
-// per-function analysis.  A typical layering is:
-//   handleFunction  walks the interprocedural WTO components and dispatches
-//                   singletons to handleICFGNode / cycles to handleICFGCycle.
-//   handleICFGNode  merges predecessor states (Task 2), runs the per-statement
-//                   transfer functions (Task 1), routes call sites via
-//                   handleCallSite, and runs the bug checkers (Tasks 5 / 6).
-//   handleICFGCycle iterates the cycle body to a fixpoint with widening /
-//                   narrowing (Task 3).
-// You are free to deviate from this skeleton as long as the test driver's
-// expectations hold.  Helper methods for Tasks 1, 2, 4, 5, 6 are yours to
-// design — override the matching no-op virtuals (updateAbsState,
-// mergeStatesFromPredecessors, updateStateOnExtCall, bufOverflowDetection,
-// nullptrDerefDetection) if you want handleCallSite to drive into them.
+// per-function analysis. These entry points must collectively perform
+// statement transfer, predecessor-state merging and branch feasibility,
+// interprocedural call handling, cycle fixpoint iteration, and bug checking.
+// Their internal decomposition is up to you.
 // ===========================================================================
 
 void AbstractExecution::handleGlobalNode() {
@@ -129,11 +120,9 @@ void AbstractExecution::handleICFGCycle(const ICFGCycleWTO* cycle) {
 //                                                   set the actual-return
 //                                                   variable to TOP.
 //   * other external callees (SVFUtil::isExtCall)
-//                                                -> updateStateOnExtCall, then
-//                                                   run the bug checkers
-//                                                   (nullptrDerefDetection +
-//                                                   bufOverflowDetection) on
-//                                                   the call's arguments.
+//                                                -> apply the required
+//                                                   external-call summaries
+//                                                   and bug checks.
 //   * non-extern callees                         -> skip recursive callsites
 //                                                   using Andersen's
 //                                                   inSameCallGraphSCC, then

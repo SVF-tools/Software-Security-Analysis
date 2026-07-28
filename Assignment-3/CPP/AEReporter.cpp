@@ -24,7 +24,7 @@
  *
  * Holds the JSON-escape utility, target-report matching, and the AEReporter
  * coverage / summary methods.  All other harness state (AbstractExecution
- * driver, ICFG/WTO traversal, call-site dispatch, abstract-state helpers)
+ * driver, ICFG/WTO traversal, call-site dispatch, abstract-state trace)
  * lives in AEHelper.cpp.
  */
 
