@@ -18,7 +18,7 @@ Validation:
 
 - ASAN confirms the target at `curl_fnmatch.c:389`.
 - C++ command:
-  `Release-build/bin/ass3 Assignment-3/Tests/level-2/repro.ll`
+  `"$BUILD_DIR/bin/ass3" Assignment-3/Tests/level-2/repro.ll`
 - Python command:
   `python3 Assignment-3/Python/test-ae.py Assignment-3/Tests/level-2/repro.ll`
 - ICFG coverage: 7938 / 7939 = 99.99%

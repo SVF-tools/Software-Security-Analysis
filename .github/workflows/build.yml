@@ -50,3 +50,6 @@ jobs:
           echo "Z3_DIR="$Z3_DIR
           cmake .
           make
+      - name: validate-assignment-3-release
+        run: |
+          bash scripts/check-assignment-3-release.sh .
