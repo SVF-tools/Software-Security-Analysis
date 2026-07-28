@@ -30,9 +30,7 @@
  *                                         from the student's handleCallSite
  *                                         in Assignment_3.cpp.
  *   - External-API whitelist             (isExternalCallForAssignment)
- *   - Abstract-state helpers             (getAbsValue / updateAbsValue /
- *                                         loadValue / storeValue / GEP* /
- *                                         getAEState / postAbsTrace)
+ *   - Abstract-state trace access        (getAEState / postAbsTrace)
  *   - Validator                          (ensureAllAssertsValidated)
  *
  * Pure bug-reporting concerns (AEReporter class + JSON / coverage summary)
@@ -48,8 +46,7 @@
 
 using namespace SVF;
 
-/// Whitelist of external-call names the assignment expects students to model
-/// in `updateStateOnExtCall`.  Covers:
+/// Whitelist of external-call names covered by the assignment. Covers:
 ///   - Assignment-specific stubs:        `mem_insert`, `str_insert`
 ///   - Memory family:                    `memcpy`, `memmove`, `memset`
 ///   - String family:                    `strcpy`, `strncpy`, `strcat`,
@@ -289,46 +286,9 @@ void AbstractExecution::handleStubFunctions(const SVF::CallICFGNode* callNode) {
 }
 
 // ===========================================================================
-// Abstract-state helpers owned by Assignment-3.
+// Assignment-3 state and call helpers.
 // ===========================================================================
 namespace SVF {
-
-const AbstractValue& AbstractExecution::getAbsValue(const ValVar* var, const ICFGNode* node) {
-	return getAEState(node).getAbsValue(var);
-}
-const AbstractValue& AbstractExecution::getAbsValue(const ObjVar* var, const ICFGNode* node) {
-	return getAEState(node).getAbsValue(var);
-}
-const AbstractValue& AbstractExecution::getAbsValue(const SVFVar* var, const ICFGNode* node) {
-	return getAEState(node).getAbsValue(var);
-}
-void AbstractExecution::updateAbsValue(const ValVar* var, const AbstractValue& val, const ICFGNode* node) {
-	getAEState(node).updateAbsValue(var, val);
-}
-void AbstractExecution::updateAbsValue(const ObjVar* var, const AbstractValue& val, const ICFGNode* node) {
-	getAEState(node).updateAbsValue(var, val);
-}
-void AbstractExecution::updateAbsValue(const SVFVar* var, const AbstractValue& val, const ICFGNode* node) {
-	getAEState(node).updateAbsValue(var, val);
-}
-AbstractValue AbstractExecution::loadValue(const ValVar* pointer, const ICFGNode* node) {
-	return getAEState(node).loadValue(pointer);
-}
-void AbstractExecution::storeValue(const ValVar* pointer, const AbstractValue& val, const ICFGNode* node) {
-	getAEState(node).storeValue(pointer, val);
-}
-AddressValue AbstractExecution::getGepObjAddrs(const ValVar* pointer, IntervalValue offset) {
-	return getAEState(pointer->getICFGNode()).getGepObjAddrs(pointer, offset);
-}
-IntervalValue AbstractExecution::getGepElementIndex(const GepStmt* gep) {
-	return getAEState(gep->getICFGNode()).getGepElementIndex(gep);
-}
-IntervalValue AbstractExecution::getGepByteOffset(const GepStmt* gep) {
-	return getAEState(gep->getICFGNode()).getGepByteOffset(gep);
-}
-u32_t AbstractExecution::getAllocaInstByteSize(const AddrStmt* addr) {
-	return getAEState(addr->getICFGNode()).getAllocaInstByteSize(addr);
-}
 
 /// CallPE is phi-like: the formal parameter joins the caller-side value from
 /// every call site represented by the statement.
