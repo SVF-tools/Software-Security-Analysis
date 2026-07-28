@@ -24,7 +24,7 @@ class AEReporter:
         self.svfir = svfir
         # Harness bookkeeping: stub call sites the analysis actually reached.
         self.assert_points = set()
-        self.expected_report_counts = {}
+        self.expected_report_points = {}
 
     def noteAssertionPoint(self, call):
         self.assert_points.add(call)
@@ -32,12 +32,11 @@ class AEReporter:
     def isAssertionPoint(self, call) -> bool:
         return call in self.assert_points
 
-    def noteExpectedReport(self, kind: str):
-        self.expected_report_counts[kind] = (
-            self.expected_report_counts.get(kind, 0) + 1)
+    def noteExpectedReport(self, kind: str, checkpoint):
+        self.expected_report_points.setdefault(kind, set()).add(checkpoint)
 
     def getExpectedReportCount(self, kind: str) -> int:
-        return self.expected_report_counts.get(kind, 0)
+        return len(self.expected_report_points.get(kind, ()))
 
     def getByteOffset(self, abstract_state: pysvf.AbstractState, gep: pysvf.GepStmt) -> pysvf.IntervalValue:
         return AEState(unwrap_state(abstract_state)).getGepByteOffset(gep)

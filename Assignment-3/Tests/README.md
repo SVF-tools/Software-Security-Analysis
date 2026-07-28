@@ -21,7 +21,7 @@ The published examples are:
 | `02-branch-feasible` | Branch feasibility |
 | `03-buffer-overflow` | Real out-of-bounds access detection |
 | `04-nullptr-deref` | Real null-pointer-dereference detection |
-| `05-loop-fixpoint` | Loop widening and narrowing |
+| `05-loop-fixpoint` | Loop fixpoint and widening |
 | `06-recursion-fixpoint` | Recursive-SCC fixpoint |
 | `07-interprocedural-call-return` | Actual/formal and return propagation |
 | `08-memory-summary` | Memory external-call summaries |

@@ -14,22 +14,24 @@ entry:
   br label %while.cond, !dbg !17
 
 while.cond:                                       ; preds = %while.body, %entry
-  %0 = load i32, ptr %value, align 4, !dbg !18
-  %cmp = icmp slt i32 %0, 10, !dbg !19
-  br i1 %cmp, label %while.body, label %while.end, !dbg !17
+  %call = call i32 @nd() #2, !dbg !18
+  %tobool = icmp ne i32 %call, 0, !dbg !17
+  br i1 %tobool, label %while.body, label %while.end, !dbg !17
 
 while.body:                                       ; preds = %while.cond
-  %1 = load i32, ptr %value, align 4, !dbg !20
-  %inc = add nsw i32 %1, 1, !dbg !20
-  store i32 %inc, ptr %value, align 4, !dbg !20
-  br label %while.cond, !dbg !17, !llvm.loop !22
+  %0 = load i32, ptr %value, align 4, !dbg !19
+  %inc = add nsw i32 %0, 1, !dbg !19
+  store i32 %inc, ptr %value, align 4, !dbg !19
+  br label %while.cond, !dbg !17, !llvm.loop !21
 
 while.end:                                        ; preds = %while.cond
-  %2 = load i32, ptr %value, align 4, !dbg !25
-  %cmp1 = icmp eq i32 %2, 10, !dbg !26
-  call void @svf_assert(i1 noundef %cmp1) #2, !dbg !27
-  ret i32 0, !dbg !28
+  %1 = load i32, ptr %value, align 4, !dbg !24
+  %cmp = icmp sge i32 %1, 0, !dbg !25
+  call void @svf_assert(i1 noundef %cmp) #2, !dbg !26
+  ret i32 0, !dbg !27
 }
+
+declare i32 @nd() #1
 
 declare void @svf_assert(i1 noundef) #1
 
@@ -42,7 +44,7 @@ attributes #2 = { nobuiltin "no-builtins" }
 !llvm.ident = !{!9}
 
 !0 = distinct !DICompileUnit(language: DW_LANG_C11, file: !1, producer: "clang version 21.1.0 (https://github.com/bjjwwang/LLVM-compile 56e2582eb90f98cb21f19cd6d72cca341b06d1bf)", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug, splitDebugInlining: false, nameTableKind: None)
-!1 = !DIFile(filename: "05-loop-fixpoint.c", directory: "/workspace/Assignment-3/Tests/level-1", checksumkind: CSK_MD5, checksum: "ac29527a76233e895ce54f261138a204")
+!1 = !DIFile(filename: "05-loop-fixpoint.c", directory: "/workspace/Assignment-3/Tests/level-1", checksumkind: CSK_MD5, checksum: "f6a23e56553b381e71ec18c9adf9e8b1")
 !2 = !{i32 7, !"Dwarf Version", i32 5}
 !3 = !{i32 2, !"Debug Info Version", i32 3}
 !4 = !{i32 1, !"wchar_size", i32 4}
@@ -51,22 +53,21 @@ attributes #2 = { nobuiltin "no-builtins" }
 !7 = !{i32 7, !"uwtable", i32 2}
 !8 = !{i32 7, !"frame-pointer", i32 1}
 !9 = !{!"clang version 21.1.0 (https://github.com/bjjwwang/LLVM-compile 56e2582eb90f98cb21f19cd6d72cca341b06d1bf)"}
-!10 = distinct !DISubprogram(name: "main", scope: !1, file: !1, line: 5, type: !11, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !0, retainedNodes: !14)
+!10 = distinct !DISubprogram(name: "main", scope: !1, file: !1, line: 6, type: !11, scopeLine: 6, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition, unit: !0, retainedNodes: !14)
 !11 = !DISubroutineType(types: !12)
 !12 = !{!13}
 !13 = !DIBasicType(name: "int", size: 32, encoding: DW_ATE_signed)
 !14 = !{}
-!15 = !DILocalVariable(name: "value", scope: !10, file: !1, line: 6, type: !13)
-!16 = !DILocation(line: 6, column: 9, scope: !10)
-!17 = !DILocation(line: 7, column: 5, scope: !10)
-!18 = !DILocation(line: 7, column: 12, scope: !10)
-!19 = !DILocation(line: 7, column: 18, scope: !10)
-!20 = !DILocation(line: 8, column: 14, scope: !21)
-!21 = distinct !DILexicalBlock(scope: !10, file: !1, line: 7, column: 24)
-!22 = distinct !{!22, !17, !23, !24}
-!23 = !DILocation(line: 9, column: 5, scope: !10)
-!24 = !{!"llvm.loop.mustprogress"}
-!25 = !DILocation(line: 10, column: 16, scope: !10)
-!26 = !DILocation(line: 10, column: 22, scope: !10)
-!27 = !DILocation(line: 10, column: 5, scope: !10)
-!28 = !DILocation(line: 11, column: 5, scope: !10)
+!15 = !DILocalVariable(name: "value", scope: !10, file: !1, line: 7, type: !13)
+!16 = !DILocation(line: 7, column: 9, scope: !10)
+!17 = !DILocation(line: 8, column: 5, scope: !10)
+!18 = !DILocation(line: 8, column: 12, scope: !10)
+!19 = !DILocation(line: 9, column: 14, scope: !20)
+!20 = distinct !DILexicalBlock(scope: !10, file: !1, line: 8, column: 18)
+!21 = distinct !{!21, !17, !22, !23}
+!22 = !DILocation(line: 10, column: 5, scope: !10)
+!23 = !{!"llvm.loop.mustprogress"}
+!24 = !DILocation(line: 11, column: 16, scope: !10)
+!25 = !DILocation(line: 11, column: 22, scope: !10)
+!26 = !DILocation(line: 11, column: 5, scope: !10)
+!27 = !DILocation(line: 12, column: 5, scope: !10)

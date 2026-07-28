@@ -114,7 +114,8 @@ build is supplied, but documentation/path checks pass.
 - Modify: `Assignment-3/CPP/AEHelper.cpp`
 
 **Interfaces:**
-- Produces: `noteExpectedReport(kind)`, `getExpectedReportCount(kind)`, and `getReportCount(kind)` on `AEReporter`.
+- Produces: `noteExpectedReport(kind, checkpoint)`,
+  `getExpectedReportCount(kind)`, and `getReportCount(kind)` on `AEReporter`.
 - Consumes: typed reports already stored in `AssignmentBugReport`.
 
 - [ ] **Step 1: Add an expectation-count regression test to the validation path**
@@ -158,7 +159,9 @@ Expected: target builds without warnings or errors.
 - Modify: `Assignment-3/Python/Assignment_3.py`
 
 **Interfaces:**
-- Produces: `reportBug(kind, node, message)`, `reportNullDeref(node, message)`, `getReportCount(kind)`, `noteExpectedReport(kind)`, and `getExpectedReportCount(kind)`.
+- Produces: `reportBug(kind, node, message)`, `reportNullDeref(node, message)`,
+  `getReportCount(kind)`, `noteExpectedReport(kind, checkpoint)`, and
+  `getExpectedReportCount(kind)`.
 - Retains: `reportBufOverflow(node, message)` compatibility.
 
 - [ ] **Step 1: Write the failing reporter contract test**

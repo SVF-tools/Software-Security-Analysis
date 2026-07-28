@@ -53,3 +53,4 @@ jobs:
       - name: validate-assignment-3-release
         run: |
           bash scripts/check-assignment-3-release.sh .
+          python3 Assignment-3/Tests/test-reporter-contract.py

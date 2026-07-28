@@ -134,6 +134,7 @@ void AbstractExecution::ensureAllAssertsValidated() {
 	static const Set<std::string> kCheckpointStubs = {
 	    "UNSAFE_PTRDEREF", "SAFE_PTRDEREF",
 	    "UNSAFE_BUFACCESS", "SAFE_BUFACCESS"};
+	Set<std::string> checkpointedReportKinds;
 	for (auto it = svfir->getICFG()->begin(); it != svfir->getICFG()->end(); ++it) {
 		const ICFGNode* node = it->second;
 		const CallICFGNode* call = SVFUtil::dyn_cast<CallICFGNode>(node);
@@ -147,6 +148,10 @@ void AbstractExecution::ensureAllAssertsValidated() {
 		const bool isCheckpointStub = kCheckpointStubs.count(name) > 0;
 		if (!isAssertStub && !isCheckpointStub)
 			continue;
+		if (name.find("BUFACCESS") != std::string::npos)
+			checkpointedReportKinds.insert("buffer-overflow");
+		else if (name.find("PTRDEREF") != std::string::npos)
+			checkpointedReportKinds.insert("nullptr-deref");
 		if (!bugReporter.isAssertionPoint(call)) {
 			std::stringstream ss;
 			ss << "The stub function callsite (" << name
@@ -160,6 +165,8 @@ void AbstractExecution::ensureAllAssertsValidated() {
 	static const std::vector<std::string> kReportKinds = {
 	    "buffer-overflow", "nullptr-deref"};
 	for (const std::string& kind : kReportKinds) {
+		if (checkpointedReportKinds.count(kind) == 0)
+			continue;
 		const u32_t expected = bugReporter.getExpectedReportCount(kind);
 		const u32_t actual = bugReporter.getReportCount(kind);
 		if (actual != expected) {
@@ -177,9 +184,9 @@ void AbstractExecution::handleCheckpointStubs(const CallICFGNode* callNode) {
 	bugReporter.noteAssertionPoint(callNode);
 	const std::string fun_name = callNode->getCalledFunction()->getName();
 	if (fun_name == "UNSAFE_BUFACCESS")
-		bugReporter.noteExpectedReport("buffer-overflow");
+		bugReporter.noteExpectedReport("buffer-overflow", callNode);
 	else if (fun_name == "UNSAFE_PTRDEREF")
-		bugReporter.noteExpectedReport("nullptr-deref");
+		bugReporter.noteExpectedReport("nullptr-deref", callNode);
 }
 
 /// Handle the abstract-state assertion stubs.  `svf_assert(expr)` requires the

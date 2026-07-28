@@ -85,12 +85,14 @@ namespace SVF {
 
 		/// Checkpoint bookkeeping. UNSAFE_* stubs record an expected report
 		/// kind; the checkpoint itself never creates a student bug report.
-		void noteExpectedReport(const std::string& kind) {
-			expectedReportCounts[kind]++;
+		void noteExpectedReport(const std::string& kind,
+		                        const CallICFGNode* checkpoint) {
+			expectedReportPoints[kind].insert(checkpoint);
 		}
 		u32_t getExpectedReportCount(const std::string& kind) const {
-			auto it = expectedReportCounts.find(kind);
-			return it == expectedReportCounts.end() ? 0 : it->second;
+			auto it = expectedReportPoints.find(kind);
+			return it == expectedReportPoints.end()
+			       ? 0 : static_cast<u32_t>(it->second.size());
 		}
 
 		bool hasTargetReport() const;
@@ -116,8 +118,10 @@ namespace SVF {
 
 			std::string loc = eventStack.back().getEventLoc(); // Get the location of the last event in the stack
 
-			// Check if the bug at this location has already been reported
-			const std::string dedupKey = kind + ":" + loc;
+			// Deduplicate the same bug kind at the same analysis node. Keep
+			// different kinds at one node as distinct reports.
+			const std::string dedupKey =
+			    kind + ":" + std::to_string(node ? node->getId() : 0);
 			if (_bugLoc.find(dedupKey) != _bugLoc.end()) {
 				return; // If the bug location is already reported, return early
 			}
@@ -185,7 +189,7 @@ namespace SVF {
 		AssignmentCaseConfig caseConfig;
 		Set<const ICFGNode*> analyzedNodes;
 		Set<const CallICFGNode*> assert_points;
-		Map<std::string, u32_t> expectedReportCounts;
+		Map<std::string, Set<const CallICFGNode*>> expectedReportPoints;
 	};
 
 } // namespace SVF

@@ -40,9 +40,9 @@ fi
 
 documented_ir=$(
     {
-        grep -ERoh --include='*.md' \
-            'Assignment-3/Tests/[A-Za-z0-9._/-]+\.ll' \
-            "$repo_root/Assignment-3" || true
+        find "$repo_root/Assignment-3" -type f -name '*.md' \
+            -exec grep -Eoh \
+            'Assignment-3/Tests/[A-Za-z0-9._/-]+\.ll' {} + || true
         grep -Eoh 'Assignment-3/Tests/[A-Za-z0-9._/-]+\.ll' \
             "$repo_root/README.md" || true
     } |
@@ -62,26 +62,45 @@ while IFS= read -r relative_path; do
     fi
 done <<< "$documented_ir"
 
-level1_sources_found=0
-for source_path in "$repo_root"/Assignment-3/Tests/level-1/*.c; do
-    [[ -e "$source_path" ]] || continue
-    level1_sources_found=1
-    ir_path=${source_path%.c}.ll
-    if [[ ! -f "$ir_path" ]]; then
-        fail "public source has no generated LLVM IR pair: ${source_path#"$repo_root/"}"
-    fi
+public_case_ids=(
+    01-stmt-basic
+    02-branch-feasible
+    03-buffer-overflow
+    04-nullptr-deref
+    05-loop-fixpoint
+    06-recursion-fixpoint
+    07-interprocedural-call-return
+    08-memory-summary
+    09-string-summary
+    10-safe-memory
+)
+for case_id in "${public_case_ids[@]}"; do
+    for extension in c ll; do
+        case_path="Assignment-3/Tests/level-1/$case_id.$extension"
+        if [[ ! -f "$repo_root/$case_path" ]]; then
+            fail "public case inventory is missing: $case_path"
+        fi
+    done
 done
-if [[ "$level1_sources_found" -eq 0 ]]; then
-    fail 'no public Assignment 3 Level-1 sources were found'
-fi
 
-if grep -ERn --include='*.md' \
-    'Assignment-3/Tests/(stmt|buf_overflow|null_deref)\.ll' \
-    "$repo_root/Assignment-3" "$repo_root/README.md"; then
+obsolete_paths=$(
+    find "$repo_root/Assignment-3" -type f -name '*.md' \
+        -exec grep -EHn \
+        'Assignment-3/Tests/(stmt|buf_overflow|null_deref)\.ll' {} + || true
+    grep -En 'Assignment-3/Tests/(stmt|buf_overflow|null_deref)\.ll' \
+        "$repo_root/README.md" || true
+)
+if [[ -n "$obsolete_paths" ]]; then
+    printf '%s\n' "$obsolete_paths"
     fail 'obsolete flat Assignment 3 test paths remain in repository documentation'
 fi
 
-if grep -ERn --include='*.md' 'Release-build' "$repo_root/Assignment-3"; then
+release_build_mentions=$(
+    find "$repo_root/Assignment-3" -type f -name '*.md' \
+        -exec grep -EHn 'Release-build' {} + || true
+)
+if [[ -n "$release_build_mentions" ]]; then
+    printf '%s\n' "$release_build_mentions"
     fail 'Assignment 3 documentation hard-codes the unsupported Release-build layout'
 fi
 

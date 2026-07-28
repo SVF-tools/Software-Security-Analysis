@@ -117,10 +117,10 @@ range. The destination is also checked as a write and the source as a read.
 | `memcpy(dst, src, n)` | Copy `n` bytes from `src` to `dst`; return `dst`. |
 | `memmove(dst, src, n)` | As `memcpy`, but read the source values before writing overlapping destinations; return `dst`. |
 | `memset(dst, value, n)` | Store the low byte of `value` into `n` bytes at `dst`; return `dst`. |
-| `strcpy(dst, src)` | Copy `strlen(src)` modelled bytes from offset 0; return `dst`. |
-| `strncpy(dst, src, n)` | Copy `n` modelled bytes from offset 0; return `dst`. |
-| `strcat(dst, src)` | Copy `strlen(src)` modelled bytes at destination offset `strlen(dst)`; return `dst`. |
-| `strncat(dst, src, n)` | Copy `n` modelled bytes at destination offset `strlen(dst)`; return `dst`. |
+| `strcpy(dst, src)` | Copy `strlen(src) + 1` bytes, including the null terminator, from offset 0; return `dst`. |
+| `strncpy(dst, src, n)` | Copy exactly `n` bytes from offset 0, padding with null bytes when the source is shorter; return `dst`. |
+| `strcat(dst, src)` | Copy `strlen(src) + 1` bytes, including the terminator, at destination offset `strlen(dst)`; return `dst`. |
+| `strncat(dst, src, n)` | Copy at most `n` non-null source bytes at destination offset `strlen(dst)`, then append a null terminator; return `dst`. |
 | `strlen(src)` | Return an interval containing the possible index of the first null byte. |
 | `wcslen(src)` | As `strlen`, measured in wide-character elements. |
 | `mem_insert(buffer, data, data_size, position)` | Copy `data_size` bytes from `data` to `buffer + position`. |
@@ -180,8 +180,10 @@ Checkpoints are ground-truth expectation markers, not detector
 implementations. Every marker must be reachable. Each `UNSAFE_BUFACCESS`
 records one expected `buffer-overflow` report and each `UNSAFE_PTRDEREF`
 records one expected `nullptr-deref` report. Safe markers add no expected
-report. At case completion, the harness compares expected and actual counts
-exactly and separately by kind. Consequently:
+report. For each bug kind represented by at least one checkpoint in a case,
+the harness compares expected and actual counts exactly. A real-program case
+with no checkpoint for a kind may still emit reports of that kind.
+Consequently:
 
 - an unsafe marker passes only when student analysis reports a real unsafe
   access;
@@ -189,7 +191,8 @@ exactly and separately by kind. Consequently:
 - a report of the wrong kind fails; and
 - an extra report, including a report at a safe access, fails.
 
-Duplicate reports of the same kind and source location are counted once.
+Duplicate reports of the same kind at the same ICFG node are counted once.
+Different bug kinds at one node remain separate reports.
 
 ## Build and run
 

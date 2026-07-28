@@ -15,7 +15,7 @@ number, distribution, and per-case weights are not published.
 The published Level 1 examples cover the following primary features. A public
 example passes when it exits normally, reaches every `svf_assert` and
 checkpoint, validates every assertion, and produces exactly the expected
-report count for each bug kind.
+report count for each bug kind represented by a checkpoint in that case.
 
 | Published example | Primary feature |
 | --- | --- |
@@ -23,7 +23,7 @@ report count for each bug kind.
 | `02-branch-feasible` | Branch feasibility |
 | `03-buffer-overflow` | Real out-of-bounds access detection |
 | `04-nullptr-deref` | Real null-pointer-dereference detection |
-| `05-loop-fixpoint` | Loop widening and narrowing |
+| `05-loop-fixpoint` | Loop fixpoint and widening |
 | `06-recursion-fixpoint` | Recursive-SCC fixpoint |
 | `07-interprocedural-call-return` | Actual/formal and return propagation |
 | `08-memory-summary` | Memory external-call summaries |

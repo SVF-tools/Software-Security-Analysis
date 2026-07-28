@@ -445,9 +445,11 @@ class AbstractExecution:
         self.buf_overflow_helper.noteAssertionPoint(callNode)
         fun_name = callNode.getCalledFunction().getName()
         if fun_name == "UNSAFE_BUFACCESS":
-            self.buf_overflow_helper.noteExpectedReport("buffer-overflow")
+            self.buf_overflow_helper.noteExpectedReport(
+                "buffer-overflow", callNode)
         elif fun_name == "UNSAFE_PTRDEREF":
-            self.buf_overflow_helper.noteExpectedReport("nullptr-deref")
+            self.buf_overflow_helper.noteExpectedReport(
+                "nullptr-deref", callNode)
 
 
     # mergeStatesFromPredecessors is a student TODO this year and lives in
@@ -484,6 +486,7 @@ class AbstractExecution:
         assert_stubs = {"svf_assert", "svf_assert_eq"}
         checkpoint_stubs = {"UNSAFE_PTRDEREF", "SAFE_PTRDEREF",
                             "UNSAFE_BUFACCESS", "SAFE_BUFACCESS"}
+        checkpointed_report_kinds = set()
         for node in self.svfir.getICFG().getNodes():
             if not isinstance(node, pysvf.CallICFGNode):
                 continue
@@ -493,12 +496,18 @@ class AbstractExecution:
             name = called_function.getName()
             if name not in assert_stubs and name not in checkpoint_stubs:
                 continue
+            if "BUFACCESS" in name:
+                checkpointed_report_kinds.add("buffer-overflow")
+            elif "PTRDEREF" in name:
+                checkpointed_report_kinds.add("nullptr-deref")
             if not self.buf_overflow_helper.isAssertionPoint(node):
                 raise AssertionError(
                     f"The stub function callsite ({name}) was not reached by "
                     f"the student's control flow: {node}"
                 )
         for kind in ("buffer-overflow", "nullptr-deref"):
+            if kind not in checkpointed_report_kinds:
+                continue
             expected = self.buf_overflow_helper.getExpectedReportCount(kind)
             actual = self.buf_overflow_helper.getReportCount(kind)
             if actual != expected:

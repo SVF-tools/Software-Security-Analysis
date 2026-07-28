@@ -95,7 +95,7 @@ reference grader:
 - object and access sizes are bytes;
 - a non-zero access beginning one-past the object is out of bounds;
 - merely constructing a one-past pointer is not a dereference;
-- reports are deduplicated by bug kind and source location;
+- reports are deduplicated by bug kind and ICFG node;
 - external summaries preserve C return values and model the documented
   read/write range;
 - WTO iteration uses precise iterations through the configured widening delay,
