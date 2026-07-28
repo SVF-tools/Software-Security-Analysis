@@ -18,17 +18,26 @@ class AEReporter:
     """
 
     def __init__(self, svfir: pysvf.SVFIR):
-        # Map ICFGNode -> diagnostic message for each detected bug.
+        # Map (kind, ICFGNode) -> diagnostic message. A single access may
+        # legitimately have reports of different kinds.
         self.node_to_bug_info = {}
         self.svfir = svfir
         # Harness bookkeeping: stub call sites the analysis actually reached.
         self.assert_points = set()
+        self.expected_report_counts = {}
 
     def noteAssertionPoint(self, call):
         self.assert_points.add(call)
 
     def isAssertionPoint(self, call) -> bool:
         return call in self.assert_points
+
+    def noteExpectedReport(self, kind: str):
+        self.expected_report_counts[kind] = (
+            self.expected_report_counts.get(kind, 0) + 1)
+
+    def getExpectedReportCount(self, kind: str) -> int:
+        return self.expected_report_counts.get(kind, 0)
 
     def getByteOffset(self, abstract_state: pysvf.AbstractState, gep: pysvf.GepStmt) -> pysvf.IntervalValue:
         return AEState(unwrap_state(abstract_state)).getGepByteOffset(gep)
@@ -51,8 +60,20 @@ class AEReporter:
     def getAllocaInstByteSize(self, abstract_state: pysvf.AbstractState, addr: pysvf.AddrStmt) -> int:
         return AEState(unwrap_state(abstract_state)).getAllocaInstByteSize(addr)
 
+    def reportBug(self, kind: str, node, msg):
+        self.node_to_bug_info.setdefault((kind, node), msg)
+
     def reportBufOverflow(self, node, msg):
-        self.node_to_bug_info[node] = msg
+        self.reportBug("buffer-overflow", node, msg)
+
+    def reportNullDeref(self, node, msg):
+        self.reportBug("nullptr-deref", node, msg)
+
+    def getReportCount(self, kind=None) -> int:
+        if kind is None:
+            return len(self.node_to_bug_info)
+        return sum(1 for report_kind, _ in self.node_to_bug_info
+                   if report_kind == kind)
 
     def printReport(self):
         if not self.node_to_bug_info:
@@ -60,8 +81,9 @@ class AEReporter:
         print("###################### Bug Reports ({} total) ######################".format(
             len(self.node_to_bug_info)))
         print("---------------------------------------------")
-        for node, msg in self.node_to_bug_info.items():
-            print(f"{node}: {msg}\n---------------------------------------------")
+        for (kind, node), msg in self.node_to_bug_info.items():
+            print(f"[{kind}] {node}: {msg}\n"
+                  "---------------------------------------------")
 
     def getElementSize(self, var: pysvf.SVFVar) -> int:
         if var.getType().isArrayTy():

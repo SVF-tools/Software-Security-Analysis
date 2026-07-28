@@ -76,7 +76,7 @@ class Assignment3(AbstractExecution):
             node, msg if msg is not None else f"buffer-overflow at {node}")
 
     def reportNullDeref(self, node, msg=None):
-        self.buf_overflow_helper.reportBufOverflow(
+        self.buf_overflow_helper.reportNullDeref(
             node, msg if msg is not None else f"nullptr-deref at {node}")
 
     # =========================================================================

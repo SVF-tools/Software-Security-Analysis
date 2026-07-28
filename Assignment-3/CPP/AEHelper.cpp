@@ -128,14 +128,12 @@ void AbstractExecution::initWTO() {
 ///   - UNSAFE_PTRDEREF / SAFE_PTRDEREF    : null-deref ground truth
 ///   - UNSAFE_BUFACCESS / SAFE_BUFACCESS  : buffer-access ground truth
 ///
-/// Additionally requires that the number of reported bugs is at least the
-/// number of UNSAFE_* stubs in the program.
+/// Additionally requires exact report counts for each checkpoint bug kind.
 void AbstractExecution::ensureAllAssertsValidated() {
 	static const Set<std::string> kAssertStubs = {"svf_assert", "svf_assert_eq"};
 	static const Set<std::string> kCheckpointStubs = {
 	    "UNSAFE_PTRDEREF", "SAFE_PTRDEREF",
 	    "UNSAFE_BUFACCESS", "SAFE_BUFACCESS"};
-	u32_t unsafe_to_be_verified = 0;
 	for (auto it = svfir->getICFG()->begin(); it != svfir->getICFG()->end(); ++it) {
 		const ICFGNode* node = it->second;
 		const CallICFGNode* call = SVFUtil::dyn_cast<CallICFGNode>(node);
@@ -149,8 +147,6 @@ void AbstractExecution::ensureAllAssertsValidated() {
 		const bool isCheckpointStub = kCheckpointStubs.count(name) > 0;
 		if (!isAssertStub && !isCheckpointStub)
 			continue;
-		if (name.rfind("UNSAFE_", 0) == 0)
-			unsafe_to_be_verified++;
 		if (!bugReporter.isAssertionPoint(call)) {
 			std::stringstream ss;
 			ss << "The stub function callsite (" << name
@@ -161,84 +157,29 @@ void AbstractExecution::ensureAllAssertsValidated() {
 		}
 	}
 
-	assert(unsafe_to_be_verified <= bugReporter.getBugReporter().getBugSet().size() &&
-		       "The number of UNSAFE_* stubs (ground truth) should <= the number of bugs reported");
-}
-
-// ---------------------------------------------------------------------------
-// Ground-truth helpers used by handleCheckpointStubs.  Computed from SVF
-// primitives only so the stub verdict cannot be biased by student bugs.
-// ---------------------------------------------------------------------------
-
-namespace {
-bool harnessSafeAccess(AbstractState& as, SVFIR* svfir, const ValVar* value,
-                       const IntervalValue& len) {
-	AbstractValue ptrVal = as[value->getId()];
-	if (!ptrVal.isAddr())
-		return true;
-	for (const auto& addr : ptrVal.getAddrs()) {
-		if (AbstractState::isBlackHoleObjAddr(addr) || AbstractState::isNullMem(addr))
-			continue;
-		NodeID objId = as.getIDFromAddr(addr);
-		const BaseObjVar* baseObj = svfir->getBaseObject(objId);
-		if (!baseObj || baseObj->isBlackHoleObj() || !baseObj->isConstantByteSize())
-			continue;
-		u32_t size = baseObj->getByteSizeOfObj();
-		IntervalValue baseOffset(0);
-		const SVFVar* svfVar = svfir->getGNode(objId);
-		if (auto* gepObj = SVFUtil::dyn_cast<GepObjVar>(svfVar))
-			baseOffset = IntervalValue((s64_t)gepObj->getConstantFieldIdx());
-		IntervalValue offset = baseOffset + len;
-		if (offset.ub().getIntNumeral() >= (s64_t)size)
-			return false;
+	static const std::vector<std::string> kReportKinds = {
+	    "buffer-overflow", "nullptr-deref"};
+	for (const std::string& kind : kReportKinds) {
+		const u32_t expected = bugReporter.getExpectedReportCount(kind);
+		const u32_t actual = bugReporter.getReportCount(kind);
+		if (actual != expected) {
+			std::cerr << "Assignment 3 report-count mismatch for " << kind
+			          << ": expected " << expected << ", got " << actual
+			          << std::endl;
+			assert(false && "Assignment 3 report count did not match checkpoints");
+		}
 	}
-	return true;
 }
 
-bool harnessSafeDeref(AbstractState& as, const ValVar* value) {
-	if (!value || value->getId() == IRGraph::NullPtr)
-		return false;
-	const AbstractValue& absVal = as[value->getId()];
-	if (!absVal.isAddr())
-		return true;
-	for (const auto& addr : absVal.getAddrs()) {
-		if (AbstractState::isBlackHoleObjAddr(addr))
-			continue;
-		if (AbstractState::isNullMem(addr))
-			return false;
-		if (as.isFreedMem(addr))
-			return false;
-	}
-	return true;
-}
-} // namespace
-
-/// Validate the SAFE/UNSAFE checkpoint stub functions.  Validation uses the
-/// harness-only `harnessSafeAccess` / `harnessSafeDeref` helpers, NOT the
-/// student's `canSafelyAccessMemory` / `canSafelyDerefPtr` — so the stub
-/// verdict cannot be biased by student bugs.
+/// Record SAFE/UNSAFE checkpoint expectations. The checkpoint does not inspect
+/// abstract state or emit a bug; only the student's checker may report one.
 void AbstractExecution::handleCheckpointStubs(const CallICFGNode* callNode) {
 	bugReporter.noteAssertionPoint(callNode);
 	const std::string fun_name = callNode->getCalledFunction()->getName();
-	if (fun_name == "SAFE_BUFACCESS" || fun_name == "UNSAFE_BUFACCESS") {
-		if (callNode->arg_size() < 2)
-			return;
-		AEState& as = getAEState(callNode);
-		IntervalValue len = as[callNode->getArgument(1)->getId()].getInterval();
-		if (len.isBottom())
-			len = IntervalValue(0);
-		const ValVar* ptr = callNode->getArgument(0);
-		if (!harnessSafeAccess(as, svfir, ptr, len - IntervalValue(1)))
-			reportBufOverflow(callNode);
-	}
-	else if (fun_name == "SAFE_PTRDEREF" || fun_name == "UNSAFE_PTRDEREF") {
-		if (callNode->arg_size() < 1)
-			return;
-		AEState& as = getAEState(callNode);
-		const ValVar* ptr = callNode->getArgument(0);
-		if (!harnessSafeDeref(as, ptr))
-			reportNullDeref(callNode);
-	}
+	if (fun_name == "UNSAFE_BUFACCESS")
+		bugReporter.noteExpectedReport("buffer-overflow");
+	else if (fun_name == "UNSAFE_PTRDEREF")
+		bugReporter.noteExpectedReport("nullptr-deref");
 }
 
 /// Handle the abstract-state assertion stubs.  `svf_assert(expr)` requires the

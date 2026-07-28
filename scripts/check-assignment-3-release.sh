@@ -32,13 +32,20 @@ check_ctest_selector()
 if [[ -f "$build_dir/CTestTestfile.cmake" ]]; then
     check_ctest_selector '^ass3-level-1-cpp/' 'Assignment 3 C++'
     check_ctest_selector '^ass3-level-1-py/' 'Assignment 3 Python'
+    check_ctest_selector '^ass3-harness-py/reporter-contract$' \
+        'Assignment 3 Python reporter-contract'
 else
     printf 'SKIP: no configured CTest tree at %s\n' "$build_dir"
 fi
 
 documented_ir=$(
-    rg -o --no-filename 'Assignment-3/Tests/[A-Za-z0-9._/-]+\.ll' \
-        "$repo_root/Assignment-3" "$repo_root/README.md" |
+    {
+        grep -ERoh --include='*.md' \
+            'Assignment-3/Tests/[A-Za-z0-9._/-]+\.ll' \
+            "$repo_root/Assignment-3" || true
+        grep -Eoh 'Assignment-3/Tests/[A-Za-z0-9._/-]+\.ll' \
+            "$repo_root/README.md" || true
+    } |
         sort -u || true
 )
 
@@ -55,12 +62,26 @@ while IFS= read -r relative_path; do
     fi
 done <<< "$documented_ir"
 
-if rg -n 'Assignment-3/Tests/(stmt|buf_overflow|null_deref)\.ll' \
-    "$repo_root" -g '*.md'; then
+level1_sources_found=0
+for source_path in "$repo_root"/Assignment-3/Tests/level-1/*.c; do
+    [[ -e "$source_path" ]] || continue
+    level1_sources_found=1
+    ir_path=${source_path%.c}.ll
+    if [[ ! -f "$ir_path" ]]; then
+        fail "public source has no generated LLVM IR pair: ${source_path#"$repo_root/"}"
+    fi
+done
+if [[ "$level1_sources_found" -eq 0 ]]; then
+    fail 'no public Assignment 3 Level-1 sources were found'
+fi
+
+if grep -ERn --include='*.md' \
+    'Assignment-3/Tests/(stmt|buf_overflow|null_deref)\.ll' \
+    "$repo_root/Assignment-3" "$repo_root/README.md"; then
     fail 'obsolete flat Assignment 3 test paths remain in repository documentation'
 fi
 
-if rg -n 'Release-build' "$repo_root/Assignment-3" -g '*.md'; then
+if grep -ERn --include='*.md' 'Release-build' "$repo_root/Assignment-3"; then
     fail 'Assignment 3 documentation hard-codes the unsupported Release-build layout'
 fi
 

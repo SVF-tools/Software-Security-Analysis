@@ -83,6 +83,16 @@ namespace SVF {
 			return assert_points.find(call) != assert_points.end();
 		}
 
+		/// Checkpoint bookkeeping. UNSAFE_* stubs record an expected report
+		/// kind; the checkpoint itself never creates a student bug report.
+		void noteExpectedReport(const std::string& kind) {
+			expectedReportCounts[kind]++;
+		}
+		u32_t getExpectedReportCount(const std::string& kind) const {
+			auto it = expectedReportCounts.find(kind);
+			return it == expectedReportCounts.end() ? 0 : it->second;
+		}
+
 		bool hasTargetReport() const;
 		void writeJsonSummary(std::ostream& os, const ICFG* icfg,
 		                      double wallSeconds, int exitCode,
@@ -150,6 +160,15 @@ namespace SVF {
 			return static_cast<u32_t>(_reports.size());
 		}
 
+		u32_t getReportCount(const std::string& kind) const {
+			u32_t count = 0;
+			for (const AssignmentBugReport& report : _reports) {
+				if (report.kind == kind)
+					count++;
+			}
+			return count;
+		}
+
 		SVFBugReport& getBugReporter() {
 			return _recoder;
 		}
@@ -166,6 +185,7 @@ namespace SVF {
 		AssignmentCaseConfig caseConfig;
 		Set<const ICFGNode*> analyzedNodes;
 		Set<const CallICFGNode*> assert_points;
+		Map<std::string, u32_t> expectedReportCounts;
 	};
 
 } // namespace SVF

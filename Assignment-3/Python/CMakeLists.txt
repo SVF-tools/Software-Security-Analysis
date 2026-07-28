@@ -1,5 +1,15 @@
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
+add_test(
+        NAME ass3-harness-py/reporter-contract
+        COMMAND ${Python3_EXECUTABLE}
+                ${CMAKE_CURRENT_SOURCE_DIR}/../Tests/test-reporter-contract.py
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
+set_tests_properties(ass3-harness-py/reporter-contract PROPERTIES
+        TIMEOUT 30
+        LABELS "ass3;ass3-harness;python")
+
 # loops over ae_assert_files and run "ae $bc_file"
 file(GLOB ae_assert_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/../Tests "${CMAKE_CURRENT_SOURCE_DIR}/../Tests/ae/*.ll")
 foreach(filename ${ae_assert_files})

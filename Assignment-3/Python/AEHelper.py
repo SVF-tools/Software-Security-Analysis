@@ -435,67 +435,19 @@ class AbstractExecution:
 
 
     def handleCheckpointStubs(self, callNode: pysvf.CallICFGNode):
-        """SAFE_/UNSAFE_ checkpoints: ground-truth bug markers.
+        """Record SAFE_/UNSAFE_ checkpoint reachability and expectations.
 
         Records the call site in ``assert_points`` so
         :py:meth:`ensureAllAssertsValidated` can verify the student's control
-        flow reached it.  The harness reports a bug iff its independent
-        ground-truth check (bypassing the student's predicates) sees one.
+        flow reached it. The checkpoint never inspects state or reports a bug;
+        only the student's checker may create a report.
         """
         self.buf_overflow_helper.noteAssertionPoint(callNode)
         fun_name = callNode.getCalledFunction().getName()
-        abstract_state = self.post_abs_trace[callNode]
-        if fun_name in ("SAFE_BUFACCESS", "UNSAFE_BUFACCESS"):
-            if callNode.arg_size() < 2:
-                return
-            length = abstract_state[callNode.getArgument(1).getId()].getInterval()
-            if length.isBottom():
-                length = IntervalValue(0)
-            ptr = callNode.getArgument(0)
-            if not self._harnessSafeAccess(abstract_state, ptr, length - IntervalValue(1)):
-                self.buf_overflow_helper.reportBufOverflow(
-                    callNode, f"buffer-overflow at {callNode}")
-        elif fun_name in ("SAFE_PTRDEREF", "UNSAFE_PTRDEREF"):
-            if callNode.arg_size() < 1:
-                return
-            ptr = callNode.getArgument(0)
-            if not self._harnessSafeDeref(abstract_state, ptr):
-                self.buf_overflow_helper.reportBufOverflow(
-                    callNode, f"nullptr-deref at {callNode}")
-
-    def _harnessSafeAccess(self, abstract_state, value, length: IntervalValue) -> bool:
-        ptr_val = abstract_state[value.getId()]
-        if not ptr_val.isAddr():
-            return True
-        for addr in ptr_val.getAddrs():
-            if pysvf.AbstractState.isBlackHoleObjAddr(addr) or pysvf.AbstractState.isNullMem(addr):
-                continue
-            obj_id = abstract_state.getIDFromAddr(addr)
-            base_obj = self.svfir.getBaseObject(obj_id)
-            if base_obj is None or base_obj.isBlackHoleObj() or not base_obj.isConstantByteSize():
-                continue
-            size = base_obj.getByteSizeOfObj()
-            gnode = self.svfir.getGNode(obj_id)
-            base_offset = IntervalValue(gnode.getConstantFieldIdx()) if isinstance(gnode, pysvf.GepObjVar) else IntervalValue(0)
-            offset = base_offset + length
-            if int(offset.ub()) >= size:
-                return False
-        return True
-
-    def _harnessSafeDeref(self, abstract_state, value) -> bool:
-        if value is None or isinstance(value, pysvf.ConstNullPtrValVar):
-            return False
-        abs_val = abstract_state[value.getId()]
-        if not abs_val.isAddr():
-            return True
-        for addr in abs_val.getAddrs():
-            if pysvf.AbstractState.isBlackHoleObjAddr(addr):
-                continue
-            if pysvf.AbstractState.isNullMem(addr):
-                return False
-            if abstract_state.isFreedMem(addr):
-                return False
-        return True
+        if fun_name == "UNSAFE_BUFACCESS":
+            self.buf_overflow_helper.noteExpectedReport("buffer-overflow")
+        elif fun_name == "UNSAFE_PTRDEREF":
+            self.buf_overflow_helper.noteExpectedReport("nullptr-deref")
 
 
     # mergeStatesFromPredecessors is a student TODO this year and lives in
@@ -526,13 +478,12 @@ class AbstractExecution:
           * ``UNSAFE_BUFACCESS`` / ``SAFE_BUFACCESS`` -- buffer-access ground truth
 
         A missed stub site means the student's control-flow logic skipped a
-        place the grader cares about.  Additionally requires that the number
-        of reported bugs is at least the number of ``UNSAFE_*`` stubs.
+        place the grader cares about. Report counts must match the reached
+        ``UNSAFE_*`` expectations exactly and independently for each kind.
         """
         assert_stubs = {"svf_assert", "svf_assert_eq"}
         checkpoint_stubs = {"UNSAFE_PTRDEREF", "SAFE_PTRDEREF",
                             "UNSAFE_BUFACCESS", "SAFE_BUFACCESS"}
-        unsafe_to_be_verified = 0
         for node in self.svfir.getICFG().getNodes():
             if not isinstance(node, pysvf.CallICFGNode):
                 continue
@@ -542,15 +493,18 @@ class AbstractExecution:
             name = called_function.getName()
             if name not in assert_stubs and name not in checkpoint_stubs:
                 continue
-            if name.startswith("UNSAFE_"):
-                unsafe_to_be_verified += 1
             if not self.buf_overflow_helper.isAssertionPoint(node):
                 raise AssertionError(
                     f"The stub function callsite ({name}) was not reached by "
                     f"the student's control flow: {node}"
                 )
-        assert unsafe_to_be_verified <= len(self.buf_overflow_helper.node_to_bug_info), \
-            "The number of UNSAFE_* stubs (ground truth) should <= the number of bugs reported"
+        for kind in ("buffer-overflow", "nullptr-deref"):
+            expected = self.buf_overflow_helper.getExpectedReportCount(kind)
+            actual = self.buf_overflow_helper.getReportCount(kind)
+            if actual != expected:
+                raise AssertionError(
+                    f"Assignment 3 report-count mismatch for {kind}: "
+                    f"expected {expected}, got {actual}")
 
 
 
