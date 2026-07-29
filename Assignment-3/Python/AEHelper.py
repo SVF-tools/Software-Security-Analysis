@@ -228,7 +228,7 @@ class ICFGWTO:
         return f"ICFGWTO: {self.components}"
 
 
-class AbstractExecution:
+class AbstractExecution(ABC):
     def __init__(self, pag: pysvf.SVFIR):
         self.svfir = pag
         self.icfg = pag.getICFG()
@@ -241,6 +241,49 @@ class AbstractExecution:
         self.widen_delay = 3
         self.addressMask = 0x7f000000
         self.flippedAddressMask = (self.addressMask^0xffffffff)
+
+    # =========================================================================
+    # FUNCTION STUBS TO IMPLEMENT FOR ASSIGNMENT 3
+    # =========================================================================
+
+    @abstractmethod
+    def handleGlobalNode(self):
+        # TODO
+        pass
+
+    @abstractmethod
+    def handleFunction(self, funEntry: pysvf.ICFGNode):
+        # TODO
+        pass
+
+    @abstractmethod
+    def handleICFGNode(self, node: pysvf.ICFGNode) -> bool:
+        # TODO
+        return False
+
+    @abstractmethod
+    def handleICFGCycle(self, cycle):
+        # TODO
+        pass
+
+    @abstractmethod
+    def handleCallSite(self, node: pysvf.CallICFGNode):
+        # TODO
+        pass
+
+    @abstractmethod
+    def bufOverflowDetection(self, node: pysvf.ICFGNode):
+        # TODO
+        pass
+
+    @abstractmethod
+    def nullptrDerefDetection(self, node: pysvf.ICFGNode):
+        # TODO
+        pass
+
+    # =========================================================================
+    # END ASSIGNMENT 3 FUNCTION STUBS
+    # =========================================================================
 
     def getAEState(self, node: pysvf.ICFGNode) -> AEState:
         if node not in self.post_abs_trace:
