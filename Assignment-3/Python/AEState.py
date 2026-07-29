@@ -53,7 +53,7 @@ class AEState:
             return self.raw.load(addr)
         values = self.raw.getVarToVal()
         if var.getId() not in values:
-            self.raw[var.getId()] = pysvf.IntervalValue.top()
+            self.raw[var.getId()] = pysvf.AbstractValue(pysvf.IntervalValue.top())
         return self.raw[var.getId()]
 
     def updateAbsValue(self, var: pysvf.SVFVar, value) -> None:
@@ -97,7 +97,7 @@ class AEState:
                 assert isinstance(base, pysvf.ObjVar), "Fail to get the base object address"
                 gep_obj = pag.getGepObjVar(base_id, index)
                 gep_addr = pysvf.AbstractState.getVirtualMemAddress(gep_obj)
-                self.raw[gep_obj] = pysvf.AddressValue(gep_addr)
+                self.raw[gep_obj] = pysvf.AbstractValue(pysvf.AddressValue(gep_addr))
                 addresses.insert(gep_addr)
         return addresses
 
