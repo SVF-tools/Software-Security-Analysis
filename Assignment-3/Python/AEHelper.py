@@ -727,20 +727,16 @@ class AbstractExecution:
         node = select.getICFGNode()
         abstract_state = self.post_abs_trace[node]
         assert isinstance(abstract_state, AEState)
-        res = select.get_res_id()
-        tval = select.get_true_value().getId()
-        fval = select.get_false_value().getId()
+        res = select.getResId()
+        tval = select.getTrueValue().getId()
+        fval = select.getFalseValue().getId()
         cond = select.getCondition().getId()
-        if abstract_state[cond].getInterval().isInterval():
+
+        if abstract_state[cond].isInterval():
             if abstract_state[cond].getInterval().is_zero():
                 abstract_state[res] = abstract_state[fval]
             else:
                 abstract_state[res] = abstract_state[tval]
         else:
-            abstract_state[res].joinWith(abstract_state[tval])
-            abstract_state[res].joinWith(abstract_state[fval])
-
-
-
-
-    # getAccessOffset is a student TODO this year and lives in Assignment_3.py.
+            abstract_state[res].join_with(abstract_state[tval])
+            abstract_state[res].join_with(abstract_state[fval])
