@@ -13,24 +13,22 @@ the GEP / strlen / memcpy helpers used by the bug checkers) lives in
 AEReporter.py. The six assignment features live in Assignment_3.py.
 """
 
+from abc import ABC, abstractmethod
+import faulthandler
+
+import pysvf
+from pysvf import ICFG, AbstractValue, AddressValue, ICFGNode, IntervalValue
+from pysvf.enums import Predicate
+
 from AEReporter import AEReporter
 from AEState import AEState, unwrap_state
 
-from abc import abstractmethod
-
-from pysvf import ICFG, ICFGNode
-from typing import List, Dict, Set, Optional
-import pysvf
-import faulthandler
 faulthandler.enable()
 
-import pysvf
-from pysvf import IntervalValue, AddressValue, AbstractValue, AbstractState
-import sys
-from pysvf.enums import OpCode, Predicate
+
 class WTOCycleDepth:
     def __init__(self):
-        self._heads: List[ICFGNode] = []
+        self._heads: list[ICFGNode] = []
 
     def add(self, head: ICFGNode):
         self._heads.append(head)
@@ -78,7 +76,6 @@ class WTOCycleDepth:
         return self.compare(other) == 1
 
 
-
 class ICFGWTOComp:
     def __init__(self, node: ICFGNode):
         self.node = node
@@ -101,7 +98,7 @@ class ICFGWTONode(ICFGWTOComp):
 
 
 class ICFGWTOCycle(ICFGWTOComp):
-    def __init__(self, head: ICFGWTONode, components: List[ICFGWTOComp]):
+    def __init__(self, head: ICFGWTONode, components: list[ICFGWTOComp]):
         self.head = head
         self.components = components
 
@@ -110,7 +107,6 @@ class ICFGWTOCycle(ICFGWTOComp):
 
 
 class ICFGWTO:
-
     class WTOCycleDepthBuilder:
         def __init__(self, node_to_wto_cycle_depth):
             self.wto_cycle_depth = WTOCycleDepth()
@@ -142,21 +138,20 @@ class ICFGWTO:
             self.scc_fun_ids = set(scc)
         else:
             self.scc_fun_ids = {entry.getFun().getId()}
-        self.components: List[ICFGWTOComp] = []
-        self.all_components : Set[ICFGWTOComp] = set()
-        self.head_ref_to_cycle: Dict[ICFGNode, ICFGWTOCycle] = {}
-        self.node_to_depth: Dict[ICFGNode, int] = {}
+        self.components: list[ICFGWTOComp] = []
+        self.all_components : set[ICFGWTOComp] = set()
+        self.head_ref_to_cycle: dict[ICFGNode, ICFGWTOCycle] = {}
+        self.node_to_depth: dict[ICFGNode, int] = {}
 
         self._num = 0
-        self._CDN: Dict[ICFGNode, int] = {}
-        self._stack: List[ICFGNode] = []
+        self._CDN: dict[ICFGNode, int] = {}
+        self._stack: list[ICFGNode] = []
 
     def init(self):
         self.visit(self.entry, self.components)
         self._CDN.clear()
         self._stack.clear()
         self.build_node_to_depth()
-
 
     def component(self, node: ICFGNode) -> ICFGWTOCycle:
         partition = []
@@ -168,8 +163,7 @@ class ICFGWTO:
         self.head_ref_to_cycle[node] = ptr
         return ptr
 
-
-    def visit(self, node: ICFGNode, components: List[ICFGWTOComp]):
+    def visit(self, node: ICFGNode, components: list[ICFGWTOComp]):
         head = 0 # CycleDepthNumber head(0)
         min = 0 # CycleDepthNumber min(0)
         loop = False # bool loop
@@ -199,8 +193,7 @@ class ICFGWTO:
                 components.insert(0, ICFGWTONode(node)) # partition.push_front(newNode(node))
         return head
 
-
-    def get_successors(self, node: ICFGNode) -> List[ICFGNode]:
+    def get_successors(self, node: ICFGNode) -> list[ICFGNode]:
         # Interprocedural successor relation, mirroring C++ ICFGWTO::getSuccessors.
         successors = []
         if isinstance(node, pysvf.CallICFGNode):
@@ -232,7 +225,7 @@ class ICFGWTO:
         return f"ICFGWTO: {self.components}"
 
 
-class AbstractExecution:
+class AbstractExecution(ABC):
     def __init__(self, pag: pysvf.SVFIR):
         self.svfir = pag
         self.icfg = pag.getICFG()
@@ -245,6 +238,49 @@ class AbstractExecution:
         self.widen_delay = 3
         self.addressMask = 0x7f000000
         self.flippedAddressMask = (self.addressMask^0xffffffff)
+
+    # =========================================================================
+    # FUNCTION STUBS TO IMPLEMENT FOR ASSIGNMENT 3
+    # =========================================================================
+
+    @abstractmethod
+    def handleGlobalNode(self):
+        # TODO
+        pass
+
+    @abstractmethod
+    def handleFunction(self, funEntry: pysvf.ICFGNode):
+        # TODO
+        pass
+
+    @abstractmethod
+    def handleICFGNode(self, node: pysvf.ICFGNode) -> bool:
+        # TODO
+        return False
+
+    @abstractmethod
+    def handleICFGCycle(self, cycle):
+        # TODO
+        pass
+
+    @abstractmethod
+    def handleCallSite(self, node: pysvf.CallICFGNode):
+        # TODO
+        pass
+
+    @abstractmethod
+    def bufOverflowDetection(self, node: pysvf.ICFGNode):
+        # TODO
+        pass
+
+    @abstractmethod
+    def nullptrDerefDetection(self, node: pysvf.ICFGNode):
+        # TODO
+        pass
+
+    # =========================================================================
+    # END ASSIGNMENT 3 FUNCTION STUBS
+    # =========================================================================
 
     def getAEState(self, node: pysvf.ICFGNode) -> AEState:
         if node not in self.post_abs_trace:
@@ -280,15 +316,15 @@ class AbstractExecution:
         self.buf_overflow_helper.reportBufOverflow(
             node, msg if msg is not None else f"nullptr-deref at {node}")
 
-    """
-    Initialize the interprocedural WTO per call-graph SCC entry.
-
-    Each (mutually) recursive function's entry node becomes a WTO cycle head
-    because intra-SCC call edges are turned into back-edges.  The same
-    widening/narrowing machinery used for loops then drives recursion to a
-    fixpoint via handleICFGCycle; there is no separate "is recursive?" check.
-    """
     def initWto(self):
+        """
+        Initialize the interprocedural WTO per call-graph SCC entry.
+    
+        Each (mutually) recursive function's entry node becomes a WTO cycle head
+        because intra-SCC call edges are turned into back-edges.  The same
+        widening/narrowing machinery used for loops then drives recursion to a
+        fixpoint via handleICFGCycle; there is no separate "is recursive?" check.
+        """
         callgraphScc = pysvf.getCallGraphSCC()
         self._callgraph_scc = callgraphScc
         callgraph = self.svfir.getCallGraph()
@@ -328,28 +364,8 @@ class AbstractExecution:
             # hash consistently across calls, so don't use the object as a key.
             self.func_to_wto[fun.getId()] = wto
 
-
-
-    """
-    Placeholder for additional documentation or functionality.
-    """
     def getVirtualMemAddress(self, idx: int) -> int:
         return self.addressMask + idx
-
-
-    """
-    Handle the global ICFG node by initializing its abstract state and updating it based on its statements.
-
-    This function performs the following steps:
-    1. Initializes the abstract state for the global ICFG node in both pre- and post-abstract traces.
-    2. Sets the initial value of variable 0 to an address value of 0.
-    3. Iterates through all statements in the global ICFG node and updates the abstract state accordingly.
-    """
-    # handleGlobalNode / handleFunction / handleICFGNode are student TODOs
-    # this year and live in Assignment_3.py.
-
-    # handleCallSite is part of the analysis driver and lives in
-    # Assignment_3.py.
 
     def inSameCallGraphSCC(self, fun1, fun2) -> bool:
         scc = getattr(self, "_callgraph_scc", None)
@@ -383,30 +399,29 @@ class AbstractExecution:
             return True
         return any(key in name for key in self._EXT_API_SUBSTRINGS)
 
-
-    """
-    Handle stub functions such as 'svf_assert' and 'OVERFLOW'.
-
-    This function processes specific stub functions in the program's control flow graph (CFG) 
-    to validate assertions or detect buffer overflows. It performs the following tasks:
-
-    1. For 'svf_assert':
-       - Adds the call node to the set of assertion points.
-       - Checks the abstract state of the argument to determine if the assertion is valid.
-       - If the assertion is invalid or unsatisfiable, raises an error.
-
-    2. For 'OVERFLOW':
-       - Adds the call node to the set of assertion points.
-       - Checks if the right-hand side (RHS) value is an address.
-       - Iterates through the addresses to calculate the access offset and compare it 
-         with the object size to detect buffer overflows.
-       - If a buffer overflow is detected, records the overflow node and prints a success message.
-       - If no overflow is detected, raises an error.
-
-    :param call_node: The call node representing the stub function in the CFG.
-    :type call_node: pysvf.CallICFGNode
-    """
     def handleStubFunction(self, callNode: pysvf.CallICFGNode):
+        """
+        Handle stub functions such as 'svf_assert' and 'OVERFLOW'.
+
+        This function processes specific stub functions in the program's control flow graph (CFG) 
+        to validate assertions or detect buffer overflows. It performs the following tasks:
+
+        1. For 'svf_assert':
+           - Adds the call node to the set of assertion points.
+           - Checks the abstract state of the argument to determine if the assertion is valid.
+           - If the assertion is invalid or unsatisfiable, raises an error.
+
+        2. For 'OVERFLOW':
+           - Adds the call node to the set of assertion points.
+           - Checks if the right-hand side (RHS) value is an address.
+           - Iterates through the addresses to calculate the access offset and compare it 
+             with the object size to detect buffer overflows.
+           - If a buffer overflow is detected, records the overflow node and prints a success message.
+           - If no overflow is detected, raises an error.
+
+        :param call_node: The call node representing the stub function in the CFG.
+        :type call_node: pysvf.CallICFGNode
+        """
         # Get the callee function associated with the call site
         if callNode.getCalledFunction().getName() == "svf_assert":
             self.buf_overflow_helper.noteAssertionPoint(callNode)
@@ -436,7 +451,6 @@ class AbstractExecution:
             else:
                 print(f"svf_assert_eq Fail. {callNode}")
                 assert False
-
 
     def handleCheckpointStubs(self, callNode: pysvf.CallICFGNode):
         """SAFE_/UNSAFE_ checkpoints: ground-truth bug markers.
@@ -500,9 +514,13 @@ class AbstractExecution:
             if abstract_state.isFreedMem(addr):
                 return False
         return True
-    def isBranchFeasible(self, intraEdge: pysvf.IntraCFGEdge, abstractState:  pysvf.AbstractState) -> bool :
+    
+    def isBranchFeasible(self, intraEdge: pysvf.IntraCFGEdge, abstractState: pysvf.AbstractState) -> bool:
         cmp_var = intraEdge.getCondition()
+        assert cmp_var, "Edge must have condition"
+
         cmp_in_edges = cmp_var.getInEdges()
+        
         if len(cmp_in_edges) == 0:
             return pysvf.AbstractState.isSwitchBranchFeasible(self.svfir, cmp_var, intraEdge.getSuccessorCondValue(), abstractState)
         else:
@@ -511,10 +529,6 @@ class AbstractExecution:
                 return pysvf.AbstractState.isCmpBranchFeasible(self.svfir, cmp, intraEdge.getSuccessorCondValue(), abstractState)
             else:
                 return pysvf.AbstractState.isSwitchBranchFeasible(self.svfir, cmp_var, intraEdge.getSuccessorCondValue(), abstractState)
-
-
-
-
 
     def ensureAllAssertsValidated(self):
         """Verify the student's control flow reached every ground-truth stub.
@@ -551,35 +565,29 @@ class AbstractExecution:
         assert unsafe_to_be_verified <= len(self.buf_overflow_helper.node_to_bug_info), \
             "The number of UNSAFE_* stubs (ground truth) should <= the number of bugs reported"
 
-
-
-
-    # The analysis entry points and reporting forwarders live on the student
-    # side in Assignment_3.py.
-
-    """
-    Initialize an object variable in the abstract state.
-
-    This function determines the initial abstract value for a given object variable
-    based on its type and properties. It handles various types of object variables,
-    including constants, global variables, and complex structures, and assigns
-    appropriate abstract values such as intervals or addresses.
-
-    Steps:
-    1. Retrieve the base object associated with the given object variable.
-    2. Check the type of the object variable:
-       - For constant integer or floating-point variables, return their exact value as an interval.
-       - For null pointers, return an interval representing zero.
-       - For global variables, return an address value based on a virtual memory address.
-       - For constant arrays or structures, return a top interval to represent unknown values.
-    3. For other types of object variables, return an address value based on a virtual memory address.
-
-    :param obj_var: The object variable to initialize.
-    :type obj_var: pysvf.ObjVar
-    :return: The initialized abstract value for the object variable.
-    :rtype: pysvf.AbstractValue
-    """
     def initObjVar(self, objVar: pysvf.ObjVar):
+        """
+        Initialize an object variable in the abstract state.
+    
+        This function determines the initial abstract value for a given object variable
+        based on its type and properties. It handles various types of object variables,
+        including constants, global variables, and complex structures, and assigns
+        appropriate abstract values such as intervals or addresses.
+    
+        Steps:
+        1. Retrieve the base object associated with the given object variable.
+        2. Check the type of the object variable:
+           - For constant integer or floating-point variables, return their exact value as an interval.
+           - For null pointers, return an interval representing zero.
+           - For global variables, return an address value based on a virtual memory address.
+           - For constant arrays or structures, return a top interval to represent unknown values.
+        3. For other types of object variables, return an address value based on a virtual memory address.
+    
+        :param obj_var: The object variable to initialize.
+        :type obj_var: pysvf.ObjVar
+        :return: The initialized abstract value for the object variable.
+        :rtype: pysvf.AbstractValue
+        """
         var_id = objVar.getId()
         obj = self.svfir.getBaseObject(var_id).asBaseObjVar()
         if obj.isConstDataObjVar() or obj.isConstantArray() or obj.isConstantStruct():
@@ -603,19 +611,12 @@ class AbstractExecution:
         else:
             return AddressValue(self.getVirtualMemAddress(var_id))
 
-
     def updateStateOnAddr(self, addr: pysvf.AddrStmt):
         node = addr.getICFGNode()
         abstract_state = self.post_abs_trace[node]
         assert isinstance(abstract_state, AEState)
         abstract_state[addr.getRHSVarID()] = AbstractValue(self.initObjVar(addr.getRHSVar().asObjVar()))
         abstract_state[addr.getLHSVarID()] = abstract_state[addr.getRHSVarID()]
-
-
-
-
-
-
 
     def updateStateOnCmp(self, cmp: pysvf.CmpStmt):
         node = cmp.getICFGNode()
@@ -705,8 +706,6 @@ class AbstractExecution:
 
             abstract_state[res] = res_val
 
-
-
     def updateStateOnCall(self, call: pysvf.CallPE):
         node = call.getICFGNode()
         abstract_state = self.post_abs_trace[node]
@@ -719,32 +718,25 @@ class AbstractExecution:
                 self.post_abs_trace[call_node][call.getOpVarId(index)])
         abstract_state[call.getResId()] = joined
 
-
     def updateStateOnRet(self, ret: pysvf.RetPE):
         node = ret.getICFGNode()
         abstract_state = self.post_abs_trace[node]
         abstract_state[ret.getLHSVarID()] = abstract_state[ret.getRHSVarID()]
 
-
-
     def updateStateOnSelect(self, select: pysvf.SelectStmt):
         node = select.getICFGNode()
         abstract_state = self.post_abs_trace[node]
         assert isinstance(abstract_state, AEState)
-        res = select.get_res_id()
-        tval = select.get_true_value().getId()
-        fval = select.get_false_value().getId()
+        res = select.getResId()
+        tval = select.getTrueValue().getId()
+        fval = select.getFalseValue().getId()
         cond = select.getCondition().getId()
-        if abstract_state[cond].getInterval().isInterval():
+
+        if abstract_state[cond].isInterval():
             if abstract_state[cond].getInterval().is_zero():
                 abstract_state[res] = abstract_state[fval]
             else:
                 abstract_state[res] = abstract_state[tval]
         else:
-            abstract_state[res].joinWith(abstract_state[tval])
-            abstract_state[res].joinWith(abstract_state[fval])
-
-
-
-
-    # getAccessOffset is a student TODO this year and lives in Assignment_3.py.
+            abstract_state[res].join_with(abstract_state[tval])
+            abstract_state[res].join_with(abstract_state[fval])
