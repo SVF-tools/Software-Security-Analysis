@@ -13,24 +13,22 @@ the GEP / strlen / memcpy helpers used by the bug checkers) lives in
 AEReporter.py. The six assignment features live in Assignment_3.py.
 """
 
+from abc import ABC, abstractmethod
+import faulthandler
+
+import pysvf
+from pysvf import ICFG, AbstractValue, AddressValue, ICFGNode, IntervalValue
+from pysvf.enums import Predicate
+
 from AEReporter import AEReporter
 from AEState import AEState, unwrap_state
 
-from abc import abstractmethod
-
-from pysvf import ICFG, ICFGNode
-from typing import List, Dict, Set, Optional
-import pysvf
-import faulthandler
 faulthandler.enable()
 
-import pysvf
-from pysvf import IntervalValue, AddressValue, AbstractValue, AbstractState
-import sys
-from pysvf.enums import OpCode, Predicate
+
 class WTOCycleDepth:
     def __init__(self):
-        self._heads: List[ICFGNode] = []
+        self._heads: list[ICFGNode] = []
 
     def add(self, head: ICFGNode):
         self._heads.append(head)
@@ -101,7 +99,7 @@ class ICFGWTONode(ICFGWTOComp):
 
 
 class ICFGWTOCycle(ICFGWTOComp):
-    def __init__(self, head: ICFGWTONode, components: List[ICFGWTOComp]):
+    def __init__(self, head: ICFGWTONode, components: list[ICFGWTOComp]):
         self.head = head
         self.components = components
 
@@ -142,14 +140,14 @@ class ICFGWTO:
             self.scc_fun_ids = set(scc)
         else:
             self.scc_fun_ids = {entry.getFun().getId()}
-        self.components: List[ICFGWTOComp] = []
-        self.all_components : Set[ICFGWTOComp] = set()
-        self.head_ref_to_cycle: Dict[ICFGNode, ICFGWTOCycle] = {}
-        self.node_to_depth: Dict[ICFGNode, int] = {}
+        self.components: list[ICFGWTOComp] = []
+        self.all_components : set[ICFGWTOComp] = set()
+        self.head_ref_to_cycle: dict[ICFGNode, ICFGWTOCycle] = {}
+        self.node_to_depth: dict[ICFGNode, int] = {}
 
         self._num = 0
-        self._CDN: Dict[ICFGNode, int] = {}
-        self._stack: List[ICFGNode] = []
+        self._CDN: dict[ICFGNode, int] = {}
+        self._stack: list[ICFGNode] = []
 
     def init(self):
         self.visit(self.entry, self.components)
@@ -168,8 +166,7 @@ class ICFGWTO:
         self.head_ref_to_cycle[node] = ptr
         return ptr
 
-
-    def visit(self, node: ICFGNode, components: List[ICFGWTOComp]):
+    def visit(self, node: ICFGNode, components: list[ICFGWTOComp]):
         head = 0 # CycleDepthNumber head(0)
         min = 0 # CycleDepthNumber min(0)
         loop = False # bool loop
@@ -199,8 +196,7 @@ class ICFGWTO:
                 components.insert(0, ICFGWTONode(node)) # partition.push_front(newNode(node))
         return head
 
-
-    def get_successors(self, node: ICFGNode) -> List[ICFGNode]:
+    def get_successors(self, node: ICFGNode) -> list[ICFGNode]:
         # Interprocedural successor relation, mirroring C++ ICFGWTO::getSuccessors.
         successors = []
         if isinstance(node, pysvf.CallICFGNode):
