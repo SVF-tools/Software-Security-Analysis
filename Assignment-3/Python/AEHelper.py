@@ -76,7 +76,6 @@ class WTOCycleDepth:
         return self.compare(other) == 1
 
 
-
 class ICFGWTOComp:
     def __init__(self, node: ICFGNode):
         self.node = node
@@ -108,7 +107,6 @@ class ICFGWTOCycle(ICFGWTOComp):
 
 
 class ICFGWTO:
-
     class WTOCycleDepthBuilder:
         def __init__(self, node_to_wto_cycle_depth):
             self.wto_cycle_depth = WTOCycleDepth()
@@ -154,7 +152,6 @@ class ICFGWTO:
         self._CDN.clear()
         self._stack.clear()
         self.build_node_to_depth()
-
 
     def component(self, node: ICFGNode) -> ICFGWTOCycle:
         partition = []
@@ -367,28 +364,14 @@ class AbstractExecution(ABC):
             # hash consistently across calls, so don't use the object as a key.
             self.func_to_wto[fun.getId()] = wto
 
-
-
     """
     Placeholder for additional documentation or functionality.
     """
     def getVirtualMemAddress(self, idx: int) -> int:
         return self.addressMask + idx
 
-
-    """
-    Handle the global ICFG node by initializing its abstract state and updating it based on its statements.
-
-    This function performs the following steps:
-    1. Initializes the abstract state for the global ICFG node in both pre- and post-abstract traces.
-    2. Sets the initial value of variable 0 to an address value of 0.
-    3. Iterates through all statements in the global ICFG node and updates the abstract state accordingly.
-    """
     # handleGlobalNode / handleFunction / handleICFGNode are student TODOs
     # this year and live in Assignment_3.py.
-
-    # handleCallSite is part of the analysis driver and lives in
-    # Assignment_3.py.
 
     def inSameCallGraphSCC(self, fun1, fun2) -> bool:
         scc = getattr(self, "_callgraph_scc", None)
@@ -421,7 +404,6 @@ class AbstractExecution(ABC):
         if name in self._EXT_EXACT_STUBS:
             return True
         return any(key in name for key in self._EXT_API_SUBSTRINGS)
-
 
     """
     Handle stub functions such as 'svf_assert' and 'OVERFLOW'.
@@ -475,7 +457,6 @@ class AbstractExecution(ABC):
             else:
                 print(f"svf_assert_eq Fail. {callNode}")
                 assert False
-
 
     def handleCheckpointStubs(self, callNode: pysvf.CallICFGNode):
         """SAFE_/UNSAFE_ checkpoints: ground-truth bug markers.
@@ -555,10 +536,6 @@ class AbstractExecution(ABC):
             else:
                 return pysvf.AbstractState.isSwitchBranchFeasible(self.svfir, cmp_var, intraEdge.getSuccessorCondValue(), abstractState)
 
-
-
-
-
     def ensureAllAssertsValidated(self):
         """Verify the student's control flow reached every ground-truth stub.
 
@@ -593,12 +570,6 @@ class AbstractExecution(ABC):
                 )
         assert unsafe_to_be_verified <= len(self.buf_overflow_helper.node_to_bug_info), \
             "The number of UNSAFE_* stubs (ground truth) should <= the number of bugs reported"
-
-
-
-
-    # The analysis entry points and reporting forwarders live on the student
-    # side in Assignment_3.py.
 
     """
     Initialize an object variable in the abstract state.
@@ -646,19 +617,12 @@ class AbstractExecution(ABC):
         else:
             return AddressValue(self.getVirtualMemAddress(var_id))
 
-
     def updateStateOnAddr(self, addr: pysvf.AddrStmt):
         node = addr.getICFGNode()
         abstract_state = self.post_abs_trace[node]
         assert isinstance(abstract_state, AEState)
         abstract_state[addr.getRHSVarID()] = AbstractValue(self.initObjVar(addr.getRHSVar().asObjVar()))
         abstract_state[addr.getLHSVarID()] = abstract_state[addr.getRHSVarID()]
-
-
-
-
-
-
 
     def updateStateOnCmp(self, cmp: pysvf.CmpStmt):
         node = cmp.getICFGNode()
@@ -748,8 +712,6 @@ class AbstractExecution(ABC):
 
             abstract_state[res] = res_val
 
-
-
     def updateStateOnCall(self, call: pysvf.CallPE):
         node = call.getICFGNode()
         abstract_state = self.post_abs_trace[node]
@@ -762,13 +724,10 @@ class AbstractExecution(ABC):
                 self.post_abs_trace[call_node][call.getOpVarId(index)])
         abstract_state[call.getResId()] = joined
 
-
     def updateStateOnRet(self, ret: pysvf.RetPE):
         node = ret.getICFGNode()
         abstract_state = self.post_abs_trace[node]
         abstract_state[ret.getLHSVarID()] = abstract_state[ret.getRHSVarID()]
-
-
 
     def updateStateOnSelect(self, select: pysvf.SelectStmt):
         node = select.getICFGNode()
