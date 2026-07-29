@@ -539,9 +539,13 @@ class AbstractExecution(ABC):
             if abstract_state.isFreedMem(addr):
                 return False
         return True
-    def isBranchFeasible(self, intraEdge: pysvf.IntraCFGEdge, abstractState:  pysvf.AbstractState) -> bool :
+    
+    def isBranchFeasible(self, intraEdge: pysvf.IntraCFGEdge, abstractState: pysvf.AbstractState) -> bool:
         cmp_var = intraEdge.getCondition()
+        assert cmp_var, "Edge must have condition"
+
         cmp_in_edges = cmp_var.getInEdges()
+        
         if len(cmp_in_edges) == 0:
             return pysvf.AbstractState.isSwitchBranchFeasible(self.svfir, cmp_var, intraEdge.getSuccessorCondValue(), abstractState)
         else:
