@@ -316,15 +316,15 @@ class AbstractExecution(ABC):
         self.buf_overflow_helper.reportBufOverflow(
             node, msg if msg is not None else f"nullptr-deref at {node}")
 
-    """
-    Initialize the interprocedural WTO per call-graph SCC entry.
-
-    Each (mutually) recursive function's entry node becomes a WTO cycle head
-    because intra-SCC call edges are turned into back-edges.  The same
-    widening/narrowing machinery used for loops then drives recursion to a
-    fixpoint via handleICFGCycle; there is no separate "is recursive?" check.
-    """
     def initWto(self):
+        """
+        Initialize the interprocedural WTO per call-graph SCC entry.
+    
+        Each (mutually) recursive function's entry node becomes a WTO cycle head
+        because intra-SCC call edges are turned into back-edges.  The same
+        widening/narrowing machinery used for loops then drives recursion to a
+        fixpoint via handleICFGCycle; there is no separate "is recursive?" check.
+        """
         callgraphScc = pysvf.getCallGraphSCC()
         self._callgraph_scc = callgraphScc
         callgraph = self.svfir.getCallGraph()
@@ -364,14 +364,8 @@ class AbstractExecution(ABC):
             # hash consistently across calls, so don't use the object as a key.
             self.func_to_wto[fun.getId()] = wto
 
-    """
-    Placeholder for additional documentation or functionality.
-    """
     def getVirtualMemAddress(self, idx: int) -> int:
         return self.addressMask + idx
-
-    # handleGlobalNode / handleFunction / handleICFGNode are student TODOs
-    # this year and live in Assignment_3.py.
 
     def inSameCallGraphSCC(self, fun1, fun2) -> bool:
         scc = getattr(self, "_callgraph_scc", None)
@@ -405,29 +399,29 @@ class AbstractExecution(ABC):
             return True
         return any(key in name for key in self._EXT_API_SUBSTRINGS)
 
-    """
-    Handle stub functions such as 'svf_assert' and 'OVERFLOW'.
-
-    This function processes specific stub functions in the program's control flow graph (CFG) 
-    to validate assertions or detect buffer overflows. It performs the following tasks:
-
-    1. For 'svf_assert':
-       - Adds the call node to the set of assertion points.
-       - Checks the abstract state of the argument to determine if the assertion is valid.
-       - If the assertion is invalid or unsatisfiable, raises an error.
-
-    2. For 'OVERFLOW':
-       - Adds the call node to the set of assertion points.
-       - Checks if the right-hand side (RHS) value is an address.
-       - Iterates through the addresses to calculate the access offset and compare it 
-         with the object size to detect buffer overflows.
-       - If a buffer overflow is detected, records the overflow node and prints a success message.
-       - If no overflow is detected, raises an error.
-
-    :param call_node: The call node representing the stub function in the CFG.
-    :type call_node: pysvf.CallICFGNode
-    """
     def handleStubFunction(self, callNode: pysvf.CallICFGNode):
+        """
+        Handle stub functions such as 'svf_assert' and 'OVERFLOW'.
+
+        This function processes specific stub functions in the program's control flow graph (CFG) 
+        to validate assertions or detect buffer overflows. It performs the following tasks:
+
+        1. For 'svf_assert':
+           - Adds the call node to the set of assertion points.
+           - Checks the abstract state of the argument to determine if the assertion is valid.
+           - If the assertion is invalid or unsatisfiable, raises an error.
+
+        2. For 'OVERFLOW':
+           - Adds the call node to the set of assertion points.
+           - Checks if the right-hand side (RHS) value is an address.
+           - Iterates through the addresses to calculate the access offset and compare it 
+             with the object size to detect buffer overflows.
+           - If a buffer overflow is detected, records the overflow node and prints a success message.
+           - If no overflow is detected, raises an error.
+
+        :param call_node: The call node representing the stub function in the CFG.
+        :type call_node: pysvf.CallICFGNode
+        """
         # Get the callee function associated with the call site
         if callNode.getCalledFunction().getName() == "svf_assert":
             self.buf_overflow_helper.noteAssertionPoint(callNode)
@@ -571,29 +565,29 @@ class AbstractExecution(ABC):
         assert unsafe_to_be_verified <= len(self.buf_overflow_helper.node_to_bug_info), \
             "The number of UNSAFE_* stubs (ground truth) should <= the number of bugs reported"
 
-    """
-    Initialize an object variable in the abstract state.
-
-    This function determines the initial abstract value for a given object variable
-    based on its type and properties. It handles various types of object variables,
-    including constants, global variables, and complex structures, and assigns
-    appropriate abstract values such as intervals or addresses.
-
-    Steps:
-    1. Retrieve the base object associated with the given object variable.
-    2. Check the type of the object variable:
-       - For constant integer or floating-point variables, return their exact value as an interval.
-       - For null pointers, return an interval representing zero.
-       - For global variables, return an address value based on a virtual memory address.
-       - For constant arrays or structures, return a top interval to represent unknown values.
-    3. For other types of object variables, return an address value based on a virtual memory address.
-
-    :param obj_var: The object variable to initialize.
-    :type obj_var: pysvf.ObjVar
-    :return: The initialized abstract value for the object variable.
-    :rtype: pysvf.AbstractValue
-    """
     def initObjVar(self, objVar: pysvf.ObjVar):
+        """
+        Initialize an object variable in the abstract state.
+    
+        This function determines the initial abstract value for a given object variable
+        based on its type and properties. It handles various types of object variables,
+        including constants, global variables, and complex structures, and assigns
+        appropriate abstract values such as intervals or addresses.
+    
+        Steps:
+        1. Retrieve the base object associated with the given object variable.
+        2. Check the type of the object variable:
+           - For constant integer or floating-point variables, return their exact value as an interval.
+           - For null pointers, return an interval representing zero.
+           - For global variables, return an address value based on a virtual memory address.
+           - For constant arrays or structures, return a top interval to represent unknown values.
+        3. For other types of object variables, return an address value based on a virtual memory address.
+    
+        :param obj_var: The object variable to initialize.
+        :type obj_var: pysvf.ObjVar
+        :return: The initialized abstract value for the object variable.
+        :rtype: pysvf.AbstractValue
+        """
         var_id = objVar.getId()
         obj = self.svfir.getBaseObject(var_id).asBaseObjVar()
         if obj.isConstDataObjVar() or obj.isConstantArray() or obj.isConstantStruct():
