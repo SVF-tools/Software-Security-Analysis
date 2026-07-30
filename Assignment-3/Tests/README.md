@@ -7,9 +7,9 @@ The repository includes public examples for two marking levels:
 
 These examples are not the complete marking suite. Additional hidden cases are
 used for marking. Level 1 provides each public case as a flat `.c`/`.ll` pair.
-Level 2 keeps the source, LLVM IR, bitcode, and notes for its single fixture
-directly in the level directory. `GRADING.md` defines the score allocation.
-Marking runs are subject to a timeout.
+Level 2 keeps one self-contained C source, its LLVM IR and bitcode, and notes
+for its single fixture directly in the level directory. `GRADING.md` defines
+the score allocation. Marking runs are subject to a timeout.
 
 ## Level 1
 
@@ -50,6 +50,10 @@ Release-build/bin/ass3 \
 python3 Assignment-3/Python/test-ae.py \
   Assignment-3/Tests/level-2/repro.ll
 ```
+
+Both reference implementations have been verified to complete in an 8 GiB
+Docker cgroup with swap disabled. See `level-2/notes.md` for the validation
+details.
 
 Level 3 assesses large-program execution and report precision. No Level-3
 fixture is published in this repository.
