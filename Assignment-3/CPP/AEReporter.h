@@ -116,7 +116,15 @@ namespace SVF {
 			}
 
 			// Add the bug to the recorder with details from the event stack
-			_recoder.addAbsExecBug(GenericBug::FULLBUFOVERFLOW, eventStack, 0, 0, 0, 0);
+			if (kind == "buffer-overflow") {
+				_recoder.addAbsExecBug(GenericBug::FULLBUFOVERFLOW, eventStack, 0, 0, 0, 0);
+			}
+			else if (kind == "nullptr-deref") {
+				_recoder.addAbsExecBug(GenericBug::FULLNULLPTRDEREFERENCE, eventStack, 0, 0, 0, 0);
+			}
+			else {
+				assert(false && "Unsupported Assignment-3 bug kind");
+			}
 			_nodeToBugInfo[node] = e.what(); // Record the exception information for the node
 			_reports.push_back({kind, loc, e.what(), node ? node->getId() : 0});
 		}
