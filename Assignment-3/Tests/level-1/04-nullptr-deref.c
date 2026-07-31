@@ -1,7 +1,6 @@
 extern void UNSAFE_PTRDEREF(void *);
 
 int main(void) {
-    int *p = (int *)0;
-    UNSAFE_PTRDEREF(p);
+    UNSAFE_PTRDEREF((void *)0);
     return 0;
 }
