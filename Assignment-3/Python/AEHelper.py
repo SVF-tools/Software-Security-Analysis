@@ -17,7 +17,7 @@ from abc import ABC, abstractmethod
 import faulthandler
 
 import pysvf
-from pysvf import ICFG, AbstractValue, AddressValue, ICFGNode, IntervalValue
+from pysvf import ICFG, AbstractValue, ICFGNode, IntervalValue
 from pysvf.enums import Predicate
 
 from AEReporter import AEReporter
@@ -515,21 +515,6 @@ class AbstractExecution(ABC):
                 return False
         return True
     
-    def isBranchFeasible(self, intraEdge: pysvf.IntraCFGEdge, abstractState: pysvf.AbstractState) -> bool:
-        cmp_var = intraEdge.getCondition()
-        assert cmp_var, "Edge must have condition"
-
-        cmp_in_edges = cmp_var.getInEdges()
-        
-        if len(cmp_in_edges) == 0:
-            return pysvf.AbstractState.isSwitchBranchFeasible(self.svfir, cmp_var, intraEdge.getSuccessorCondValue(), abstractState)
-        else:
-            cmp = cmp_in_edges[0]
-            if isinstance(cmp, pysvf.CmpStmt):
-                return pysvf.AbstractState.isCmpBranchFeasible(self.svfir, cmp, intraEdge.getSuccessorCondValue(), abstractState)
-            else:
-                return pysvf.AbstractState.isSwitchBranchFeasible(self.svfir, cmp_var, intraEdge.getSuccessorCondValue(), abstractState)
-
     def ensureAllAssertsValidated(self):
         """Verify the student's control flow reached every ground-truth stub.
 
@@ -565,147 +550,6 @@ class AbstractExecution(ABC):
         assert unsafe_to_be_verified <= len(self.buf_overflow_helper.node_to_bug_info), \
             "The number of UNSAFE_* stubs (ground truth) should <= the number of bugs reported"
 
-    def initObjVar(self, objVar: pysvf.ObjVar):
-        """
-        Initialize an object variable in the abstract state.
-    
-        This function determines the initial abstract value for a given object variable
-        based on its type and properties. It handles various types of object variables,
-        including constants, global variables, and complex structures, and assigns
-        appropriate abstract values such as intervals or addresses.
-    
-        Steps:
-        1. Retrieve the base object associated with the given object variable.
-        2. Check the type of the object variable:
-           - For constant integer or floating-point variables, return their exact value as an interval.
-           - For null pointers, return an interval representing zero.
-           - For global variables, return an address value based on a virtual memory address.
-           - For constant arrays or structures, return a top interval to represent unknown values.
-        3. For other types of object variables, return an address value based on a virtual memory address.
-    
-        :param obj_var: The object variable to initialize.
-        :type obj_var: pysvf.ObjVar
-        :return: The initialized abstract value for the object variable.
-        :rtype: pysvf.AbstractValue
-        """
-        var_id = objVar.getId()
-        obj = self.svfir.getBaseObject(var_id).asBaseObjVar()
-        if obj.isConstDataObjVar() or obj.isConstantArray() or obj.isConstantStruct():
-            if isinstance(objVar, pysvf.ConstIntObjVar):
-                numeral = objVar.getSExtValue()
-                return IntervalValue(numeral, numeral)
-
-            elif isinstance(objVar, pysvf.ConstFPObjVar):
-                return IntervalValue(objVar.getFPValue(), objVar.getFPValue())
-
-            elif isinstance(objVar, pysvf.ConstNullPtrObjVar):
-                return IntervalValue(0,0)
-
-            elif isinstance(objVar, pysvf.GlobalObjVar):
-                return AddressValue(self.getVirtualMemAddress(var_id))
-
-            elif obj.isConstantArray() or obj.isConstantStruct():
-                return IntervalValue.top()
-            else:
-                return IntervalValue.top()
-        else:
-            return AddressValue(self.getVirtualMemAddress(var_id))
-
-    def updateStateOnAddr(self, addr: pysvf.AddrStmt):
-        node = addr.getICFGNode()
-        abstract_state = self.post_abs_trace[node]
-        assert isinstance(abstract_state, AEState)
-        abstract_state[addr.getRHSVarID()] = AbstractValue(self.initObjVar(addr.getRHSVar().asObjVar()))
-        abstract_state[addr.getLHSVarID()] = abstract_state[addr.getRHSVarID()]
-
-    def updateStateOnCmp(self, cmp: pysvf.CmpStmt):
-        node = cmp.getICFGNode()
-        abstract_state = self.post_abs_trace[node]
-        assert isinstance(abstract_state, AEState)
-        op0 = cmp.getOpVar(0)
-        op1 = cmp.getOpVar(1)
-        res = cmp.getResId()
-        if abstract_state.getVar(op0.getId()).isInterval() and abstract_state.getVar(op0.getId()).isInterval():
-            res_val = IntervalValue(0)
-            lhs = abstract_state[op0.getId()].getInterval()
-            rhs = abstract_state[op1.getId()].getInterval()
-            predicate = cmp.getPredicate()
-            if predicate == Predicate.ICMP_EQ or predicate == Predicate.FCMP_OEQ or predicate == Predicate.FCMP_UEQ:
-                res_val = lhs.eq_interval(rhs)
-            elif predicate == Predicate.ICMP_NE or predicate == Predicate.FCMP_ONE or predicate == Predicate.FCMP_UNE:
-                res_val = lhs.ne_interval(rhs)
-            elif predicate == Predicate.ICMP_SGT or  predicate == Predicate.FCMP_UGT or predicate == Predicate.FCMP_OGT or predicate == Predicate.FCMP_UGT:
-                res_val = (lhs  > rhs)
-            elif predicate == Predicate.ICMP_SGE or  predicate == Predicate.FCMP_UGE or predicate == Predicate.FCMP_OGE or predicate == Predicate.FCMP_UGE:
-                res_val = (lhs >= rhs)
-            elif predicate == Predicate.ICMP_SLT or  predicate == Predicate.ICMP_ULT or predicate == Predicate.FCMP_OLT or predicate == Predicate.FCMP_ULT:
-                res_val = (lhs < rhs)
-            elif predicate == Predicate.ICMP_SLE or predicate == Predicate.ICMP_ULE or  predicate == Predicate.FCMP_OLE or predicate == Predicate.FCMP_ULE:
-                res_val = (lhs <= rhs)
-            elif predicate == Predicate.FCMP_FALSE:
-                res_val = IntervalValue(0,0)
-            elif predicate == Predicate.FCMP_TRUE:
-                res_val = IntervalValue(1,1)
-            abstract_state[res] = AbstractValue(res_val)
-        if abstract_state.getVar(op0.getId()).isAddr() and abstract_state.getVar(op0.getId()).isAddr():
-            res_val = None
-            lhs = abstract_state[op0.getId()]
-            rhs = abstract_state[op1.getId()]
-            predicate = cmp.getPredicate()
-
-            if predicate in [Predicate.ICMP_EQ, Predicate.FCMP_OEQ, Predicate.FCMP_UEQ]:
-                if len(lhs.getAddrs()) == 1 and len(rhs.getAddrs()) == 1:
-                    res_val = IntervalValue(lhs.equals(rhs))
-                else:
-                    if lhs.getAddrs().hasIntersect(rhs.getAddrs()):
-                        res_val = IntervalValue.top()
-                    else:
-                        res_val = IntervalValue(0)
-
-            elif predicate in [Predicate.ICMP_NE, Predicate.FCMP_ONE, Predicate.FCMP_UNE]:
-                if len(lhs.getAddrs()) == 1 and len(rhs.getAddrs()) == 1:
-                    res_val = IntervalValue(not lhs.equals(rhs))
-                else:
-                    if lhs.getAddrs().hasIntersect(rhs.getAddrs()):
-                        res_val = IntervalValue.top()
-                    else:
-                        res_val = IntervalValue(1)
-
-            elif predicate in [Predicate.ICMP_UGT, Predicate.ICMP_SGT, Predicate.FCMP_OGT, Predicate.FCMP_UGT]:
-                if len(lhs.getAddrs()) == 1 and len(rhs.getAddrs()) == 1:
-                    res_val = IntervalValue(next(iter(lhs.getAddrs())) > next(iter(rhs.getAddrs())))
-                else:
-                    res_val = IntervalValue.top()
-
-            elif predicate in [Predicate.ICMP_UGE, Predicate.ICMP_SGE, Predicate.FCMP_OGE, Predicate.FCMP_UGE]:
-                if len(lhs.getAddrs()) == 1 and len(rhs.getAddrs()) == 1:
-                    res_val = IntervalValue(next(iter(lhs.getAddrs())) >= next(iter(rhs.getAddrs())))
-                else:
-                    res_val = IntervalValue.top()
-
-            elif predicate in [Predicate.ICMP_ULT, Predicate.ICMP_SLT, Predicate.FCMP_OLT, Predicate.FCMP_ULT]:
-                if len(lhs.getAddrs()) == 1 and len(rhs.getAddrs()) == 1:
-                    res_val = IntervalValue(next(iter(lhs.getAddrs())) < next(iter(rhs.getAddrs())))
-                else:
-                    res_val = IntervalValue.top()
-
-            elif predicate in [Predicate.ICMP_ULE, Predicate.ICMP_SLE, Predicate.FCMP_OLE, Predicate.FCMP_ULE]:
-                if len(lhs.getAddrs()) == 1 and len(rhs.getAddrs()) == 1:
-                    res_val = IntervalValue(next(iter(lhs.getAddrs())) <= next(iter(rhs.getAddrs())))
-                else:
-                    res_val = IntervalValue.top()
-
-            elif predicate == Predicate.FCMP_FALSE:
-                res_val = IntervalValue(0, 0)
-
-            elif predicate == Predicate.FCMP_TRUE:
-                res_val = IntervalValue(1, 1)
-
-            else:
-                assert False, "undefined compare"
-
-            abstract_state[res] = res_val
-
     def updateStateOnCall(self, call: pysvf.CallPE):
         node = call.getICFGNode()
         abstract_state = self.post_abs_trace[node]
@@ -717,26 +561,3 @@ class AbstractExecution(ABC):
             joined.join_with(
                 self.post_abs_trace[call_node][call.getOpVarId(index)])
         abstract_state[call.getResId()] = joined
-
-    def updateStateOnRet(self, ret: pysvf.RetPE):
-        node = ret.getICFGNode()
-        abstract_state = self.post_abs_trace[node]
-        abstract_state[ret.getLHSVarID()] = abstract_state[ret.getRHSVarID()]
-
-    def updateStateOnSelect(self, select: pysvf.SelectStmt):
-        node = select.getICFGNode()
-        abstract_state = self.post_abs_trace[node]
-        assert isinstance(abstract_state, AEState)
-        res = select.getResId()
-        tval = select.getTrueValue().getId()
-        fval = select.getFalseValue().getId()
-        cond = select.getCondition().getId()
-
-        if abstract_state[cond].isInterval():
-            if abstract_state[cond].getInterval().is_zero():
-                abstract_state[res] = abstract_state[fval]
-            else:
-                abstract_state[res] = abstract_state[tval]
-        else:
-            abstract_state[res].join_with(abstract_state[tval])
-            abstract_state[res].join_with(abstract_state[fval])
