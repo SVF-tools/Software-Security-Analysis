@@ -1,14 +1,14 @@
 # Assignment 3 Grading Cases
 
-Assignment 3 is worth 100 points. The cases in this repository are public
+Assignment 3 is worth 30 points. The cases in this repository are public
 examples, not the complete marking suite. Marking also uses hidden cases; their
 number, distribution, and per-case weights are not published.
 
 | Level | Points | Assessed capabilities |
 | --- | ---: | --- |
-| Level 1 | 30 | Individual abstract-execution features |
-| Level 2 | 40 | Analysis of active real-program fixtures |
-| Level 3 | 30 | Large-program execution and report precision |
+| Level 1 | 10 | Individual abstract-execution features |
+| Level 2 | 10 | Analysis of active real-program fixtures |
+| Level 3 | 10 | Large-program execution and report precision |
 
 ## Level 1
 
@@ -25,7 +25,7 @@ example passes when it exits normally and all of its `svf_assert` or
 
 ## Level 2
 
-Level 2 contributes 40 points overall. Marking considers whether the expected
+Level 2 contributes 10 points overall. Marking considers whether the expected
 target is reported, report precision, and completion without a crash,
 assertion, or timeout.
 
@@ -35,7 +35,7 @@ marking environment.
 
 ## Level 3
 
-Level 3 contributes 30 points overall. Marking considers target detection,
+Level 3 contributes 10 points overall. Marking considers target detection,
 report precision, and successful large-program execution. No Level-3 fixture
 is published in this repository.
 
