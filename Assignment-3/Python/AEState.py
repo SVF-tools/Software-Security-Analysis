@@ -200,11 +200,14 @@ class AEState:
     def joinWith(self, other) -> None:
         self.raw.joinWith(unwrap_state(other))
 
-    def widening(self, other) -> pysvf.AbstractState:
-        return self.raw.widening(unwrap_state(other))
+    def clone(self) -> "AEState":
+        return AEState(self.raw)
 
-    def narrowing(self, other) -> pysvf.AbstractState:
-        return self.raw.narrowing(unwrap_state(other))
+    def widening(self, other) -> "AEState":
+        return AEState(self.raw.widening(unwrap_state(other)))
+
+    def narrowing(self, other) -> "AEState":
+        return AEState(self.raw.narrowing(unwrap_state(other)))
 
     def equals(self, other) -> bool:
         return self.raw.equals(unwrap_state(other))
