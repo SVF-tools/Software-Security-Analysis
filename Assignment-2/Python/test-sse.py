@@ -1,4 +1,8 @@
-from Assignment_2 import *
+import sys
+
+import pysvf
+
+from Assignment_2 import Assignment2
 
 if __name__ == "__main__":
     # check sys.argv and print friendly error message if not enough arguments
