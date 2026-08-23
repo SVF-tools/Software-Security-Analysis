@@ -203,15 +203,21 @@ namespace SVF {
 	}
 
 	AEState AbstractExecutionMgr::test6() {
-		//    int main(int argv) {  // argv is an interval  [4, 10]
-		//    int a;
-		//    int b;
-		//    a = argv + 1;
-		//    b = 5;
-		//    if(a > 10)
-		//       b = a;
-		//    assert(b>=5);
-		//    }
+		// int main(int argv) {  // argv is [4, 10]
+		//     int a;
+		//     int b;
+		//     a = argv + 1;
+		//     b = 5;
+		//
+		//     if (a > 10) {
+		//         b = a;
+		//         if (a <= 8)
+		//             b = 0;
+		//     }
+		//
+		//     assert(b >= 5);
+		// }
+
 		AEState as;
 		NodeID a = getNodeID("a");
 		NodeID b = getNodeID("b");
