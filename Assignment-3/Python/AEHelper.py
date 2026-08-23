@@ -18,10 +18,9 @@ import faulthandler
 
 import pysvf
 from pysvf import ICFG, AbstractValue, ICFGNode, IntervalValue
-from pysvf.enums import Predicate
 
 from AEReporter import AEReporter
-from AEState import AEState, unwrap_state
+from AEState import AEState
 
 faulthandler.enable()
 
@@ -289,7 +288,7 @@ class AbstractExecution(ABC):
 
     def _storePostState(self, node: pysvf.ICFGNode,
                         state: pysvf.AbstractState):
-        self.post_abs_trace[node] = AEState(unwrap_state(state).clone())
+        self.post_abs_trace[node] = state.clone()
 
     def analyse(self):
         self.initWto()
@@ -302,8 +301,8 @@ class AbstractExecution(ABC):
             self.icfg.getGlobalICFGNode()).clone()
         for i in range(main_fun.arg_size()):
             entry_state[main_fun.getArg(i).getId()] = IntervalValue.top()
-        self.pre_abs_trace[entry] = AEState(entry_state.clone())
-        self._storePostState(entry, entry_state)
+        self.pre_abs_trace[entry] = entry_state.clone()
+        self._storePostState(entry, entry_state.raw)
         self.handleFunction(entry)
         self.ensureAllAssertsValidated()
         self.buf_overflow_helper.printReport()
