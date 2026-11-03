@@ -1,6 +1,6 @@
-FROM ubuntu:24.04
+FROM ubuntu:26.04
 
-# Stop ubuntu-20 interactive options.
+# Disable interactive package prompts.
 ENV DEBIAN_FRONTEND noninteractive
 ARG TARGETPLATFORM
 
@@ -21,7 +21,7 @@ ENV build_deps="wget xz-utils git gdb tcl software-properties-common"
 RUN apt-get update --fix-missing
 RUN apt-get install -y $build_deps $lib_deps
 
-# Use the python3 that ships with the Ubuntu 24.04 base image (python 3.12).
+# Use the python3 that ships with the Ubuntu base image.
 # Avoid pulling python3.10 from ppa:deadsnakes/ppa — Launchpad's PPA infrastructure
 # has been intermittently unreachable from CI runners (HTTP 504 / 2-minute timeouts
 # from add-apt-repository), and SVF does not pin a Python version.
