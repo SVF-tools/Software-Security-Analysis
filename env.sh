@@ -8,7 +8,7 @@ PROJECTHOME=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 sysOS=`uname -s`
 
 # Define the LLVM version used by current SVF.
-MajorLLVMVer=21
+MajorLLVMVer=22
 LLVMVer=${MajorLLVMVer}.1.0
 
 # Set the home directories for LLVM and Z3
