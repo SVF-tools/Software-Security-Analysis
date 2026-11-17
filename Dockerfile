@@ -32,7 +32,8 @@ RUN python3 -m pip install --break-system-packages z3-solver
 # Fetch and build SVF source.
 RUN echo "Downloading LLVM and building SVF to " ${HOME}
 WORKDIR ${HOME}
-RUN git clone "https://github.com/SVF-tools/SVF.git"
+RUN git clone "https://github.com/SVF-tools/SVF.git" \
+    && git -C SVF checkout 18af0ee8ba26ff4cd11c7aed12bca4d99dd85c93
 WORKDIR ${HOME}/SVF
 RUN echo "Building SVF ..."
 RUN bash ./build.sh
