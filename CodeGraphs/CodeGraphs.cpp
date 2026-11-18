@@ -1,4 +1,4 @@
-//===- SVF IR and CodeGraph -- -------------------------------------//
+//===- Code Graphs -- -------------------------------------//
 //
 //                     SVF: Static Value-Flow Analysis
 //
@@ -21,14 +21,14 @@
 //===-----------------------------------------------------------------------===//
 
 /*
- // CodeGraphs including PAG, ICFG and ConstraintGraph
+ // Code Graphs including PAG, ICFG and ConstraintGraph
  //
  */
 
 #include "Graphs/SVFG.h"
 #include "SABER/LeakChecker.h"
 #include "SVF-LLVM/LLVMUtil.h"
-#include "SVF-LLVM/SVFIRBuilder.h"
+#include "SVF-LLVM/PAGBuilder.h"
 #include "WPA/Andersen.h"
 
 using namespace SVF;
@@ -51,13 +51,13 @@ int main(int argc, char** argv) {
 	arg_value[arg_num++] = (char*)"-stat=false";
 	assert(arg_num == (orgArgNum + extraArgc) && "more extra arguments? Change the value of extraArgc");
 
-	moduleNameVec = OptionBase::parseOptions(arg_num, arg_value, "SVF IR", "[options] <input-bitcode...>");
+	moduleNameVec = OptionBase::parseOptions(arg_num, arg_value, "Code Graphs", "[options] <input-bitcode...>");
 
 	LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
 
-	/// Build Program Assignment Graph (SVFIR or PAG)
-	SVFIRBuilder builder;
-	SVFIR* pag = builder.build();
+	/// Build Program Assignment Graph (PAG)
+	PAGBuilder builder;
+	PAG* pag = builder.build();
 	// Dump pag
 	pag->dump(pag->getModuleIdentifier() + ".pag");
 	/// ICFG
@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
 	/// iterate each node on PAG,
 	/// where each node represents an SVFVar (variable) and each edge represents a SVFStatement
 	std::cout << "\n\n#######Printing PAG (Program Assignment Graph)#######\n\n";
-	for (SVFIR::iterator it = pag->begin(); it != pag->end(); it++) {
+	for (PAG::iterator it = pag->begin(); it != pag->end(); it++) {
 		std::cout << it->second->toString() << "\n\n";
 	}
 	std::cout << "#################################################\n";

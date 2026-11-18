@@ -34,7 +34,7 @@ namespace SVF {
 	class IntervalExeState;
 	class IntervalValue;
 	class ExeState;
-	class SVFIR2ItvExeState;
+	class PAG2ItvExeState;
 	class AbstractExecutionMgr;
 
 	class AEState : public AbstractState {

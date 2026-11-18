@@ -17,10 +17,10 @@ class AEReporter:
     abstract-interpretation harness.
     """
 
-    def __init__(self, svfir: pysvf.SVFIR):
+    def __init__(self, pag: pysvf.PAG):
         # Map ICFGNode -> diagnostic message for each detected bug.
         self.node_to_bug_info = {}
-        self.svfir = svfir
+        self.pag = pag
         # Harness bookkeeping: stub call sites the analysis actually reached.
         self.assert_points = set()
 
@@ -34,7 +34,7 @@ class AEReporter:
         return AEState(unwrap_state(abstract_state)).getGepByteOffset(gep)
 
     def getGepObjAddrs(self, abstract_state: pysvf.AbstractState, var_id: int, offset: pysvf.IntervalValue) -> pysvf.AddressValue:
-        pointer = self.svfir.getGNode(var_id)
+        pointer = self.pag.getGNode(var_id)
         return AEState(unwrap_state(abstract_state)).getGepObjAddrs(pointer, offset)
 
     def getPointeeElement(self, abstract_state: pysvf.AbstractState, var_id: int):
@@ -45,7 +45,7 @@ class AEReporter:
             obj_id = abstract_state.getIDFromAddr(addr)
             if obj_id == 0:
                 continue
-            return self.svfir.getBaseObject(obj_id).getType()
+            return self.pag.getBaseObject(obj_id).getType()
         return None
 
     def getAllocaInstByteSize(self, abstract_state: pysvf.AbstractState, addr: pysvf.AddrStmt) -> int:
@@ -117,7 +117,7 @@ class AEReporter:
                     pysvf.AbstractState.isBlackHoleObjAddr(addr)):
                 continue
             obj_id = abstractState.getIDFromAddr(addr)
-            base_object = self.svfir.getBaseObject(obj_id)
+            base_object = self.pag.getBaseObject(obj_id)
             if base_object is None or base_object.isBlackHoleObj():
                 continue
             if base_object.isConstantByteSize():

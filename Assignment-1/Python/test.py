@@ -7,7 +7,7 @@ def check_icfg_case(module_name, result, expected):
 
 
 def test_icfg(argv):
-    pysvf.buildSVFModule(argv)  # Build Program Assignment Graph (SVFIR)
+    pysvf.buildSVFModule(argv)  # Build Program Assignment Graph (PAG)
     pag = pysvf.getPAG()
     icfg = pag.getICFG()  # Get ICFG
     gt = Ass1_ICFGTraversal(pag)  # Create ICFG Traversal object
@@ -43,7 +43,7 @@ def test_icfg(argv):
 
 
 def test_pta(argv):
-    pysvf.buildSVFModule(argv)  # Build Program Assignment Graph (SVFIR)
+    pysvf.buildSVFModule(argv)  # Build Program Assignment Graph (PAG)
     pag = pysvf.getPAG()
     andersen_pta = Ass1_Andersen(pag)
     andersen_pta.analyze()  # Run Andersen pointer analysis
@@ -51,7 +51,7 @@ def test_pta(argv):
 
 
 def test_taint(argv):
-    pysvf.buildSVFModule(argv)  # Build Program Assignment Graph (SVFIR)
+    pysvf.buildSVFModule(argv)  # Build Program Assignment Graph (PAG)
     pag = pysvf.getPAG()
     taint = Ass1_ICFGTraversal(pag)
     taint.taintChecking()  # Perform taint analysis

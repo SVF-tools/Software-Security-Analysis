@@ -4,7 +4,7 @@ import pysvf
 
 # Student-facing Assignment 3 implementation.
 class Assignment3(AbstractExecution):
-    def __init__(self, pag: pysvf.SVFIR) -> None:
+    def __init__(self, pag: pysvf.PAG) -> None:
         super().__init__(pag)
 
     def handleGlobalNode(self):

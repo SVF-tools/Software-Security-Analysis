@@ -3,8 +3,8 @@ from Z3SSEMgr import *
 
 
 class Assignment2(SSE):
-    def __init__(self, svfir: pysvf.SVFIR) -> None:
-        super().__init__(svfir)
+    def __init__(self, pag: pysvf.PAG) -> None:
+        super().__init__(pag)
 
     '''
     /// TODO: collect each path once this method is called during reachability analysis, and

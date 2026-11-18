@@ -5,14 +5,14 @@ import sys
 assert_checked = False
 
 class Z3Mgr:
-    def __init__(self, svfir: pysvf.SVFIR) -> None:
-        assert isinstance(svfir, pysvf.SVFIR), "svfir is not a valid SVFIR object, the type of svfir is {}".format(type(svfir))
-        self.pag = svfir
+    def __init__(self, pag: pysvf.PAG) -> None:
+        assert isinstance(pag, pysvf.PAG), "pag is not a valid PAG object, the type of pag is {}".format(type(pag))
+        self.pag = pag
 
         self.ctx = z3.Context()
         self.solver = z3.Solver(ctx=self.ctx)
         self.var_id_to_expr_map = {}
-        self.max_num_of_expr = svfir.getSVFVarNum()*10
+        self.max_num_of_expr = pag.getSVFVarNum()*10
         self.current_expr_idx = 0
 
         self.addressMask = 0x7f000000
@@ -250,11 +250,11 @@ class Z3Mgr:
         self.loc_to_val_map = z3.Const('loc2ValMap', self.loc_to_val_map.sort())
 
 class SSE:
-    def __init__(self, svfir: pysvf.SVFIR) -> None:
-        assert isinstance(svfir, pysvf.SVFIR), "svfir is not a valid SVFIR object, the type of svfir is {}".format(type(svfir))
-        self.svfir = svfir
-        self.icfg = self.svfir.getICFG()
-        self.z3mgr = Z3Mgr(svfir)
+    def __init__(self, pag: pysvf.PAG) -> None:
+        assert isinstance(pag, pysvf.PAG), "pag is not a valid PAG object, the type of pag is {}".format(type(pag))
+        self.pag = pag
+        self.icfg = self.pag.getICFG()
+        self.z3mgr = Z3Mgr(pag)
         self.callingCtx = []
         self.paths = []
         self.path = []
@@ -268,7 +268,7 @@ class SSE:
 
     def identifySink(self) -> list:
         res = []
-        cs = self.svfir.getCallSites()
+        cs = self.pag.getCallSites()
         for c in cs:
             func_name = c.getCalledFunction().getName()
             if func_name == "assert" or func_name == "svf_assert" or func_name == "sink":

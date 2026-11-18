@@ -24,7 +24,7 @@
  // Abstract Execution tests
  //
  */
-#include "SVF-LLVM/SVFIRBuilder.h"
+#include "SVF-LLVM/PAGBuilder.h"
 #include "Util/CommandLine.h"
 #include "Util/Options.h"
 #include "WPA/WPAPass.h"
