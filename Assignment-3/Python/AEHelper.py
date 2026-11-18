@@ -225,14 +225,14 @@ class ICFGWTO:
 
 
 class AbstractExecution(ABC):
-    def __init__(self, pag: pysvf.SVFIR):
-        self.svfir = pag
+    def __init__(self, pag: pysvf.PAG):
+        self.pag = pag
         self.icfg = pag.getICFG()
         self.call_site_stack = []
         self.func_to_wto = {}
         self.pre_abs_trace = {}
         self.post_abs_trace = {}
-        self.buf_overflow_helper = AEReporter(self.svfir)
+        self.buf_overflow_helper = AEReporter(self.pag)
 
         self.widen_delay = 3
         self.addressMask = 0x7f000000
@@ -294,7 +294,7 @@ class AbstractExecution(ABC):
         self.initWto()
         self.handleGlobalNode()
 
-        main_fun = self.svfir.getFunObjVar("main")
+        main_fun = self.pag.getFunObjVar("main")
         assert main_fun, "Main function not found"
         entry = self.icfg.getFunEntryICFGNode(main_fun)
         entry_state = self.getAEState(
@@ -326,7 +326,7 @@ class AbstractExecution(ABC):
         """
         callgraphScc = pysvf.getCallGraphSCC()
         self._callgraph_scc = callgraphScc
-        callgraph = self.svfir.getCallGraph()
+        callgraph = self.pag.getCallGraph()
         self._callgraph = callgraph
 
         # SCC membership comes from pysvf: CallGraphSCC.subNodes(rep) returns
@@ -488,11 +488,11 @@ class AbstractExecution(ABC):
             if pysvf.AbstractState.isBlackHoleObjAddr(addr) or pysvf.AbstractState.isNullMem(addr):
                 continue
             obj_id = abstract_state.getIDFromAddr(addr)
-            base_obj = self.svfir.getBaseObject(obj_id)
+            base_obj = self.pag.getBaseObject(obj_id)
             if base_obj is None or base_obj.isBlackHoleObj() or not base_obj.isConstantByteSize():
                 continue
             size = base_obj.getByteSizeOfObj()
-            gnode = self.svfir.getGNode(obj_id)
+            gnode = self.pag.getGNode(obj_id)
             base_offset = IntervalValue(gnode.getConstantFieldIdx()) if isinstance(gnode, pysvf.GepObjVar) else IntervalValue(0)
             offset = base_offset + length
             if int(offset.ub()) >= size:
@@ -530,7 +530,7 @@ class AbstractExecution(ABC):
         checkpoint_stubs = {"UNSAFE_PTRDEREF", "SAFE_PTRDEREF",
                             "UNSAFE_BUFACCESS", "SAFE_BUFACCESS"}
         unsafe_to_be_verified = 0
-        for node in self.svfir.getICFG().getNodes():
+        for node in self.pag.getICFG().getNodes():
             if not isinstance(node, pysvf.CallICFGNode):
                 continue
             called_function = node.getCalledFunction()

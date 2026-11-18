@@ -5,7 +5,7 @@ from typing import Union
 from Assignment_1_Helper import *
 
 class Ass1_Andersen(AndersenPTA):
-    def __init__(self, pag: pysvf.SVFIR):
+    def __init__(self, pag: pysvf.PAG):
         super().__init__(pag)
 
     '''

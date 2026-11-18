@@ -27,7 +27,7 @@
 
 #include "Z3SSEMgr.h"
 #include "SVF-LLVM/LLVMUtil.h"
-#include "SVFIR/SVFIR.h"
+#include "Graphs/PAG.h"
 #include <iomanip>
 #include <set>
 
@@ -36,9 +36,9 @@ using namespace SVFUtil;
 using namespace llvm;
 using namespace z3;
 
-Z3SSEMgr::Z3SSEMgr(SVFIR* ir)
+Z3SSEMgr::Z3SSEMgr(PAG* ir)
 : Z3Mgr(ir->getSVFVarNum() * 10)
-, svfir(ir) {
+, pag(ir) {
 }
 
 
@@ -51,7 +51,7 @@ z3::expr Z3SSEMgr::createExprForObjVar(const ObjVar* objVar) {
 	std::string str;
 	raw_string_ostream rawstr(str);
 	expr e(ctx);
-	const BaseObjVar* obj = svfir->getBaseObject(objVar->getId());
+	const BaseObjVar* obj = pag->getBaseObject(objVar->getId());
 	/// constant data
 	if (obj->isConstDataOrAggData() || obj->isConstantArray() || obj->isConstantStruct()) {
 		/// `objVar` can be a GepObjVar (e.g. indexing into a constant aggregate),
@@ -99,7 +99,7 @@ z3::expr Z3SSEMgr::getZ3Expr(SVF::u32_t idx, const CallStack& callingCtx) {
 	assert(varId == idx && "SVFVar idx overflow > 0x7f000000?");
 	std::string str;
 	std::stringstream rawstr(str);
-	const SVFVar *svfVar = svfir->getGNode(varId);
+	const SVFVar *svfVar = pag->getGNode(varId);
 	if (const ObjVar* objVar = SVFUtil::dyn_cast<ObjVar>(svfVar)) {
 		return createExprForObjVar(objVar);
 	} else {
@@ -120,19 +120,19 @@ z3::expr Z3SSEMgr::getZ3Expr(SVF::u32_t idx, const CallStack& callingCtx) {
 /// Return the address expr of a ObjVar
 z3::expr Z3SSEMgr::getMemObjAddress(u32_t idx) {
 	NodeID objIdx = getInternalID(idx);
-	assert(SVFUtil::isa<ObjVar>(svfir->getGNode(objIdx)) && "Fail to get the MemObj!");
-	return createExprForObjVar(SVFUtil::cast<ObjVar>(svfir->getGNode(objIdx)));
+	assert(SVFUtil::isa<ObjVar>(pag->getGNode(objIdx)) && "Fail to get the MemObj!");
+	return createExprForObjVar(SVFUtil::cast<ObjVar>(pag->getGNode(objIdx)));
 }
 
 z3::expr Z3SSEMgr::getGepObjAddress(z3::expr pointer, u32_t offset) {
 	NodeID obj = getInternalID(z3Expr2NumValue(pointer));
-	assert(SVFUtil::isa<ObjVar>(svfir->getGNode(obj)) && "Fail to get the base object address!");
-	NodeID gepObj = svfir->getGepObjVar(obj, offset);
+	assert(SVFUtil::isa<ObjVar>(pag->getGNode(obj)) && "Fail to get the base object address!");
+	NodeID gepObj = pag->getGepObjVar(obj, offset);
 	/// TODO: check whether this node has been created before or not to save creation time
 	if (obj == gepObj)
-		return createExprForObjVar(SVFUtil::cast<ObjVar>(svfir->getGNode(obj)));
+		return createExprForObjVar(SVFUtil::cast<ObjVar>(pag->getGNode(obj)));
 	else
-		return createExprForObjVar(SVFUtil::cast<GepObjVar>(svfir->getGNode(gepObj)));
+		return createExprForObjVar(SVFUtil::cast<GepObjVar>(pag->getGNode(gepObj)));
 }
 
 s32_t Z3SSEMgr::getGepOffset(const GepStmt* gep, const CallStack& callingCtx) {
@@ -170,7 +170,7 @@ void Z3SSEMgr::printExprValues(const CallStack& callingCtx) {
 	std::map<std::string, std::string> printValMap;
 	std::map<NodeID, std::string> objKeyMap;
 	std::map<NodeID, std::string> valKeyMap;
-	for (SVFIR::iterator nIter = svfir->begin(); nIter != svfir->end(); ++nIter) {
+	for (PAG::iterator nIter = pag->begin(); nIter != pag->end(); ++nIter) {
 		expr e = getEvalExpr(getZ3Expr(nIter->first, callingCtx));
 		if (e.is_numeral()) {
 			NodeID varID = nIter->second->getId();

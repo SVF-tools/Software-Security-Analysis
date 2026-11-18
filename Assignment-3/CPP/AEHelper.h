@@ -25,7 +25,7 @@
 
 #include "AEReporter.h"
 #include "AEState.h"
-#include "SVFIR/SVFIR.h"
+#include "Graphs/PAG.h"
 
 namespace SVF {
 
@@ -64,7 +64,7 @@ namespace SVF {
 		virtual void handleGlobalNode() = 0;
 		virtual void handleFunction(const ICFGNode* funEntry) = 0;
 
-		SVFIR* svfir = nullptr;
+		PAG* pag = nullptr;
 		ICFG* icfg = nullptr;
 		AndersenWaveDiff* ander = nullptr;
 		Map<const FunObjVar*, ICFGWTO*> funcToWTO;

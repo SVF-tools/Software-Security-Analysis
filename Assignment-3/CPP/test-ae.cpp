@@ -1,5 +1,5 @@
 #include "Assignment_3.h"
-#include "SVF-LLVM/SVFIRBuilder.h"
+#include "SVF-LLVM/PAGBuilder.h"
 #include "Util/CommandLine.h"
 #include "Util/Options.h"
 #include "WPA/Andersen.h"
@@ -68,8 +68,8 @@ int main(int argc, char** argv) {
 	                             "[assignment-options] [svf-options] <input-bitcode...>");
 
 	LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
-	SVFIRBuilder builder;
-	SVFIR* pag = builder.build();
+	PAGBuilder builder;
+	PAG* pag = builder.build();
 	AndersenWaveDiff* ander = AndersenWaveDiff::createAndersenWaveDiff(pag);
 	CallGraph* callgraph = ander->getCallGraph();
 	builder.updateCallGraph(callgraph);

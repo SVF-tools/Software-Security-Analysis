@@ -46,7 +46,7 @@
 using namespace SVF;
 
 void AEHelper::runOnModule(SVF::ICFG* moduleICFG) {
-	svfir = PAG::getPAG();
+	pag = PAG::getPAG();
 	icfg = moduleICFG;
 	analyse();
 	if (!getReporter().getCaseConfig().emitJson)
@@ -57,12 +57,12 @@ void AEHelper::analyse() {
 	initWTO();
 	handleGlobalNode();
 
-	if (const FunObjVar* fun = svfir->getFunObjVar("main")) {
+	if (const FunObjVar* fun = pag->getFunObjVar("main")) {
 		for (u32_t i = 0; i < fun->arg_size(); ++i) {
 			AEState& as = getAEState(icfg->getGlobalICFGNode());
 			as[fun->getArg(i)->getId()] = IntervalValue::top();
 		}
-		assert(svfir->getFunObjVar("main") != nullptr && "Main function not found");
+		assert(pag->getFunObjVar("main") != nullptr && "Main function not found");
 		handleFunction(icfg->getFunEntryICFGNode(fun));
 	}
 }
@@ -116,7 +116,7 @@ bool AEHelper::isExternalCallForAssignment(const SVF::FunObjVar* func) {
 // ---------------------------------------------------------------------------
 
 void AEHelper::initWTO() {
-	ander = AndersenWaveDiff::createAndersenWaveDiff(svfir);
+	ander = AndersenWaveDiff::createAndersenWaveDiff(pag);
 	Andersen::CallGraphSCC* callGraphScc = ander->getCallGraphSCC();
 	callGraphScc->find();
 	auto callGraph = ander->getCallGraph();
@@ -164,7 +164,7 @@ void AEHelper::ensureAllAssertsValidated() {
 	    "UNSAFE_PTRDEREF", "SAFE_PTRDEREF",
 	    "UNSAFE_BUFACCESS", "SAFE_BUFACCESS"};
 	u32_t unsafe_to_be_verified = 0;
-	for (auto it = svfir->getICFG()->begin(); it != svfir->getICFG()->end(); ++it) {
+	for (auto it = pag->getICFG()->begin(); it != pag->getICFG()->end(); ++it) {
 		const ICFGNode* node = it->second;
 		const CallICFGNode* call = SVFUtil::dyn_cast<CallICFGNode>(node);
 		if (!call)
@@ -199,7 +199,7 @@ void AEHelper::ensureAllAssertsValidated() {
 // ---------------------------------------------------------------------------
 
 namespace {
-bool harnessSafeAccess(AbstractState& as, SVFIR* svfir, const ValVar* value,
+bool harnessSafeAccess(AbstractState& as, PAG* pag, const ValVar* value,
                        const IntervalValue& len) {
 	AbstractValue ptrVal = as[value->getId()];
 	if (!ptrVal.isAddr())
@@ -208,12 +208,12 @@ bool harnessSafeAccess(AbstractState& as, SVFIR* svfir, const ValVar* value,
 		if (AbstractState::isBlackHoleObjAddr(addr) || AbstractState::isNullMem(addr))
 			continue;
 		NodeID objId = as.getIDFromAddr(addr);
-		const BaseObjVar* baseObj = svfir->getBaseObject(objId);
+		const BaseObjVar* baseObj = pag->getBaseObject(objId);
 		if (!baseObj || baseObj->isBlackHoleObj() || !baseObj->isConstantByteSize())
 			continue;
 		u32_t size = baseObj->getByteSizeOfObj();
 		IntervalValue baseOffset(0);
-		const SVFVar* svfVar = svfir->getGNode(objId);
+		const SVFVar* svfVar = pag->getGNode(objId);
 		if (auto* gepObj = SVFUtil::dyn_cast<GepObjVar>(svfVar))
 			baseOffset = IntervalValue((s64_t)gepObj->getConstantFieldIdx());
 		IntervalValue offset = baseOffset + len;
@@ -224,7 +224,7 @@ bool harnessSafeAccess(AbstractState& as, SVFIR* svfir, const ValVar* value,
 }
 
 bool harnessSafeDeref(AbstractState& as, const ValVar* value) {
-	if (!value || value->getId() == IRGraph::NullPtr)
+	if (!value || value->getId() == PAGBase::NullPtr)
 		return false;
 	const AbstractValue& absVal = as[value->getId()];
 	if (!absVal.isAddr())
@@ -256,7 +256,7 @@ void AEHelper::handleCheckpointStubs(const CallICFGNode* callNode) {
 		if (len.isBottom())
 			len = IntervalValue(0);
 		const ValVar* ptr = callNode->getArgument(0);
-		if (!harnessSafeAccess(as, svfir, ptr, len - IntervalValue(1)))
+		if (!harnessSafeAccess(as, pag, ptr, len - IntervalValue(1)))
 			reportBufOverflow(callNode);
 	}
 	else if (fun_name == "SAFE_PTRDEREF" || fun_name == "UNSAFE_PTRDEREF") {

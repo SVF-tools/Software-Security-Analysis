@@ -38,22 +38,22 @@ int main(int argc, char** argv) {
 	LLVMModuleSet::getLLVMModuleSet()->buildSVFModule(moduleNameVec);
 	LLVMModuleSet::getLLVMModuleSet()->dumpModulesToFile(".svf");
 
-	SVFIRBuilder builder;
-	SVFIR* svfir = builder.build();
+	PAGBuilder builder;
+	PAG* pag = builder.build();
 
-	CallGraph* callgraph = AndersenWaveDiff::createAndersenWaveDiff(svfir)->getCallGraph();
+	CallGraph* callgraph = AndersenWaveDiff::createAndersenWaveDiff(pag)->getCallGraph();
 	builder.updateCallGraph(callgraph);
 
 	/// ICFG
-	ICFG* icfg = svfir->getICFG();
+	ICFG* icfg = pag->getICFG();
 	icfg->updateCallGraph(callgraph);
 	icfg->dump(moduleNameVec[0] + ".icfg");
 
-	SSE* sse = new SSE(svfir, icfg);
+	SSE* sse = new SSE(pag, icfg);
 	sse->analyse();
 
 	SVF::LLVMModuleSet::releaseLLVMModuleSet();
-	SVF::SVFIR::releaseSVFIR();
+	SVF::PAG::releasePAG();
 
 	delete[] arg_value;
 	delete sse;
