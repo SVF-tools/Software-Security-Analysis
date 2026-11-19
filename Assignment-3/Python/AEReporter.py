@@ -17,7 +17,7 @@ class AEReporter:
     abstract-interpretation harness.
     """
 
-    def __init__(self, pag: pysvf.PAG):
+    def __init__(self, pag: pysvf.SVFIR):
         # Map ICFGNode -> diagnostic message for each detected bug.
         self.node_to_bug_info = {}
         self.pag = pag

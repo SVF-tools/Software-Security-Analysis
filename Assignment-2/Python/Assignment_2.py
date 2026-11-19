@@ -3,7 +3,7 @@ from Z3SSEMgr import *
 
 
 class Assignment2(SSE):
-    def __init__(self, pag: pysvf.PAG) -> None:
+    def __init__(self, pag: pysvf.SVFIR) -> None:
         super().__init__(pag)
 
     '''

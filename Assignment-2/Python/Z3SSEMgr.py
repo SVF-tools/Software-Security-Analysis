@@ -5,8 +5,8 @@ import sys
 assert_checked = False
 
 class Z3Mgr:
-    def __init__(self, pag: pysvf.PAG) -> None:
-        assert isinstance(pag, pysvf.PAG), "pag is not a valid PAG object, the type of pag is {}".format(type(pag))
+    def __init__(self, pag: pysvf.SVFIR) -> None:
+        assert isinstance(pag, pysvf.SVFIR), "pag is not a valid PAG object, the type of pag is {}".format(type(pag))
         self.pag = pag
 
         self.ctx = z3.Context()
@@ -250,8 +250,8 @@ class Z3Mgr:
         self.loc_to_val_map = z3.Const('loc2ValMap', self.loc_to_val_map.sort())
 
 class SSE:
-    def __init__(self, pag: pysvf.PAG) -> None:
-        assert isinstance(pag, pysvf.PAG), "pag is not a valid PAG object, the type of pag is {}".format(type(pag))
+    def __init__(self, pag: pysvf.SVFIR) -> None:
+        assert isinstance(pag, pysvf.SVFIR), "pag is not a valid PAG object, the type of pag is {}".format(type(pag))
         self.pag = pag
         self.icfg = self.pag.getICFG()
         self.z3mgr = Z3Mgr(pag)

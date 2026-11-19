@@ -20,7 +20,7 @@ import pysvf
 from pysvf import ICFG, AbstractValue, ICFGNode, IntervalValue
 
 from AEReporter import AEReporter
-from AEState import AEState
+from AEState import AEState, unwrap_state
 
 faulthandler.enable()
 
@@ -225,7 +225,7 @@ class ICFGWTO:
 
 
 class AbstractExecution(ABC):
-    def __init__(self, pag: pysvf.PAG):
+    def __init__(self, pag: pysvf.SVFIR):
         self.pag = pag
         self.icfg = pag.getICFG()
         self.call_site_stack = []
@@ -288,7 +288,7 @@ class AbstractExecution(ABC):
 
     def _storePostState(self, node: pysvf.ICFGNode,
                         state: pysvf.AbstractState):
-        self.post_abs_trace[node] = state.clone()
+        self.post_abs_trace[node] = AEState(unwrap_state(state).clone())
 
     def analyse(self):
         self.initWto()

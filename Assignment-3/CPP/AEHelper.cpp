@@ -68,13 +68,11 @@ void AEHelper::analyse() {
 }
 
 void AEHelper::reportBufOverflow(const ICFGNode* node) {
-	AEException bug(node->toString());
-	getReporter().addBugToReporter("buffer-overflow", bug, node);
+	getReporter().addBugToReporter("buffer-overflow", node->toString(), node);
 }
 
 void AEHelper::reportNullDeref(const ICFGNode* node) {
-	AEException bug(node->toString());
-	getReporter().addBugToReporter("nullptr-deref", bug, node);
+	getReporter().addBugToReporter("nullptr-deref", node->toString(), node);
 }
 
 /// Whitelist of external-call names covered by the assignment. Covers:

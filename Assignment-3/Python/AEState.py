@@ -201,7 +201,7 @@ class AEState:
         self.raw.joinWith(unwrap_state(other))
 
     def clone(self) -> "AEState":
-        return AEState(self.raw)
+        return AEState(self.raw.clone())
 
     def widening(self, other) -> "AEState":
         return AEState(self.raw.widening(unwrap_state(other)))

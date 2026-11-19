@@ -90,11 +90,11 @@ namespace SVF {
 
 		/// Add a detected bug to the bug reporter and print the report
 		///@{
-		void addBugToReporter(const AEException& e, const ICFGNode* node) {
-			addBugToReporter("buffer-overflow", e, node);
+		void addBugToReporter(const std::string& msg, const ICFGNode* node) {
+			addBugToReporter("buffer-overflow", msg, node);
 		}
 
-		void addBugToReporter(const std::string& kind, const AEException& e, const ICFGNode* node) {
+		void addBugToReporter(const std::string& kind, const std::string& msg, const ICFGNode* node) {
 
 			GenericBug::EventStack eventStack;
 			SVFBugEvent sourceInstEvent(SVFBugEvent::EventType::SourceInst, node);
@@ -125,8 +125,8 @@ namespace SVF {
 			else {
 				assert(false && "Unsupported Assignment-3 bug kind");
 			}
-			_nodeToBugInfo[node] = e.what(); // Record the exception information for the node
-			_reports.push_back({kind, loc, e.what(), node ? node->getId() : 0});
+			_nodeToBugInfo[node] = msg; // Record the exception information for the node
+			_reports.push_back({kind, loc, msg, node ? node->getId() : 0});
 		}
 
 		void printReport() {
