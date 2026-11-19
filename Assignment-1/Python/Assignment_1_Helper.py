@@ -2,8 +2,8 @@ import pysvf
 from typing import Union
 import os
 class AndersenPTA:
-    def __init__(self, pag: pysvf.PAG):
-        assert isinstance(pag, pysvf.PAG), "pag is not a valid PAG object, the type of pag is {}".format(type(pag))
+    def __init__(self, pag: pysvf.SVFIR):
+        assert isinstance(pag, pysvf.SVFIR), "pag is not a valid PAG object, the type of pag is {}".format(type(pag))
         self.pag = pag
         self.ander_base = pysvf.AndersenBase(pag)
         self.consCG = None
@@ -77,7 +77,7 @@ class AndersenPTA:
 
 class ICFGTraversal:
     def __init__(self, pag, ander):
-        assert isinstance(pag, pysvf.PAG), "pag is not a valid PAG object, the type of pag is {}".format(type(pag))
+        assert isinstance(pag, pysvf.SVFIR), "pag is not a valid PAG object, the type of pag is {}".format(type(pag))
         self.pag = pag
         self.icfg = pag.getICFG()
         self.paths = set()
